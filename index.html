@@ -271,6 +271,7 @@
     color:var(--text-muted);
     line-height:1.8;
   }
+  .footer-credit-mark{ color:var(--text-muted); }
   .footer-credit-name{ color:var(--text-secondary); font-weight:600; }
   .footer-credit-link{ color:var(--accent); text-decoration:none; }
   .footer-credit-link:hover{ text-decoration:underline; }
@@ -294,7 +295,7 @@
 <main>
   <section class="hero" id="top">
     <div class="wrap">
-      <span class="hero-eyebrow">무료 · 로그인 없이 바로 사용</span>
+      <span class="hero-eyebrow">완전 무료 · 로그인 · 구독 없이 바로 사용</span>
       <h1 class="display">설치도, 가입도 없이<br>바로 쓰는 도구들</h1>
       <p class="hero-sub">
         쓸모 있는 웹 도구를 모아두는 곳입니다. 링크만 열면 브라우저 안에서 바로 작동하고,
@@ -321,10 +322,33 @@
     <div class="wrap">
       <div class="tools-head">
         <h2>지금 쓸 수 있는 도구</h2>
-        <span class="tools-count">1개</span>
+        <span class="tools-count">2개</span>
       </div>
 
       <div class="tool-grid">
+        <article class="tool-card">
+          <div class="tool-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path><path d="M9 15h6M9 11h6"></path></svg>
+          </div>
+          <div class="tool-body">
+            <div class="tool-name">PDF 편집기</div>
+            <p class="tool-desc">
+              여러 PDF를 하나로 합치고, 원하는 페이지 범위로 나누고, 순서를 바꾸거나 회전하고, 필요없는 페이지는 지울 수 있습니다.
+              파일은 서버에 올라가지 않고 이 브라우저 안에서만 처리됩니다.
+            </p>
+            <div class="tool-tags">
+              <span class="tool-tag">PDF 합치기·분할·압축</span>
+              <span class="tool-tag">페이지 순서변경·회전·A4비율 변경</span>
+              <span class="tool-tag">이미지 다운로드·페이지 삭제</span>
+              <span class="tool-tag">서버 업로드 없음</span>
+            </div>
+            <a class="tool-cta" href="pdf-editor.html">
+              도구 열기
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"></path></svg>
+            </a>
+          </div>
+        </article>
+
         <article class="tool-card">
           <div class="tool-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"></path><rect x="7" y="12" width="3" height="6"></rect><rect x="12.5" y="8" width="3" height="10"></rect><rect x="18" y="5" width="3" height="13"></rect></svg>
@@ -359,7 +383,7 @@
 <footer class="page-footer">
   <div class="wrap">
     이 페이지의 모든 도구는 브라우저 안에서 바로 작동하며, 별도 설치나 로그인이 필요하지 않습니다.<br>
-    <span class="footer-credit-name">고윤태</span> · <a class="footer-credit-link" href="https://yuntaeko.com/" target="_blank" rel="noopener noreferrer">yuntaeko.com</a> · ⓒ 2026
+    <span class="footer-credit-mark">ⓒ 2026</span> <span class="footer-credit-name">고윤태</span> · <a class="footer-credit-link" href="https://yuntaeko.com/" target="_blank" rel="noopener noreferrer">yuntaeko.com</a> — 정성을 담아 제작한 페이지입니다. 무단 도용 및 출처 표기 없는 재배포를 금지합니다.
   </div>
 </footer>
 

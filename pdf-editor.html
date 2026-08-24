@@ -1,0 +1,2301 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PDF 합치기·분할·편집 | 쓸모연구소</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%84%3C/text%3E%3C/svg%3E">
+<meta name="description" content="여러 PDF를 합치고, 원하는 페이지 범위로 분할하고, 용량을 압축하고, 페이지 순서를 바꾸고, 회전하고, A4 비율로 맞추고, 페이지를 이미지로 다운로드하고, 필요없는 페이지를 지우는 작업을 한 페이지에서. 파일은 서버로 전송되지 않고 브라우저 안에서만 처리됩니다.">
+<style>
+  :root{
+    --bg:#f9f9f7;
+    --text:#0b0b0b;
+    --text-dim:#5c5c58;
+    --card:#ffffff;
+    --card-border:#e6e5e0;
+    --accent:#2a78d6;
+    --accent-dim:#e8f0fb;
+    --accent2:#7c5cd1;
+    --accent2-dim:#efe9fb;
+    --danger:#d64545;
+    --radius:16px;
+    --radius-sm:10px;
+    --topbar-bg:#fcfcfb;
+    --topbar-border:rgba(11,11,11,0.10);
+    --topbar-text:#898781;
+    --topbar-hover:#2a78d6;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0d0d0d;
+      --text:#ffffff;
+      --text-dim:#a3a39c;
+      --card:#1a1a1a;
+      --card-border:#2c2c2a;
+      --accent:#4f93e8;
+      --accent-dim:#132132;
+      --accent2:#a78bfa;
+      --accent2-dim:#221b35;
+      --danger:#e8685f;
+      --topbar-bg:#1a1a19;
+      --topbar-border:rgba(255,255,255,0.10);
+      --topbar-text:#898781;
+      --topbar-hover:#3987e5;
+    }
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+    line-height:1.5;
+    min-height:100vh;
+  }
+  a{color:var(--accent);}
+  .wrap{
+    max-width:980px;
+    margin:0 auto;
+    padding:32px 20px 140px; /* extra bottom room so the floating download bar never covers the last cards */
+  }
+  header.top{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    margin-bottom:28px;
+  }
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:13px;
+    color:var(--text-dim);
+    font-weight:600;
+    letter-spacing:.02em;
+  }
+  .brand .dot{
+    width:7px;height:7px;border-radius:50%;
+    background:var(--accent);
+    display:inline-block;
+  }
+  h1{
+    font-size:26px;
+    margin:2px 0 4px;
+    letter-spacing:-.01em;
+    word-break:keep-all; /* long keyword-list heading: wrap only at spaces, never mid-word */
+  }
+  .sub{
+    color:var(--text-dim);
+    font-size:14.5px;
+    margin:0;
+  }
+  .badge-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:10px;
+  }
+  .privacy-badge{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:6px 12px;
+    border-radius:999px;
+    background:var(--accent-dim);
+    color:var(--accent);
+    font-size:12.5px;
+    font-weight:600;
+    width:fit-content;
+  }
+  .feature-badge{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:6px 12px;
+    border-radius:999px;
+    background:var(--accent2-dim);
+    color:var(--accent2);
+    font-size:12.5px;
+    font-weight:600;
+    width:fit-content;
+  }
+
+  /* 버튼 사용법 안내 — 설문 대시보드의 접이식 안내 패널과 동일한 구조/스타일.
+     처음 쓰는 사람이 화면을 열자마자 압도되지 않도록 기본은 접힌 상태. */
+  .help-panel{
+    margin:0 0 20px;
+  }
+  .help-toggle{
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+    background:var(--card);
+    border:1px solid var(--card-border);
+    border-radius:999px;
+    color:var(--text-dim);
+    font-size:12.5px;
+    font-weight:600;
+    cursor:pointer;
+    padding:7px 14px;
+    transition: background .12s ease, color .12s ease, border-color .12s ease;
+  }
+  .help-toggle:hover{background:var(--accent-dim); color:var(--text);}
+  .help-panel.open .help-toggle{color:var(--text); border-color:var(--accent);}
+  .help-toggle-icon{
+    display:inline-block;
+    transition:transform .15s ease;
+    font-size:10px;
+    color:var(--accent);
+  }
+  .help-panel.open .help-toggle-icon{transform:rotate(90deg);}
+  .help-content{
+    display:none;
+    margin-top:10px;
+    background:var(--card);
+    border:1px solid var(--card-border);
+    border-radius:14px;
+    padding:22px 24px 24px;
+  }
+  .help-panel.open .help-content{display:block;}
+  .help-section{margin-bottom:22px;}
+  .help-section:last-child{margin-bottom:0;}
+  .help-section-label{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-size:11px;
+    font-weight:700;
+    color:var(--accent);
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    margin-bottom:12px;
+  }
+  .help-section-label::after{
+    content:"";
+    flex:1;
+    height:1px;
+    background:var(--card-border);
+  }
+  .help-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(220px,1fr));
+    gap:10px;
+  }
+  .help-item{
+    background:var(--bg);
+    border-radius:10px;
+    padding:11px 13px;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+  .help-key{
+    display:inline-flex;
+    align-self:flex-start;
+    align-items:center;
+    font-size:12px;
+    font-weight:700;
+    color:var(--text);
+    background:var(--card);
+    border:1px solid var(--card-border);
+    border-radius:6px;
+    padding:3px 9px;
+    white-space:nowrap;
+  }
+  .help-desc{
+    font-size:12px;
+    color:var(--text-dim);
+    line-height:1.55;
+  }
+  .help-desc b{color:var(--text); font-weight:700;}
+  .help-item.help-tip{
+    background:none;
+    border:1px dashed var(--card-border);
+    grid-column:1 / -1;
+  }
+  .help-item.help-item-wide{ grid-column:1 / -1; }
+  .help-item-wide .help-key{ white-space:normal; line-height:1.5; }
+
+  .dropzone{
+    border:1.5px dashed var(--card-border);
+    border-radius:var(--radius);
+    background:var(--card);
+    padding:40px 20px;
+    text-align:center;
+    cursor:pointer;
+    transition:border-color .15s ease, background .15s ease;
+  }
+  .dropzone:hover, .dropzone.dragover{
+    border-color:var(--accent);
+    background:var(--accent-dim);
+  }
+  .dropzone .icon{
+    font-size:30px;
+    margin-bottom:8px;
+    opacity:.85;
+  }
+  .dropzone .main-txt{
+    font-size:15.5px;
+    font-weight:600;
+  }
+  .dropzone .sub-txt{
+    font-size:13px;
+    color:var(--text-dim);
+    margin-top:4px;
+  }
+  input[type=file]{display:none;}
+
+  .toolbar{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:10px;
+    margin:22px 0 18px;
+  }
+  .toolbar .count{
+    font-size:13.5px;
+    color:var(--text-dim);
+    margin-right:auto;
+  }
+  .toolbar .count strong{
+    color:var(--text);
+  }
+  button{
+    font-family:inherit;
+    font-size:13.5px;
+    font-weight:600;
+    border-radius:999px;
+    border:1px solid var(--card-border);
+    background:var(--card);
+    color:var(--text);
+    padding:9px 16px;
+    cursor:pointer;
+    transition:transform .08s ease, border-color .15s ease, background .15s ease;
+  }
+  button:hover{border-color:var(--accent);}
+  button:active{transform:scale(.97);}
+  button:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+  button.primary{
+    background:var(--accent);
+    border-color:var(--accent);
+    color:#fff;
+  }
+  button.primary:hover{opacity:.92;border-color:var(--accent);}
+  button.ghost{
+    background:transparent;
+  }
+  button.danger-ghost{
+    background:transparent;
+    color:var(--danger);
+    border-color:var(--card-border);
+  }
+  button.danger-ghost:hover{border-color:var(--danger);}
+  button.danger{
+    background:var(--danger);
+    border-color:var(--danger);
+    color:#fff;
+  }
+  button.danger:hover{opacity:.92;border-color:var(--danger);}
+
+  /* 되돌릴 수 없는 동작(전체 지우기 등) 전에 한 번 확인받는 팝업. confirm()의 대체. */
+  .modal-overlay{
+    position:fixed; inset:0; z-index:10000;
+    background:rgba(0,0,0,.44);
+    display:flex; align-items:center; justify-content:center;
+    padding:20px;
+    opacity:0; pointer-events:none;
+    transition:opacity .12s ease;
+  }
+  .modal-overlay.show{opacity:1; pointer-events:auto;}
+  .modal-box{
+    background:var(--card);
+    border:1px solid var(--card-border);
+    border-radius:var(--radius);
+    box-shadow:0 16px 44px rgba(0,0,0,.28);
+    max-width:400px; width:100%;
+    padding:22px;
+    transform:translateY(6px) scale(.98);
+    transition:transform .12s ease;
+  }
+  .modal-overlay.show .modal-box{transform:translateY(0) scale(1);}
+  .modal-message{
+    font-size:14.5px;
+    line-height:1.6;
+    color:var(--text);
+    white-space:pre-line;
+    margin:0 0 18px;
+  }
+  .modal-actions{display:flex; justify-content:flex-end; gap:8px;}
+  .modal-actions button{padding:8px 16px;}
+
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(150px, 1fr));
+    gap:14px;
+  }
+  .page-card{
+    background:var(--card);
+    border:1px solid var(--card-border);
+    border-radius:var(--radius-sm);
+    padding:10px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    cursor:grab;
+    position:relative;
+    user-select:none;
+    touch-action:none;
+    will-change:transform;
+  }
+  .page-card.dragging{
+    cursor:grabbing;
+    z-index:60;
+    pointer-events:none;
+    box-shadow:0 16px 32px rgba(0,0,0,.24);
+    transition:none;
+  }
+  .thumb-box{
+    position:relative;
+    border-radius:8px;
+    overflow:hidden;
+    background:var(--bg);
+    border:1px solid var(--card-border);
+    aspect-ratio:3/4;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  /* A4비율이 켜진 카드는 테두리 강조 + 상단 A4 배지로만 표시한다. 박스 자체를 A4 비율(210:297
+     등)로 바꿔서 미리보기를 정확히 흉내내려던 적이 있었는데, 카드마다 박스 높이가 달라지면서
+     같은 줄의 다른 카드와 버튼 위치가 어긋나는 문제가 있어(사용자 피드백) 되돌림 — 정확한
+     "여백 없이 꽉 채운 모습" 미리보기는 확대(라이트박스)의 "원본과 비교"에서 보여준다. */
+  .thumb-box.a4-fit{
+    border-color:var(--accent);
+  }
+  .a4-badge{
+    position:absolute;
+    top:6px;
+    left:50%;
+    transform:translateX(-50%);
+    z-index:3;
+    background:var(--accent);
+    color:var(--accent-ink, #fff);
+    font-size:10.5px;
+    font-weight:700;
+    letter-spacing:.02em;
+    padding:2px 8px;
+    border-radius:999px;
+  }
+  .thumb-box img{
+    width:100%;
+    height:100%;
+    object-fit:contain;
+    transition:transform .15s ease;
+    background:#fff;
+    -webkit-user-drag:none;
+    user-drag:none;
+    -webkit-touch-callout:none;
+  }
+  .order-badge{
+    position:absolute;
+    top:6px;
+    left:6px;
+    z-index:3; /* the thumbnail img has its own transform (rotation), which creates a stacking
+                  context that would otherwise paint over this absolutely-positioned badge —
+                  most visible on landscape pages where the badge sits over empty letterboxing */
+    background:rgba(0,0,0,.62);
+    color:#fff;
+    font-size:11px;
+    font-weight:700;
+    padding:2px 7px;
+    border-radius:999px;
+  }
+  .page-badge{
+    position:absolute;
+    top:6px;
+    right:6px;
+    z-index:3;
+    background:rgba(0,0,0,.62);
+    color:#fff;
+    font-size:11px;
+    font-weight:700;
+    padding:2px 7px;
+    border-radius:999px;
+  }
+  .zoom-badge{
+    position:absolute;
+    bottom:6px;
+    right:6px;
+    z-index:3;
+    background:rgba(0,0,0,.62);
+    color:#fff;
+    font-size:13px;
+    width:24px;
+    height:24px;
+    border:none;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    padding:0;
+  }
+  .zoom-badge:hover{background:rgba(0,0,0,.8);}
+  .zoom-badge svg{width:13px;height:13px;flex:none;}
+  /* 사용법 안내 안에서 실제 돋보기 배지를 그대로 축소해서 보여주는 미니 버전 —
+     설문 대시보드가 확대/축소 배지 설명에 진짜 SVG 아이콘을 그대로 쓰는 것과 같은 패턴. */
+  .help-key .mini-zoom{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:20px;
+    height:20px;
+    border-radius:50%;
+    background:rgba(0,0,0,.62);
+    color:#fff;
+  }
+  .help-key .mini-zoom svg{width:11px;height:11px;flex:none;}
+  .page-card .meta{
+    font-size:11px;
+    color:var(--text-dim);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .card-actions{
+    display:flex;
+    flex-direction:column;
+    gap:5px;
+  }
+  .actions-row{
+    display:flex;
+    gap:5px;
+  }
+  .icon-btn{
+    flex:1;
+    min-width:0;
+    padding:6px 3px;
+    font-size:11.5px;
+    border-radius:8px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:3px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .icon-btn.delete{color:var(--danger);}
+  .icon-btn.active{
+    background:var(--accent-dim);
+    border-color:var(--accent);
+    color:var(--accent);
+  }
+  .icon-btn.full{flex:1 1 100%;}
+
+  .view-hint{
+    font-size:12.5px;
+    color:var(--text-dim);
+    margin:-6px 0 14px;
+  }
+
+  .empty-state{
+    text-align:center;
+    color:var(--text-dim);
+    font-size:13.5px;
+    padding:30px 0;
+  }
+
+  /* Floating so it stays reachable no matter how far the grid scrolls. */
+  .download-bar{
+    position:fixed;
+    left:50%;
+    bottom:18px;
+    transform:translateX(-50%);
+    width:calc(100% - 40px);
+    max-width:760px;
+    z-index:200;
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:10px;
+    padding:14px 16px;
+    background:var(--card);
+    border:1px solid var(--card-border);
+    border-radius:var(--radius);
+    box-shadow:0 12px 32px rgba(0,0,0,.22);
+  }
+  .download-bar-row{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:10px;
+    width:100%;
+  }
+  .download-bar label{
+    font-size:12.5px;
+    color:var(--text-dim);
+    font-weight:600;
+  }
+  .filename-row{
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .filename-row input[type=text]{
+    font-family:inherit;
+    font-size:13.5px;
+    padding:9px 12px;
+    border-radius:999px;
+    border:1px solid var(--card-border);
+    background:var(--bg);
+    color:var(--text);
+    width:160px;
+  }
+  .filename-row span{
+    font-size:13px;
+    color:var(--text-dim);
+  }
+  .download-bar .spacer{margin-left:auto;}
+  .download-buttons{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+
+  .status-line{
+    font-size:12.5px;
+    color:var(--text-dim);
+    margin-top:8px;
+    min-height:16px;
+    width:100%;
+  }
+
+  .top-bar{
+    background:var(--topbar-bg);
+    border-bottom:1px solid var(--topbar-border);
+  }
+  .back-link{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    max-width:980px;
+    margin:0 auto;
+    padding:12px 24px;
+    font-size:13px;
+    font-weight:600;
+    color:var(--topbar-text);
+    text-decoration:none;
+    width:fit-content;
+  }
+  .back-link svg{
+    width:14px;
+    height:14px;
+    flex:none;
+  }
+  .back-link:hover{color:var(--topbar-hover);}
+
+  footer.note{
+    margin-top:40px;
+    font-size:12.5px;
+    color:var(--text-dim);
+    text-align:left;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+  footer.note .copyright{
+    margin-top:8px;
+    padding-top:14px;
+    border-top:1px solid var(--card-border);
+    font-size:12.5px;
+    color:var(--text-dim);
+    line-height:1.6;
+  }
+  footer.note .copyright .mark{ color:var(--text-dim); font-weight:600; }
+  footer.note .copyright .name{ color:var(--accent); font-weight:700; }
+  footer.note .copyright a{
+    color:var(--accent);
+    font-weight:600;
+    text-decoration:none;
+    border-bottom:1px solid transparent;
+    transition:border-color .12s ease;
+  }
+  footer.note .copyright a:hover{ border-bottom-color:var(--accent); }
+
+  /* Shown while multiple dropped files are still being read, so a user who
+     dropped 5 PDFs doesn't mistake the trickling-in of the first file's pages
+     for "only one file uploaded." Sits above the grid, semi-transparent so the
+     progressive page reveal underneath still reads as visible progress. */
+  .loading-overlay{
+    position:fixed;
+    inset:0;
+    z-index:400;
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:14px;
+    background:rgba(249,249,247,.72);
+  }
+  @media (prefers-color-scheme: dark){
+    .loading-overlay{background:rgba(13,13,13,.72);}
+  }
+  .loading-overlay.show{display:flex;}
+  .spinner{
+    width:38px;
+    height:38px;
+    border-radius:50%;
+    border:3.5px solid var(--card-border);
+    border-top-color:var(--accent);
+    animation:spin .8s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .loading-overlay .loading-text{
+    font-size:14px;
+    font-weight:600;
+    color:var(--text);
+    background:var(--card);
+    border:1px solid var(--card-border);
+    padding:8px 16px;
+    border-radius:999px;
+    box-shadow:0 6px 18px rgba(0,0,0,.12);
+  }
+
+  .split-panel{
+    display:none;
+    width:100%;
+    flex-direction:column;
+    gap:8px;
+    padding-top:10px;
+    margin-top:2px;
+    border-top:1px solid var(--card-border);
+  }
+  .split-panel.show{display:flex;}
+  .split-panel .split-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+  .split-panel input[type=text]{
+    font-family:inherit;
+    font-size:13.5px;
+    padding:9px 12px;
+    border-radius:999px;
+    border:1px solid var(--card-border);
+    background:var(--bg);
+    color:var(--text);
+    flex:1;
+    min-width:180px;
+  }
+  .split-preview{
+    font-size:12px;
+    color:var(--text-dim);
+  }
+  .split-preview .warn{color:var(--danger);font-weight:600;}
+
+  /* Preview lightbox */
+  .lightbox{
+    position:fixed;
+    inset:0;
+    z-index:500;
+    display:none;
+    flex-direction:column;
+    background:rgba(0,0,0,.78);
+  }
+  .lightbox.show{display:flex;}
+  /* A4비율 토글이 뜨는 자리를 처음부터 레이아웃에 확보해두는 상단 바 — 예전에는 이 토글을
+     position:fixed로 이미지 위에 그냥 띄웠더니 큰 페이지의 위쪽 내용과 겹쳐 보이는 문제가 있었다.
+     이제는 일반 흐름 안에 넣어서, 아래 .lightbox-body가 남는 높이만큼만 차지하게 만든다. */
+  .lightbox-topbar{
+    flex:none;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:16px 70px 0;
+    min-height:20px;
+  }
+  .lightbox-body{
+    flex:1;
+    min-height:0; /* flex children default to min-height:auto, which can stop this from shrinking
+                     below its content's intrinsic size — without it a tall page ignores the space
+                     actually left for it and overflows instead of scaling down. */
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:14px 70px 66px; /* side padding clears the fixed prev/next circles; bottom clears the caption pill */
+  }
+  .lightbox-stage{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width:100%;
+    height:100%;
+    max-width:100%;
+    max-height:100%;
+    min-height:0; /* same reasoning as .lightbox-body above, one level down for the image itself */
+  }
+  .lightbox img{
+    max-width:100%;
+    max-height:100%;
+    min-width:0;
+    min-height:0; /* images are flex items here too (stage is display:flex) — without this,
+                     the browser's default min-height:auto on a replaced element keeps it at its
+                     full intrinsic size and the max-height cap above is silently ignored. */
+    border-radius:6px;
+    background:#fff;
+    box-shadow:0 20px 50px rgba(0,0,0,.5);
+  }
+  /* A4비율 켜진 페이지를 확대했을 때만 등장: 이 스테이지 자체를 A4(210:297, 가로형 페이지면
+     297:210) 비율의 캔버스로 만들고 이미지를 그 안에 꽉 채워(stretch) 그린다 — "A4로 맞췄을 때
+     실제로 어떻게 보이는지"(여백 없이 늘어난 모습 그대로)를 확대 화면에서도 그대로 비교할 수
+     있게. 너비/높이는 CSS aspect-ratio가 아니라 layoutLightboxA4Stage()가 매번 JS로 픽셀 단위
+     계산해서 인라인 style로 채운다 — height:100%+aspect-ratio+max-width 조합은 max-width가
+     실제로 걸리는 경계 케이스에서 브라우저마다 높이를 다시 못 맞춰 스테이지가 뷰포트를 벗어나는
+     문제가 있었다(사용자가 실제로 겪음). 여기서는 시각 스타일(배경/그림자 등)만 담당한다. */
+  .lightbox-stage.a4-compare{
+    background:#fff;
+    border-radius:6px;
+    box-shadow:0 20px 50px rgba(0,0,0,.5);
+  }
+  .lightbox-stage.a4-compare img{
+    width:100%;
+    height:100%;
+    max-width:100%;
+    max-height:100%;
+    object-fit:fill;
+    border-radius:0;
+    box-shadow:none;
+    background:none;
+  }
+  .lightbox-a4-toggle{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    background:rgba(255,255,255,.14);
+    color:#fff;
+    border:1px solid rgba(255,255,255,.3);
+    border-radius:999px;
+    padding:8px 16px;
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .lightbox-a4-toggle:hover{background:rgba(255,255,255,.28);}
+  .lightbox-close, .lightbox-nav{
+    position:fixed;
+    background:rgba(255,255,255,.14);
+    color:#fff;
+    border:1px solid rgba(255,255,255,.3);
+    border-radius:50%;
+    width:42px;
+    height:42px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:18px;
+    cursor:pointer;
+  }
+  .lightbox-close:hover, .lightbox-nav:hover{background:rgba(255,255,255,.28);}
+  .lightbox-close{top:18px;right:18px;}
+  .lightbox-nav.prev{left:18px;top:50%;transform:translateY(-50%);}
+  .lightbox-nav.next{right:18px;top:50%;transform:translateY(-50%);}
+  .lightbox-caption{
+    position:fixed;
+    bottom:20px;
+    left:50%;
+    transform:translateX(-50%);
+    color:#fff;
+    font-size:13px;
+    background:rgba(0,0,0,.5);
+    padding:6px 14px;
+    border-radius:999px;
+  }
+
+  @media (max-width:520px){
+    h1{font-size:21px;}
+    .grid{grid-template-columns:repeat(auto-fill, minmax(120px,1fr));}
+    .filename-row input[type=text]{width:110px;}
+    .download-bar{width:calc(100% - 20px);bottom:10px;padding:12px;}
+    .download-buttons{width:100%;flex-direction:column;}
+    .download-buttons button{flex:1;width:100%;}
+    .split-panel .split-row{flex-direction:column;align-items:stretch;}
+    .split-panel input[type=text]{width:100%;}
+    .lightbox-nav{width:36px;height:36px;font-size:16px;}
+  }
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <a class="back-link" href="index.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H6M12 5l-7 7 7 7"></path></svg>
+    도구상자로 돌아가기
+  </a>
+</div>
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><span class="dot"></span>쓸모연구소</div>
+    <h1>PDF 편집기</h1>
+    <p class="sub">여러 PDF를 하나로 합치고, 원하는 페이지 범위로 나누고, 순서를 바꾸거나 회전하고, 필요없는 페이지는 지우세요. 페이지를 이미지로 저장할 수도 있어요.</p>
+    <div class="badge-row">
+      <span class="feature-badge">PDF 합치기 · 분할 · 압축 · 순서변경 · 회전 · A4비율 변경 · 이미지 다운로드 · 삭제</span>
+      <span class="privacy-badge">파일은 서버에 업로드되지 않습니다 · 모든 처리는 이 브라우저 안에서 끝납니다</span>
+      <span class="privacy-badge">로그인·구독 필요 없음 · 몇 번을 다시 편집해도 완전 무료</span>
+    </div>
+  </header>
+
+  <div class="help-panel" id="helpPanel">
+    <button class="help-toggle" id="helpToggle" type="button" aria-expanded="false">
+      <span class="help-toggle-icon">▶</span> 버튼 사용법 보기
+    </button>
+    <div class="help-content" id="helpContent">
+      <div class="help-section">
+        <div class="help-section-label">파일 올리기 · 상단 버튼</div>
+        <div class="help-grid">
+          <div class="help-item"><span class="help-key">+ 파일 추가</span><span class="help-desc">지금 목록에 PDF 파일을 더 추가합니다.</span></div>
+          <div class="help-item"><span class="help-key">전체 지우기</span><span class="help-desc">올린 파일과 페이지를 모두 지우고 처음 화면으로 되돌립니다.</span></div>
+          <div class="help-item"><span class="help-key">🔍 상세보기 / ← 파일 목록으로</span><span class="help-desc">파일을 2개 이상 올리면 파일 카드 목록이 먼저 보이는데, 이 버튼으로 페이지 단위 화면과 파일 목록 화면을 오갈 수 있습니다.</span></div>
+        </div>
+      </div>
+      <div class="help-section">
+        <div class="help-section-label">페이지 카드 버튼</div>
+        <div class="help-grid">
+          <div class="help-item"><span class="help-key">↑ / ↓</span><span class="help-desc">페이지를 앞/뒤로 한 칸씩 옮깁니다. 카드를 직접 마우스로 눌러 끌어서 옮길 수도 있습니다(휴대폰에서는 손가락으로 동일하게 동작).</span></div>
+          <div class="help-item"><span class="help-key">↻</span><span class="help-desc">페이지를 90도씩 회전합니다. 여러 번 누르면 계속 돌아갑니다.</span></div>
+          <div class="help-item"><span class="help-key">📐 A4비율</span><span class="help-desc">여백 없이 페이지를 A4 비율(세로형이면 세로 A4, 가로형이면 가로 A4)로 꽉 채워 늘립니다. 원본 비율이 A4와 다르면 살짝 눌리거나 늘어날 수 있어요 — 확대 화면에서 "원본과 비교"로 확인할 수 있습니다. 이미 A4 비율인 페이지는 버튼이 자동으로 비활성화됩니다.</span></div>
+          <div class="help-item"><span class="help-key">📥 이미지</span><span class="help-desc">이 페이지 한 장을 고화질 PNG 이미지로 저장합니다.</span></div>
+          <div class="help-item"><span class="help-key">✕ 삭제</span><span class="help-desc">이 페이지를 목록에서 삭제합니다.</span></div>
+          <div class="help-item"><span class="help-key"><span class="mini-zoom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.35-4.35"></path></svg></span></span><span class="help-desc">썸네일 우측 하단의 돋보기 — 페이지를 크게 확대해서 봅니다.</span></div>
+        </div>
+      </div>
+      <div class="help-section">
+        <div class="help-section-label">파일 카드 버튼 (파일 2개 이상일 때)</div>
+        <div class="help-grid">
+          <div class="help-item"><span class="help-key">↑ / ↓</span><span class="help-desc">파일 전체를 통째로 앞/뒤로 옮깁니다. 파일 안 페이지 순서는 그대로 유지됩니다.</span></div>
+          <div class="help-item"><span class="help-key">🔍 상세보기</span><span class="help-desc">이 파일의 페이지들을 페이지 단위 화면으로 열어서 순서변경·회전·삭제 등 세부 편집을 합니다.</span></div>
+          <div class="help-item"><span class="help-key">✕ 파일 삭제</span><span class="help-desc">이 파일 전체(안에 있는 모든 페이지)를 목록에서 삭제합니다.</span></div>
+        </div>
+      </div>
+      <div class="help-section">
+        <div class="help-section-label">다운로드</div>
+        <div class="help-grid">
+          <div class="help-item"><span class="help-key">저장 파일명</span><span class="help-desc">다운로드될 PDF 파일의 이름을 정합니다.</span></div>
+          <div class="help-item"><span class="help-key">✂ 분할 저장</span><span class="help-desc">"1-13, 14-30"처럼 페이지 범위를 직접 입력해서 여러 개의 PDF로 나눠 zip 파일 하나로 받습니다. 범위에 포함되지 않은 페이지(예: 13-24)는 어떤 파일에도 들어가지 않고 빠집니다.</span></div>
+          <div class="help-item"><span class="help-key">🗜 압축 다운로드</span><span class="help-desc">텍스트와 벡터는 그대로 두고, 사진처럼 용량이 큰 이미지만 다시 압축해서 전체 용량을 줄여 다운로드합니다. 사진이 적은 문서는 효과가 적을 수 있습니다.</span></div>
+          <div class="help-item"><span class="help-key">PDF로 다운로드</span><span class="help-desc">지금 화면에 보이는 순서·회전·A4비율·삭제 상태 그대로 하나의 PDF로 합쳐서 다운로드합니다.</span></div>
+        </div>
+      </div>
+      <div class="help-section">
+        <div class="help-section-label">그 밖에</div>
+        <div class="help-grid">
+          <div class="help-item help-tip"><span class="help-desc">💡 확대(돋보기)로 연 화면에서는 <b>‹ › 버튼</b>이나 <b>키보드 화살표</b>로 다른 페이지로 넘어갈 수 있고, <b>Esc</b>나 배경 클릭·✕ 버튼으로 닫을 수 있습니다. 파일은 서버로 전송되지 않고 이 브라우저 안에서만 처리됩니다.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dropzone" id="dropzone">
+    <div class="icon">📄</div>
+    <div class="main-txt">여기로 PDF를 끌어다 놓거나 클릭해서 선택하세요</div>
+    <div class="sub-txt">여러 파일을 한 번에 선택할 수 있어요</div>
+    <input type="file" id="fileInput" accept="application/pdf" multiple>
+  </div>
+
+  <div class="toolbar" id="toolbar" style="display:none;">
+    <div class="count"><strong id="pageCount">0</strong>페이지 · <span id="fileCount">0</span>개 파일</div>
+    <button class="ghost" id="viewToggleBtn" style="display:none;"></button>
+    <button class="ghost" id="addMoreBtn">+ 파일 추가</button>
+    <button class="danger-ghost" id="clearAllBtn">전체 지우기</button>
+  </div>
+  <div class="view-hint" id="viewHint" style="display:none;"></div>
+
+  <div class="grid" id="grid"></div>
+  <div class="empty-state" id="emptyState" style="display:none;">불러온 페이지가 없습니다.</div>
+
+  <div class="download-bar" id="downloadBar" style="display:none;">
+    <div class="download-bar-row">
+      <label>저장 파일명</label>
+      <div class="filename-row">
+        <input type="text" id="filenameInput" value="합친문서">
+        <span>.pdf</span>
+      </div>
+      <div class="spacer"></div>
+      <div class="download-buttons">
+        <button class="ghost" id="splitToggleBtn" title="원하는 페이지 범위별로 나눠서 zip으로 저장합니다.">✂ 분할 저장</button>
+        <button class="ghost" id="compressDownloadBtn" title="용량이 큰 사진/스캔 이미지만 화질을 낮춰 다시 압축합니다. 텍스트·벡터는 그대로 유지되어 형식은 바뀌지 않아요.">🗜 압축 다운로드</button>
+        <button class="primary" id="downloadBtn">PDF로 다운로드</button>
+      </div>
+    </div>
+    <div class="split-panel" id="splitPanel">
+      <div class="split-row">
+        <input type="text" id="splitRangesInput" placeholder="예: 1-13, 14-30  (범위에 안 들어간 페이지는 저장에서 빠져요)">
+        <button class="primary" id="splitDownloadBtn">분할해서 zip으로 받기</button>
+      </div>
+      <div class="split-preview" id="splitPreview"></div>
+    </div>
+    <div class="status-line" id="statusLine"></div>
+  </div>
+
+  <footer class="note">
+    <div>쓸모연구소 · 브라우저에서 끝나는 파일 도구</div>
+    <div class="copyright"><span class="mark">ⓒ 2026</span> <span class="name">고윤태</span> · <a href="https://yuntaeko.com/" target="_blank" rel="noopener">yuntaeko.com</a> — 정성을 담아 제작한 도구입니다. 무단 도용 및 출처 표기 없는 재배포를 금지합니다.</div>
+  </footer>
+</div>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loadingText">PDF를 불러오는 중...</div>
+</div>
+
+<div class="lightbox" id="lightbox">
+  <div class="lightbox-topbar" id="lightboxTopbar">
+    <button class="lightbox-a4-toggle" id="lightboxA4Toggle" style="display:none;" type="button"></button>
+  </div>
+  <div class="lightbox-body" id="lightboxBody">
+    <button class="lightbox-nav prev" id="lightboxPrev" title="이전 페이지">‹</button>
+    <div class="lightbox-stage" id="lightboxStage">
+      <img id="lightboxImg" src="" alt="페이지 확대 미리보기">
+    </div>
+    <button class="lightbox-nav next" id="lightboxNext" title="다음 페이지">›</button>
+  </div>
+  <button class="lightbox-close" id="lightboxClose" title="닫기">✕</button>
+  <div class="lightbox-caption" id="lightboxCaption"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
+
+  const dropzone = document.getElementById("dropzone");
+  const fileInput = document.getElementById("fileInput");
+  const grid = document.getElementById("grid");
+  const toolbar = document.getElementById("toolbar");
+  const pageCountEl = document.getElementById("pageCount");
+  const fileCountEl = document.getElementById("fileCount");
+  const emptyState = document.getElementById("emptyState");
+  const downloadBar = document.getElementById("downloadBar");
+  const downloadBtn = document.getElementById("downloadBtn");
+  const compressDownloadBtn = document.getElementById("compressDownloadBtn");
+  const filenameInput = document.getElementById("filenameInput");
+  const statusLine = document.getElementById("statusLine");
+  const addMoreBtn = document.getElementById("addMoreBtn");
+  const clearAllBtn = document.getElementById("clearAllBtn");
+  const helpPanel = document.getElementById("helpPanel");
+  const helpToggle = document.getElementById("helpToggle");
+  const viewToggleBtn = document.getElementById("viewToggleBtn");
+  const viewHint = document.getElementById("viewHint");
+  const loadingOverlay = document.getElementById("loadingOverlay");
+  const loadingText = document.getElementById("loadingText");
+  const splitToggleBtn = document.getElementById("splitToggleBtn");
+  const splitPanel = document.getElementById("splitPanel");
+  const splitRangesInput = document.getElementById("splitRangesInput");
+  const splitDownloadBtn = document.getElementById("splitDownloadBtn");
+  const splitPreview = document.getElementById("splitPreview");
+  const lightbox = document.getElementById("lightbox");
+  const lightboxTopbar = document.getElementById("lightboxTopbar");
+  const lightboxBody = document.getElementById("lightboxBody");
+  const lightboxStage = document.getElementById("lightboxStage");
+  const lightboxImg = document.getElementById("lightboxImg");
+  const lightboxPrev = document.getElementById("lightboxPrev");
+  const lightboxNext = document.getElementById("lightboxNext");
+  const lightboxClose = document.getElementById("lightboxClose");
+  const lightboxA4Toggle = document.getElementById("lightboxA4Toggle");
+  const lightboxCaption = document.getElementById("lightboxCaption");
+
+  // sources[fileIndex] = { name, pdfLibDoc, pdfJsDoc, numPages }
+  let sources = [];
+  // pages[] = { id, fileIndex, pageIndex, rotation, fitA4, thumbUrl, fileName }
+  let pages = [];
+  let idSeed = 0;
+  let busy = false;
+  let lightboxIdx = -1;
+  let lightboxA4Compare = false; // only meaningful while the lightbox is open on an A4-fit page
+  // dragState: { kind: 'page'|'run', id|key, pointerId, startClientX, startClientY, grabOffsetX, grabOffsetY, moved }
+  let dragState = null;
+  // 'page' = flat grid showing every page from every file (original behavior).
+  // 'file' = one card per uploaded PDF (only used when 2+ files are active).
+  let viewMode = "page";
+
+  function activeFileCount(){
+    return new Set(pages.map(p => p.fileIndex)).size;
+  }
+
+  // Groups the flat `pages` array into contiguous runs of same-source pages,
+  // so the file-level view can show "one card per PDF". If pages have been
+  // mixed across files in the page view, a single file can show up as more
+  // than one run/card here — that's expected, not a bug.
+  function getFileRuns(){
+    const runs = [];
+    pages.forEach(p => {
+      const last = runs[runs.length - 1];
+      if (last && last.fileIndex === p.fileIndex){
+        last.ids.push(p.id);
+      } else {
+        runs.push({ fileIndex: p.fileIndex, ids: [p.id] });
+      }
+    });
+    return runs;
+  }
+
+  function syncViewMode(){
+    if (viewMode === "file" && activeFileCount() <= 1){
+      viewMode = "page";
+    }
+  }
+
+  function setStatus(msg){
+    statusLine.textContent = msg || "";
+  }
+
+  function setBusy(b, msg){
+    busy = b;
+    downloadBtn.disabled = b || pages.length === 0;
+    compressDownloadBtn.disabled = b || pages.length === 0;
+    splitToggleBtn.disabled = b || pages.length === 0;
+    splitDownloadBtn.disabled = b || pages.length === 0;
+    addMoreBtn.disabled = b;
+    clearAllBtn.disabled = b || pages.length === 0;
+    if (msg !== undefined) setStatus(msg);
+  }
+
+  function refreshToolbar(){
+    const hasPages = pages.length > 0;
+    const activeFiles = activeFileCount();
+    toolbar.style.display = (sources.length > 0) ? "flex" : "none";
+    downloadBar.style.display = hasPages ? "flex" : "none";
+    emptyState.style.display = (sources.length > 0 && !hasPages) ? "block" : "none";
+    pageCountEl.textContent = pages.length;
+    fileCountEl.textContent = activeFiles;
+    downloadBtn.disabled = !hasPages || busy;
+    compressDownloadBtn.disabled = !hasPages || busy;
+    splitToggleBtn.disabled = !hasPages || busy;
+    splitDownloadBtn.disabled = !hasPages || busy;
+    clearAllBtn.disabled = !hasPages || busy;
+    if (!hasPages && splitPanel.classList.contains("show")){
+      splitPanel.classList.remove("show");
+    }
+
+    if (activeFiles >= 2){
+      viewToggleBtn.style.display = "inline-flex";
+      viewHint.style.display = "block";
+      if (viewMode === "file"){
+        viewToggleBtn.textContent = "🔍 상세보기 (페이지 단위)";
+        viewHint.textContent = "카드를 드래그하거나 ↑↓ 버튼으로 파일 순서를 바꿀 수 있어요. 페이지를 하나씩 다루려면 상세보기를 눌러주세요.";
+      } else {
+        viewToggleBtn.textContent = "← 파일 목록으로";
+        viewHint.textContent = "업로드한 모든 파일의 페이지가 한 그리드에 모여 있어요. 카드를 드래그하거나 ↑↓ 버튼으로 파일 경계와 상관없이 자유롭게 순서를 바꾸거나 삭제하세요.";
+      }
+    } else if (hasPages){
+      // Single file (or no file yet, but pages exist): no file-list toggle to show,
+      // but the drag/button reorder tip is just as useful with one PDF's pages.
+      viewToggleBtn.style.display = "none";
+      viewHint.style.display = "block";
+      viewHint.textContent = "카드를 드래그하거나 ↑↓ 버튼으로 페이지 순서를 자유롭게 바꾸거나 삭제하세요.";
+    } else {
+      viewToggleBtn.style.display = "none";
+      viewHint.style.display = "none";
+    }
+  }
+
+  async function handleFiles(fileList){
+    const files = Array.from(fileList).filter(f => f.type === "application/pdf" || /\.pdf$/i.test(f.name));
+    if (files.length === 0) return;
+
+    // Decide the view mode up front, based on how many files will be active
+    // once this batch finishes loading:
+    //  - ends up with exactly 1 file  -> page view (nothing to list)
+    //  - goes from 0/1 files to 2+    -> file view (first time multi-file, show the simple list by default)
+    //  - was already at 2+ files      -> leave whatever view the user is currently in alone
+    const prevCount = sources.length;
+    const predictedCount = prevCount + files.length;
+    if (predictedCount === 1){
+      viewMode = "page";
+    } else if (predictedCount >= 2 && prevCount <= 1){
+      viewMode = "file";
+    }
+
+    setBusy(true, "PDF를 불러오는 중...");
+    // Show a full-screen spinner overlay while files load — including a single file, since a
+    // large/many-page PDF can take a noticeable moment to render its thumbnails and the small
+    // status-line text alone wasn't enough feedback that something was happening. For 2+ files
+    // the text additionally shows "n/총 개수" progress so it's clear more files are still on the
+    // way (without this, pages trickle in file-by-file and a user who dropped 5 PDFs could easily
+    // mistake the first file's pages filling in for "only one file uploaded"); the grid stays
+    // dimly visible underneath it either way.
+    loadingText.textContent = files.length > 1
+      ? `PDF를 불러오는 중... (1/${files.length}번째 파일: ${files[0].name})`
+      : `PDF를 불러오는 중... (${files[0].name})`;
+    loadingOverlay.classList.add("show");
+    let doneCount = 0;
+    for (const file of files){
+      if (files.length > 1){
+        loadingText.textContent = `PDF를 불러오는 중... (${doneCount + 1}/${files.length}번째 파일: ${file.name})`;
+      }
+      try{
+        await loadOneFile(file);
+      }catch(err){
+        console.error(err);
+        setStatus(`"${file.name}" 파일을 여는 데 실패했어요. 손상된 파일이거나 암호로 보호된 PDF일 수 있습니다.`);
+      }
+      doneCount++;
+    }
+    loadingOverlay.classList.remove("show");
+    setBusy(false, "");
+    renderGrid();
+  }
+
+  async function loadOneFile(file){
+    const buf = await file.arrayBuffer();
+    // pdf-lib load (keeps this copy as the merge source)
+    const pdfLibDoc = await PDFLib.PDFDocument.load(buf, { ignoreEncryption: true });
+    const fileIndex = sources.length;
+
+    // pdf.js load (separate copy for rendering; kept alive for later per-page image export)
+    const renderBuf = await file.arrayBuffer();
+    const loadingTask = pdfjsLib.getDocument({ data: renderBuf });
+    const pdfJsDoc = await loadingTask.promise;
+
+    sources.push({ name: file.name, pdfLibDoc, pdfJsDoc, numPages: pdfLibDoc.getPageCount() });
+
+    for (let i = 0; i < pdfJsDoc.numPages; i++){
+      setStatus(`"${file.name}" — ${i+1}/${pdfJsDoc.numPages} 페이지 미리보기 생성 중...`);
+      const thumb = await renderThumb(pdfJsDoc, i + 1);
+      pages.push({
+        id: "p" + (idSeed++),
+        fileIndex,
+        pageIndex: i, // 0-based, for pdf-lib copyPages / pdf.js getPage(pageIndex+1)
+        rotation: 0,
+        fitA4: false,
+        thumbUrl: thumb.url,
+        // Native page size in PDF points, already reflecting the page's own /Rotate
+        // (pdf.js's default viewport bakes that in) but NOT the user's rotate-button
+        // presses yet — used to decide whether the A4-fit button should be disabled
+        // because the page is already A4-shaped.
+        nativeWidth: thumb.width,
+        nativeHeight: thumb.height,
+        fileName: file.name
+      });
+      renderGrid();
+    }
+  }
+
+  async function renderThumb(pdfJsDoc, pageNum){
+    const page = await pdfJsDoc.getPage(pageNum);
+    const targetWidth = 320; // rendered at 2x for crispness
+    const baseViewport = page.getViewport({ scale: 1 });
+    const scale = targetWidth / baseViewport.width;
+    const viewport = page.getViewport({ scale });
+    const canvas = document.createElement("canvas");
+    // Math.floor (not ceil/round) on purpose: pdf.js paints exactly viewport.width×height, which
+    // is a fractional pixel size in general (scale rarely divides evenly). Rounding the canvas UP
+    // leaves a sub-pixel strip at the right/bottom edge that pdf.js never paints — canvas defaults
+    // that unpainted area to transparent, and transparent has no meaning in a JPEG, so it gets
+    // baked in as a solid WHITE line right along that edge (this is what showed up as a thin white
+    // line at the bottom of enlarged pages). Flooring instead guarantees the canvas is never
+    // larger than the painted area, at the cost of an imperceptible (<1px) crop — the only way to
+    // guarantee every pixel of the canvas actually gets painted.
+    canvas.width = Math.max(1, Math.floor(viewport.width));
+    canvas.height = Math.max(1, Math.floor(viewport.height));
+    const ctx = canvas.getContext("2d");
+    await page.render({ canvasContext: ctx, viewport }).promise;
+    return { url: canvas.toDataURL("image/jpeg", 0.82), width: baseViewport.width, height: baseViewport.height };
+  }
+
+  // Top-level render dispatcher: shows the file-level list when there are
+  // 2+ active files and the user hasn't drilled into page view, otherwise
+  // shows the flat page grid (the original, full-featured view).
+  function renderGrid(){
+    if (viewMode === "file" && activeFileCount() >= 2){
+      renderFileView();
+    } else {
+      renderPageView();
+    }
+    refreshToolbar();
+  }
+
+  function renderPageView(){
+    grid.innerHTML = "";
+    pages.forEach((p, idx) => {
+      const isDragging = !!(dragState && dragState.kind === "page" && dragState.moved && dragState.id === p.id);
+      const card = document.createElement("div");
+      card.className = "page-card" + (isDragging ? " dragging" : "");
+      card.dataset.id = p.id;
+      const nearA4 = isNearA4(p);
+
+      card.innerHTML = `
+        <div class="thumb-box${p.fitA4 ? " a4-fit" : ""}">
+          <span class="order-badge">${idx + 1}</span>
+          ${p.fitA4 ? '<span class="a4-badge">A4</span>' : ""}
+          <img src="${p.thumbUrl}" alt="${idx+1}번째 페이지 미리보기" draggable="false" style="transform:rotate(${p.rotation}deg);">
+          <button class="zoom-badge" data-act="zoom" title="크게 보기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.35-4.35"></path></svg></button>
+        </div>
+        <div class="meta" title="${p.fileName}">${p.fileName}</div>
+        <div class="card-actions">
+          <div class="actions-row">
+            <button class="icon-btn" data-act="up" title="앞으로 이동">↑</button>
+            <button class="icon-btn" data-act="down" title="뒤로 이동">↓</button>
+            <button class="icon-btn" data-act="rotate" title="90도 회전">↻</button>
+          </div>
+          <div class="actions-row">
+            <button class="icon-btn${p.fitA4 ? " active" : ""}" data-act="a4"${nearA4 ? " disabled" : ""} title="${nearA4 ? "이미 A4 비율이라 맞출 필요가 없어요" : "여백 없이 페이지를 A4 비율로 늘립니다. 원본과 비율이 다르면 살짝 눌리거나 늘어나 보일 수 있어요 — 확대 화면에서 원본과 비교해볼 수 있어요."}">📐 A4비율</button>
+            <button class="icon-btn" data-act="img" title="이 페이지를 이미지로 저장">📥 이미지</button>
+          </div>
+          <div class="actions-row">
+            <button class="icon-btn delete full" data-act="delete" title="이 페이지 삭제">✕ 삭제</button>
+          </div>
+        </div>
+      `;
+
+      card.addEventListener("pointerdown", (e) => onCardPointerDown(e, p, card));
+
+      card.querySelectorAll("button[data-act]").forEach(btn => {
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (busy) return;
+          const act = btn.dataset.act;
+          const curIdx = pages.findIndex(pg => pg.id === p.id);
+          if (act === "up") moveIndex(curIdx, curIdx - 1);
+          else if (act === "down") moveIndex(curIdx, curIdx + 1);
+          else if (act === "rotate") rotatePage(p.id);
+          else if (act === "delete") deletePage(p.id);
+          else if (act === "img") downloadPageAsImage(p, curIdx);
+          else if (act === "a4") toggleFitA4(p.id);
+          else if (act === "zoom") openLightbox(curIdx);
+        });
+      });
+
+      grid.appendChild(card);
+    });
+  }
+
+  // File-level view: one card per contiguous run of same-source pages.
+  // Normally that's exactly one card per uploaded file, unless the user
+  // already mixed pages across files in page view (see getFileRuns above).
+  function renderFileView(){
+    grid.innerHTML = "";
+    const runs = getFileRuns();
+    runs.forEach((run, idx) => {
+      const isDragging = !!(dragState && dragState.kind === "run" && dragState.moved && dragState.key === run.ids[0]);
+      const firstPage = pages.find(p => p.id === run.ids[0]);
+      const src = sources[run.fileIndex];
+      const card = document.createElement("div");
+      card.className = "page-card" + (isDragging ? " dragging" : "");
+      card.dataset.runKey = run.ids[0];
+
+      card.innerHTML = `
+        <div class="thumb-box">
+          <span class="order-badge">${idx + 1}</span>
+          <span class="page-badge">${run.ids.length}페이지</span>
+          <img src="${firstPage.thumbUrl}" alt="${src.name} 미리보기" draggable="false" style="transform:rotate(${firstPage.rotation}deg);">
+          <button class="zoom-badge" data-act="zoom" title="크게 보기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.35-4.35"></path></svg></button>
+        </div>
+        <div class="meta" title="${src.name}">${src.name}</div>
+        <div class="card-actions">
+          <div class="actions-row">
+            <button class="icon-btn" data-act="up" title="앞으로 이동">↑</button>
+            <button class="icon-btn" data-act="down" title="뒤로 이동">↓</button>
+          </div>
+          <div class="actions-row">
+            <button class="icon-btn" data-act="detail" title="페이지 단위로 보기" style="flex:1 1 100%;">🔍 상세보기</button>
+          </div>
+          <div class="actions-row">
+            <button class="icon-btn delete" data-act="delete" title="이 파일 삭제" style="flex:1 1 100%;">✕ 파일 삭제</button>
+          </div>
+        </div>
+      `;
+
+      card.addEventListener("pointerdown", (e) => onRunPointerDown(e, run, card));
+
+      card.querySelectorAll("button[data-act]").forEach(btn => {
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (busy) return;
+          const act = btn.dataset.act;
+          const curRuns = getFileRuns();
+          const curIdx = curRuns.findIndex(r => r.ids[0] === run.ids[0]);
+          if (act === "up") moveRunIndex(curIdx, curIdx - 1);
+          else if (act === "down") moveRunIndex(curIdx, curIdx + 1);
+          else if (act === "delete") deleteRun(run.ids[0]);
+          else if (act === "detail"){ viewMode = "page"; renderGrid(); }
+          else if (act === "zoom") openLightbox(pages.findIndex(pg => pg.id === run.ids[0]));
+        });
+      });
+
+      grid.appendChild(card);
+    });
+  }
+
+  // ---- drag reordering (pointer events + FLIP animation) ----
+  // Shared technique for both the page grid and the file-card list: the
+  // dragged card follows the pointer directly via a live transform, while
+  // every other card that shifts position animates smoothly (FLIP).
+
+  function onCardPointerDown(e, p, cardEl){
+    if (busy) return;
+    if (e.target.closest("button")) return;
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    const rect = cardEl.getBoundingClientRect();
+    dragState = {
+      kind: "page",
+      id: p.id,
+      pointerId: e.pointerId,
+      startClientX: e.clientX,
+      startClientY: e.clientY,
+      grabOffsetX: e.clientX - rect.left,
+      grabOffsetY: e.clientY - rect.top,
+      moved: false,
+    };
+    document.addEventListener("pointermove", onDragMove);
+    document.addEventListener("pointerup", onDragEnd);
+    document.addEventListener("pointercancel", onDragEnd);
+  }
+
+  function onDragMove(e){
+    if (!dragState || dragState.kind !== "page" || e.pointerId !== dragState.pointerId) return;
+    if (!dragState.moved){
+      const dx0 = e.clientX - dragState.startClientX;
+      const dy0 = e.clientY - dragState.startClientY;
+      if (Math.hypot(dx0, dy0) < 6) return;
+      dragState.moved = true;
+      renderGrid(); // re-render once so the .dragging lift style applies
+    }
+    e.preventDefault();
+    updateDraggedTransform(e);
+
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const overCard = el ? el.closest(".page-card") : null;
+    if (overCard && overCard.dataset.id && overCard.dataset.id !== dragState.id){
+      const fromIdx = pages.findIndex(pg => pg.id === dragState.id);
+      const toIdx = pages.findIndex(pg => pg.id === overCard.dataset.id);
+      if (fromIdx !== -1 && toIdx !== -1 && fromIdx !== toIdx){
+        reorderPages(fromIdx, toIdx, dragState.id);
+        updateDraggedTransform(e);
+      }
+    }
+  }
+
+  function onDragEnd(e){
+    if (!dragState || dragState.kind !== "page" || e.pointerId !== dragState.pointerId) return;
+    document.removeEventListener("pointermove", onDragMove);
+    document.removeEventListener("pointerup", onDragEnd);
+    document.removeEventListener("pointercancel", onDragEnd);
+    dragState = null;
+    renderGrid();
+  }
+
+  function updateDraggedTransform(e){
+    if (!dragState) return;
+    const card = grid.querySelector(`.page-card[data-id="${dragState.id}"]`);
+    if (!card) return;
+    card.style.transform = "none";
+    const rect = card.getBoundingClientRect();
+    const desiredLeft = e.clientX - dragState.grabOffsetX;
+    const desiredTop = e.clientY - dragState.grabOffsetY;
+    const dx = desiredLeft - rect.left;
+    const dy = desiredTop - rect.top;
+    card.style.transform = `translate(${dx}px, ${dy}px) scale(1.04)`;
+  }
+
+  // Reorders the `pages` array and plays a FLIP transition on every card
+  // that shifts position, so the whole grid slides smoothly in real time.
+  // `excludeId` is the card being actively dragged (its position is driven
+  // directly by the pointer via updateDraggedTransform instead).
+  function reorderPages(fromIdx, toIdx, excludeId){
+    if (fromIdx === toIdx) return;
+    const before = Array.from(grid.querySelectorAll(".page-card"));
+    const firstRects = new Map();
+    before.forEach(c => {
+      if (excludeId && c.dataset.id === excludeId) return;
+      firstRects.set(c.dataset.id, c.getBoundingClientRect());
+    });
+
+    const [item] = pages.splice(fromIdx, 1);
+    pages.splice(toIdx, 0, item);
+    renderGrid();
+
+    const after = Array.from(grid.querySelectorAll(".page-card"));
+    after.forEach(c => {
+      if (excludeId && c.dataset.id === excludeId) return;
+      const first = firstRects.get(c.dataset.id);
+      if (!first) return;
+      const last = c.getBoundingClientRect();
+      const dx = first.left - last.left;
+      const dy = first.top - last.top;
+      if (dx || dy){
+        c.style.transition = "none";
+        c.style.transform = `translate(${dx}px, ${dy}px)`;
+        c.getBoundingClientRect(); // force reflow so the jump-back applies before we transition
+        c.style.transition = "transform 220ms cubic-bezier(.2,.8,.2,1)";
+        c.style.transform = "";
+      }
+    });
+  }
+
+  function moveIndex(from, to){
+    if (to < 0 || to >= pages.length) return;
+    reorderPages(from, to);
+  }
+
+  function rotatePage(id){
+    const p = pages.find(p => p.id === id);
+    if (!p) return;
+    p.rotation = (p.rotation + 90) % 360;
+    renderGrid();
+  }
+
+  function toggleFitA4(id){
+    const p = pages.find(p => p.id === id);
+    if (!p || isNearA4(p)) return; // button is disabled in the UI for this case too — guard for safety
+    p.fitA4 = !p.fitA4;
+    renderGrid();
+  }
+
+  function deletePage(id){
+    pages = pages.filter(p => p.id !== id);
+    syncViewMode();
+    renderGrid();
+  }
+
+  // ---- file-level drag reordering (same pointer + FLIP technique, operating
+  // on whole contiguous runs of pages instead of single pages) ----
+
+  function onRunPointerDown(e, run, cardEl){
+    if (busy) return;
+    if (e.target.closest("button")) return;
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    const rect = cardEl.getBoundingClientRect();
+    dragState = {
+      kind: "run",
+      key: run.ids[0],
+      pointerId: e.pointerId,
+      startClientX: e.clientX,
+      startClientY: e.clientY,
+      grabOffsetX: e.clientX - rect.left,
+      grabOffsetY: e.clientY - rect.top,
+      moved: false,
+    };
+    document.addEventListener("pointermove", onRunDragMove);
+    document.addEventListener("pointerup", onRunDragEnd);
+    document.addEventListener("pointercancel", onRunDragEnd);
+  }
+
+  function onRunDragMove(e){
+    if (!dragState || dragState.kind !== "run" || e.pointerId !== dragState.pointerId) return;
+    if (!dragState.moved){
+      const dx0 = e.clientX - dragState.startClientX;
+      const dy0 = e.clientY - dragState.startClientY;
+      if (Math.hypot(dx0, dy0) < 6) return;
+      dragState.moved = true;
+      renderGrid();
+    }
+    e.preventDefault();
+    updateDraggedRunTransform(e);
+
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const overCard = el ? el.closest(".page-card") : null;
+    if (overCard && overCard.dataset.runKey && overCard.dataset.runKey !== dragState.key){
+      const runs = getFileRuns();
+      const fromIdx = runs.findIndex(r => r.ids[0] === dragState.key);
+      const toIdx = runs.findIndex(r => r.ids[0] === overCard.dataset.runKey);
+      if (fromIdx !== -1 && toIdx !== -1 && fromIdx !== toIdx){
+        reorderRuns(fromIdx, toIdx, dragState.key);
+        updateDraggedRunTransform(e);
+      }
+    }
+  }
+
+  function onRunDragEnd(e){
+    if (!dragState || dragState.kind !== "run" || e.pointerId !== dragState.pointerId) return;
+    document.removeEventListener("pointermove", onRunDragMove);
+    document.removeEventListener("pointerup", onRunDragEnd);
+    document.removeEventListener("pointercancel", onRunDragEnd);
+    dragState = null;
+    renderGrid();
+  }
+
+  function updateDraggedRunTransform(e){
+    if (!dragState) return;
+    const card = grid.querySelector(`.page-card[data-run-key="${dragState.key}"]`);
+    if (!card) return;
+    card.style.transform = "none";
+    const rect = card.getBoundingClientRect();
+    const desiredLeft = e.clientX - dragState.grabOffsetX;
+    const desiredTop = e.clientY - dragState.grabOffsetY;
+    const dx = desiredLeft - rect.left;
+    const dy = desiredTop - rect.top;
+    card.style.transform = `translate(${dx}px, ${dy}px) scale(1.04)`;
+  }
+
+  // Moves an entire run (all pages belonging to one file-card) to sit right
+  // before another run, then plays the same FLIP transition as page reordering.
+  // Moves the run currently at `fromRunIdx` to `toRunIdx` (both indices into
+  // getFileRuns()'s current result) using the same splice-by-index semantics
+  // as reorderPages, just applied to a whole run's pages as one chunk. Using
+  // index positions (rather than "insert this chunk before that run's id")
+  // matters: an id-based "insert before target" is a no-op whenever the
+  // target is the very next run, which made the first card undraggable
+  // downward — indices avoid that asymmetry the same way reorderPages does.
+  function reorderRuns(fromRunIdx, toRunIdx, excludeKey){
+    const runs = getFileRuns();
+    if (fromRunIdx < 0 || fromRunIdx >= runs.length) return;
+    if (toRunIdx < 0 || toRunIdx >= runs.length) return;
+    if (fromRunIdx === toRunIdx) return;
+
+    const before = Array.from(grid.querySelectorAll(".page-card"));
+    const firstRects = new Map();
+    before.forEach(c => {
+      if (excludeKey && c.dataset.runKey === excludeKey) return;
+      firstRects.set(c.dataset.runKey, c.getBoundingClientRect());
+    });
+
+    const runList = runs.slice();
+    const [movedRun] = runList.splice(fromRunIdx, 1);
+    runList.splice(toRunIdx, 0, movedRun);
+    pages = runList.flatMap(r => r.ids.map(id => pages.find(p => p.id === id)));
+
+    renderGrid();
+
+    const after = Array.from(grid.querySelectorAll(".page-card"));
+    after.forEach(c => {
+      if (excludeKey && c.dataset.runKey === excludeKey) return;
+      const first = firstRects.get(c.dataset.runKey);
+      if (!first) return;
+      const last = c.getBoundingClientRect();
+      const dx = first.left - last.left;
+      const dy = first.top - last.top;
+      if (dx || dy){
+        c.style.transition = "none";
+        c.style.transform = `translate(${dx}px, ${dy}px)`;
+        c.getBoundingClientRect();
+        c.style.transition = "transform 220ms cubic-bezier(.2,.8,.2,1)";
+        c.style.transform = "";
+      }
+    });
+  }
+
+  function moveRunIndex(fromRunIdx, toRunIdx){
+    reorderRuns(fromRunIdx, toRunIdx);
+  }
+
+  function deleteRun(runKey){
+    const runs = getFileRuns();
+    const run = runs.find(r => r.ids[0] === runKey);
+    if (!run) return;
+    pages = pages.filter(p => !run.ids.includes(p.id));
+    syncViewMode();
+    renderGrid();
+  }
+
+  async function downloadPageAsImage(p, idx){
+    if (busy) return;
+    setBusy(true, `${idx + 1}번째 페이지를 이미지로 만드는 중...`);
+    try{
+      const src = sources[p.fileIndex];
+      const page = await src.pdfJsDoc.getPage(p.pageIndex + 1); // pdf.js pages are 1-based
+      const nativeRotation = page.rotate || 0;
+      const totalRotation = (nativeRotation + p.rotation) % 360;
+      const targetWidth = 1600; // export at higher resolution than the grid thumbnail
+      const baseViewport = page.getViewport({ scale: 1, rotation: totalRotation });
+      const scale = targetWidth / baseViewport.width;
+      const viewport = page.getViewport({ scale, rotation: totalRotation });
+      const canvas = document.createElement("canvas");
+      // Math.floor, not ceil — see renderThumb()'s comment: rounding the canvas UP leaves an
+      // unpainted (transparent → white-on-export) sliver at the edge pdf.js doesn't actually paint.
+      canvas.width = Math.max(1, Math.floor(viewport.width));
+      canvas.height = Math.max(1, Math.floor(viewport.height));
+      const ctx = canvas.getContext("2d");
+      await page.render({ canvasContext: ctx, viewport }).promise;
+
+      await new Promise((resolve) => {
+        canvas.toBlob((blob) => {
+          const url = URL.createObjectURL(blob);
+          const baseName = src.name.replace(/\.pdf$/i, "");
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `${baseName}_p${p.pageIndex + 1}.png`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setTimeout(() => URL.revokeObjectURL(url), 4000);
+          setStatus(`${idx + 1}번째 페이지를 이미지로 저장했어요.`);
+          resolve();
+        }, "image/png");
+      });
+    }catch(err){
+      console.error(err);
+      setStatus("페이지를 이미지로 저장하는 중 오류가 발생했어요.");
+    }finally{
+      setBusy(false);
+    }
+  }
+
+  function canvasToBytes(canvas, mime, quality){
+    return new Promise((resolve, reject) => {
+      canvas.toBlob(async (blob) => {
+        if (!blob){ reject(new Error("canvas.toBlob failed")); return; }
+        resolve(new Uint8Array(await blob.arrayBuffer()));
+      }, mime, quality);
+    });
+  }
+
+  const A4_WIDTH = 595.28, A4_HEIGHT = 841.89; // ISO 216 A4, in PDF points
+  const A4_RATIO = A4_WIDTH / A4_HEIGHT; // ~0.7071 (portrait); landscape pages are compared against its reciprocal
+
+  // True when the page's current shape (native size + whatever rotation the user
+  // has dialed in) is already close enough to A4 that "맞추기" would be a no-op —
+  // used to gray out the A4-fit button instead of offering a pointless action.
+  function isNearA4(p){
+    if (!p.nativeWidth || !p.nativeHeight) return false; // dims not captured (shouldn't happen) — don't block the button
+    const rotated90 = Math.abs(p.rotation % 180) === 90;
+    const w = rotated90 ? p.nativeHeight : p.nativeWidth;
+    const h = rotated90 ? p.nativeWidth : p.nativeHeight;
+    const ratio = w / h;
+    const diff = Math.min(Math.abs(ratio - A4_RATIO), Math.abs(ratio - 1 / A4_RATIO));
+    return diff < 0.012; // ~1.2% tolerance — covers scan/DPI rounding without matching non-A4 sizes like Letter (0.773)
+  }
+
+  // True when the page's own shape (native size + current rotation) is wider than it is
+  // tall. Used to pick a portrait- or landscape-oriented A4 box for the A4-fit feature so
+  // a landscape slide gets stretched into landscape A4 rather than squeezed into portrait.
+  function isPageLandscape(p){
+    if (!p.nativeWidth || !p.nativeHeight) return false;
+    const rotated90 = Math.abs(p.rotation % 180) === 90;
+    const w = rotated90 ? p.nativeHeight : p.nativeWidth;
+    const h = rotated90 ? p.nativeWidth : p.nativeHeight;
+    return w > h;
+  }
+
+  // Re-renders a page from its source PDF with the page's own /Rotate AND the user's rotate-
+  // button rotation both baked directly into the raster (via pdf.js's `rotation` viewport option),
+  // so the output image is already in its final, correct visual orientation — no CSS transform
+  // needed afterward. Mirrors the exact same total-rotation math already used by
+  // downloadPageAsImage() and addA4WrappedPage() so the lightbox's A4-compare preview matches the
+  // real PDF/PNG export exactly. Used by the lightbox only — the grid card thumbnails stay a
+  // fixed shape (see the a4-fit CSS comment) so they never need this.
+  async function renderOrientedBitmap(p, targetWidthPx){
+    const src = sources[p.fileIndex];
+    const pdfJsPage = await src.pdfJsDoc.getPage(p.pageIndex + 1);
+    const nativeRotation = pdfJsPage.rotate || 0;
+    const totalRotation = ((nativeRotation + p.rotation) % 360 + 360) % 360;
+    const baseViewport = pdfJsPage.getViewport({ scale: 1, rotation: totalRotation });
+    const scale = targetWidthPx / baseViewport.width;
+    const viewport = pdfJsPage.getViewport({ scale, rotation: totalRotation });
+    const canvas = document.createElement("canvas");
+    // Math.floor, not ceil — see renderThumb()'s comment: rounding the canvas UP leaves an
+    // unpainted (transparent → white-on-export) sliver at the edge pdf.js doesn't actually paint,
+    // which is exactly what showed up as a thin white line at the bottom of enlarged pages.
+    canvas.width = Math.max(1, Math.floor(viewport.width));
+    canvas.height = Math.max(1, Math.floor(viewport.height));
+    const ctx = canvas.getContext("2d");
+    await pdfJsPage.render({ canvasContext: ctx, viewport }).promise;
+    return canvas.toDataURL("image/jpeg", 0.88);
+  }
+
+  // Wraps `copiedPage` (already living in outDoc's context, e.g. fresh out of copyPages)
+  // into a new A4-sized page — portrait A4 if the page itself is portrait/landscape A4 if
+  // the page is landscape — stretching width and height INDEPENDENTLY so the content fills
+  // the page exactly with no white margin. This intentionally distorts pages whose ratio
+  // isn't already A4 (that's the tradeoff the user chose over letterboxing); the lightbox's
+  // "원본과 비교" toggle exists precisely so that distortion can be checked before download.
+  // Handles the page's TOTAL rotation (its own native /Rotate plus the rotate button's
+  // userRotation) manually via drawPage's `rotate` option, because PDFDocument.embedPage
+  // silently ignores a page's /Rotate — verified by hand: rotating via setRotation() and
+  // then embedding rendered the content completely unrotated. drawPage's `rotate` turns
+  // counter-clockwise, opposite of /Rotate's clockwise convention, so the angle is flipped
+  // (360 - angle) to match the direction the rotate button already produces elsewhere.
+  async function addA4WrappedPage(outDoc, copiedPage, userRotation){
+    const nativeRotation = copiedPage.getRotation().angle || 0; // preserved automatically by copyPages
+    const totalRotationCW = ((nativeRotation + userRotation) % 360 + 360) % 360;
+    const embedded = await outDoc.embedPage(copiedPage);
+    const natW = embedded.width, natH = embedded.height; // always the raw, unrotated box
+    const swapped = (totalRotationCW === 90 || totalRotationCW === 270);
+    const effW = swapped ? natH : natW;
+    const effH = swapped ? natW : natH;
+
+    // Pick the A4 orientation matching the page's own effective (post-rotation) shape,
+    // then scale each axis independently so the box below equals the FULL output page —
+    // no centering offset needed since there's no margin left over.
+    const boxW = effW > effH ? A4_HEIGHT : A4_WIDTH;
+    const boxH = effW > effH ? A4_WIDTH : A4_HEIGHT;
+    const scaleEffW = boxW / effW;
+    const scaleEffH = boxH / effH;
+    // natW/natH are the raw (pre-rotation) axes; when rotated 90/270 they map onto the
+    // opposite effective axis, so their scale factors swap too.
+    const scaleNatW = swapped ? scaleEffH : scaleEffW;
+    const scaleNatH = swapped ? scaleEffW : scaleEffH;
+
+    const ccw = (360 - totalRotationCW) % 360;
+    let x, y;
+    if (ccw === 0)        { x = 0;     y = 0; }
+    else if (ccw === 90)  { x = boxW;  y = 0; }
+    else if (ccw === 180) { x = boxW;  y = boxH; }
+    else                  { x = 0;     y = boxH; } // ccw === 270
+
+    const a4Page = outDoc.addPage([boxW, boxH]);
+    a4Page.drawPage(embedded, { x, y, width: natW * scaleNatW, height: natH * scaleNatH, rotate: PDFLib.degrees(ccw) });
+  }
+
+  // Decodes a PDF ASCII85Decode stream back to raw bytes (Adobe/PDF variant: optional
+  // "<~"/"~>" delimiters, "z" shorthand for four zero bytes). Some PDF generators (this
+  // tool's own test fixtures included, via reportlab) wrap an already-JPEG-compressed
+  // image in ASCII85 armor on top of DCTDecode — this undoes just that outer layer so
+  // the inner JPEG bytes can be read normally; it's lossless and doesn't touch the JPEG.
+  function decodeAscii85(bytes){
+    let str = "";
+    for (let i = 0; i < bytes.length; i++) str += String.fromCharCode(bytes[i]);
+    str = str.replace(/^<~/, "").replace(/~>\s*$/, "").replace(/\s/g, "");
+    const out = [];
+    let tuple = [];
+    for (let i = 0; i < str.length; i++){
+      const c = str[i];
+      if (c === "z" && tuple.length === 0){ out.push(0, 0, 0, 0); continue; }
+      tuple.push(c.charCodeAt(0) - 33);
+      if (tuple.length === 5){
+        let n = 0;
+        for (let j = 0; j < 5; j++) n = n * 85 + tuple[j];
+        out.push((n >>> 24) & 0xff, (n >>> 16) & 0xff, (n >>> 8) & 0xff, n & 0xff);
+        tuple = [];
+      }
+    }
+    if (tuple.length > 0){
+      const len = tuple.length;
+      while (tuple.length < 5) tuple.push(84);
+      let n = 0;
+      for (let j = 0; j < 5; j++) n = n * 85 + tuple[j];
+      const b4 = [(n >>> 24) & 0xff, (n >>> 16) & 0xff, (n >>> 8) & 0xff, n & 0xff];
+      for (let k = 0; k < len - 1; k++) out.push(b4[k]);
+    }
+    return new Uint8Array(out);
+  }
+
+  // Normalizes a PDFName-or-PDFArray /Filter value into an array of encoded names,
+  // e.g. "/DCTDecode" -> ["/DCTDecode"], [/ASCII85Decode /DCTDecode] -> both names.
+  function filterNamesOf(filterObj){
+    if (!filterObj) return [];
+    if (filterObj.encodedName) return [filterObj.encodedName];
+    if (typeof filterObj.asArray === "function") return filterObj.asArray().map(f => f.encodedName);
+    return [];
+  }
+
+  // Shrinks embedded JPEG (DCTDecode) images on a page in place — nothing else about the
+  // page changes. Text, vector graphics, fonts and layout are left completely untouched,
+  // so (unlike the tool's old full-page-rasterize compression) the output stays a real,
+  // structured PDF: selectable/searchable text stays selectable, and the effect is only
+  // as big as how much of the file's weight was actually sitting in oversized photos.
+  // Only DCTDecode images (optionally ASCII85-armored on top) are touched; anything else
+  // (CMYK, indexed color, JPEG2000, other filter chains, images inside a nested Form
+  // XObject, ...) is safely left alone rather than risk corrupting it. `cache` (keyed by
+  // the raw stream object itself) avoids re-encoding the same image twice when several
+  // pages share one XObject, e.g. a repeated header/logo image.
+  async function recompressPageImages(page, outDoc, cache){
+    const resources = page.node.Resources();
+    if (!resources) return;
+    let xObjectDict;
+    try{
+      xObjectDict = resources.lookup(PDFLib.PDFName.of("XObject"), PDFLib.PDFDict);
+    }catch(e){ return; }
+    if (!xObjectDict) return;
+
+    for (const [name, rawValue] of xObjectDict.entries()){
+      let xObj;
+      try{ xObj = outDoc.context.lookup(rawValue); }catch(e){ continue; }
+      if (!(xObj instanceof PDFLib.PDFRawStream)) continue;
+      const subtype = xObj.dict.lookup(PDFLib.PDFName.of("Subtype"));
+      if (!subtype || subtype.encodedName !== "/Image") continue;
+      const filter = xObj.dict.lookup(PDFLib.PDFName.of("Filter"));
+      const filters = filterNamesOf(filter);
+      const isPlainJpeg = filters.length === 1 && filters[0] === "/DCTDecode";
+      const isAscii85Jpeg = filters.length === 2 && filters[0] === "/ASCII85Decode" && filters[1] === "/DCTDecode";
+      if (!isPlainJpeg && !isAscii85Jpeg) continue; // anything else, leave untouched
+
+      if (!cache.has(xObj)){
+        let newRef = null;
+        try{
+          const rawBytes = xObj.contents;
+          const originalBytes = isAscii85Jpeg ? decodeAscii85(rawBytes) : rawBytes; // now plain JPEG bytes either way
+          const bitmap = await createImageBitmap(new Blob([originalBytes], { type: "image/jpeg" }));
+          const targetLongSide = 1600; // comfortably above typical screen/print needs
+          const longSide = Math.max(bitmap.width, bitmap.height);
+          const scale = Math.min(1, targetLongSide / longSide); // never upscale a small image
+          const w = Math.max(1, Math.round(bitmap.width * scale));
+          const h = Math.max(1, Math.round(bitmap.height * scale));
+          const canvas = document.createElement("canvas");
+          canvas.width = w; canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(bitmap, 0, 0, w, h);
+          const newBytes = await canvasToBytes(canvas, "image/jpeg", 0.72);
+          if (newBytes.length < rawBytes.length){ // never let a "compressed" image end up bigger
+            const embeddedImg = await outDoc.embedJpg(newBytes);
+            newRef = embeddedImg.ref;
+          }
+        }catch(e){
+          newRef = null; // unusual encoding etc. — leave this image untouched
+        }
+        cache.set(xObj, newRef);
+      }
+      const cachedRef = cache.get(xObj);
+      if (cachedRef){
+        xObjectDict.set(name, cachedRef);
+        // copyPages brought the original (large) image object into outDoc's context as
+        // its own indirect object; just repointing the dict entry above leaves that big
+        // object sitting around unreferenced. PDFDocument.save() has no "drop unused
+        // objects" pass, so it would still get written into the output file, silently
+        // undoing the size saving — delete it explicitly once nothing points to it anymore.
+        if (rawValue instanceof PDFLib.PDFRef) outDoc.context.delete(rawValue);
+      }
+    }
+  }
+
+  // Shared "build one output page" step, used by both the main merge/compress download
+  // and the split-into-ranges download below, so the two paths can't drift apart.
+  // compress=true additionally recompresses embedded JPEGs in place (see above).
+  // p.fitA4=true wraps the result into a centered A4 page instead of adding it directly.
+  async function appendPageToDoc(outDoc, p, compress, imageCache){
+    const srcDoc = sources[p.fileIndex].pdfLibDoc;
+    const [copied] = await outDoc.copyPages(srcDoc, [p.pageIndex]);
+    if (compress){
+      await recompressPageImages(copied, outDoc, imageCache);
+    }
+    if (p.fitA4){
+      await addA4WrappedPage(outDoc, copied, p.rotation);
+    } else {
+      if (p.rotation){
+        const current = copied.getRotation().angle || 0;
+        copied.setRotation(PDFLib.degrees((current + p.rotation) % 360));
+      }
+      outDoc.addPage(copied);
+    }
+  }
+
+  // compress=false: exact copy of each original page (lossless).
+  // compress=true: same page structure, but embedded JPEG images are shrunk in place —
+  // see recompressPageImages. Effect size depends entirely on how image-heavy the source
+  // PDF is; a text/table-only document has little to shrink.
+  async function buildAndDownload(compress){
+    if (pages.length === 0) return;
+    setBusy(true, compress ? "PDF를 압축하는 중..." : "PDF를 합치는 중...");
+    try{
+      const outDoc = await PDFLib.PDFDocument.create();
+      const imageCache = new Map();
+      for (let i = 0; i < pages.length; i++){
+        setStatus(`페이지 ${i+1}/${pages.length} 처리 중...`);
+        await appendPageToDoc(outDoc, pages[i], compress, imageCache);
+      }
+      const bytes = await outDoc.save();
+      const blob = new Blob([bytes], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      let name = (filenameInput.value || "합친문서").trim();
+      if (!name) name = "합친문서";
+      name = name.replace(/\.pdf$/i, "");
+      if (compress) name += "_압축";
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = name + ".pdf";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      const sizeKB = Math.round(bytes.length / 1024).toLocaleString();
+      let msg = `완료! "${name}.pdf" (${sizeKB}KB) 다운로드를 시작했어요.`;
+      if (compress) msg += " (사진·스캔 이미지가 많을수록 효과가 크고, 텍스트·표 위주 문서는 원래 용량이 작아 효과가 적을 수 있어요)";
+      setStatus(msg);
+    }catch(err){
+      console.error(err);
+      setStatus("PDF를 만드는 중 오류가 발생했어요. 파일이 암호로 보호되어 있지 않은지 확인해주세요.");
+    }finally{
+      setBusy(false);
+      refreshToolbar();
+    }
+  }
+
+  // ---- split into page-range parts, zipped ----
+
+  function summarizeRanges(nums){
+    if (nums.length === 0) return "";
+    const out = [];
+    let start = nums[0], prev = nums[0];
+    for (let i = 1; i <= nums.length; i++){
+      const n = nums[i];
+      if (n === prev + 1){ prev = n; continue; }
+      out.push(start === prev ? `${start}` : `${start}-${prev}`);
+      if (i < nums.length){ start = prev = n; }
+    }
+    return out.join(", ");
+  }
+
+  // "1-13, 14-30" -> [{start:1,end:13},{start:14,end:30}]. Ranges don't have to cover
+  // every page or avoid overlap — any page not covered by any range is simply left out
+  // of every output file (that's the intended way to also drop a chunk of pages, e.g.
+  // "1-12, 25-30" on a 30-page doc drops pages 13-24 entirely).
+  function parseSplitRanges(text, totalPages){
+    const segments = text.split(",").map(s => s.trim()).filter(Boolean);
+    if (segments.length === 0){
+      return { error: "분할할 범위를 입력해주세요. 예: 1-13, 14-30" };
+    }
+    const ranges = [];
+    for (const seg of segments){
+      const m = seg.match(/^(\d+)(?:-(\d+))?$/);
+      if (!m){
+        // "1-12 13"처럼 쉼표 없이 공백만으로 범위를 나눈 경우, 형식 자체를 다시 알려주는 것보다
+        // "쉼표가 빠졌다"는 진짜 원인을 짚어주는 게 훨씬 도움이 된다.
+        if (/\s/.test(seg)){
+          return { error: `"${seg}"는 범위 사이에 쉼표(,)가 빠진 것 같아요. "1-13, 14-30"처럼 범위마다 쉼표로 구분해주세요.` };
+        }
+        return { error: `"${seg}"는 올바른 범위 형식이 아니에요. "1-13"처럼 입력해주세요.` };
+      }
+      let start = parseInt(m[1], 10);
+      let end = m[2] !== undefined ? parseInt(m[2], 10) : start;
+      if (start > end){ const t = start; start = end; end = t; }
+      if (start < 1 || end > totalPages){
+        return { error: `"${seg}"는 전체 ${totalPages}페이지 범위를 벗어났어요.` };
+      }
+      ranges.push({ start, end });
+    }
+    return { ranges };
+  }
+
+  function updateSplitPreview(){
+    const text = splitRangesInput.value.trim();
+    if (!text){
+      splitPreview.innerHTML = "";
+      return;
+    }
+    const result = parseSplitRanges(text, pages.length);
+    if (result.error){
+      splitPreview.innerHTML = `<span class="warn">${result.error}</span>`;
+      return;
+    }
+    const covered = new Set();
+    result.ranges.forEach(r => { for (let n = r.start; n <= r.end; n++) covered.add(n); });
+    const excluded = [];
+    for (let n = 1; n <= pages.length; n++){
+      if (!covered.has(n)) excluded.push(n);
+    }
+    const partsDesc = result.ranges.map((r, i) => `${i+1}번(${r.start}-${r.end}, ${r.end-r.start+1}p)`).join(", ");
+    let msg = `→ 총 ${result.ranges.length}개 파일로 나눠 zip에 담아요: ${partsDesc}`;
+    if (excluded.length){
+      msg += ` · <span class="warn">제외되는 페이지 ${excluded.length}장 (${summarizeRanges(excluded)}) — 어느 파일에도 저장되지 않아요</span>`;
+    }
+    splitPreview.innerHTML = msg;
+  }
+
+  async function buildSplitZipAndDownload(){
+    if (pages.length === 0) return;
+    const text = splitRangesInput.value.trim();
+    const result = parseSplitRanges(text, pages.length);
+    if (result.error){
+      setStatus(result.error);
+      return;
+    }
+    setBusy(true, "분할된 PDF를 만드는 중...");
+    try{
+      const zip = new JSZip();
+      let baseName = (filenameInput.value || "합친문서").trim();
+      if (!baseName) baseName = "합친문서";
+      baseName = baseName.replace(/\.pdf$/i, "");
+
+      for (let idx = 0; idx < result.ranges.length; idx++){
+        const r = result.ranges[idx];
+        setStatus(`${idx+1}/${result.ranges.length}번째 파일(${r.start}-${r.end}페이지) 만드는 중...`);
+        const outDoc = await PDFLib.PDFDocument.create();
+        const imageCache = new Map();
+        for (let n = r.start; n <= r.end; n++){
+          await appendPageToDoc(outDoc, pages[n - 1], false, imageCache);
+        }
+        const bytes = await outDoc.save();
+        zip.file(`${baseName}_${idx + 1}.pdf`, bytes);
+      }
+
+      setStatus("zip으로 묶는 중...");
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(zipBlob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${baseName}_분할.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      const sizeKB = Math.round(zipBlob.size / 1024).toLocaleString();
+      setStatus(`완료! ${result.ranges.length}개 파일을 "${baseName}_분할.zip" (${sizeKB}KB)으로 저장했어요.`);
+    }catch(err){
+      console.error(err);
+      setStatus("분할 저장 중 오류가 발생했어요.");
+    }finally{
+      setBusy(false);
+      refreshToolbar();
+    }
+  }
+
+  // ---- preview lightbox ----
+
+  // Sizes .lightbox-stage in JS (inline width/height, px) instead of via CSS aspect-ratio +
+  // height:100% + max-width. That CSS combo has a real edge case: when the max-width clamp
+  // actually kicks in (narrow viewport / very tall available height), some browsers don't
+  // reliably recompute height back down from the clamped width, so the box can end up taller
+  // than .lightbox-body and spill out of the viewport — this is what the user hit (screenshot
+  // showed the stage and its toggle button pushed off-screen). Computing both dimensions
+  // ourselves from lightboxBody's actual box, capped to fit both axes, sidesteps that entirely.
+  function layoutLightboxA4Stage(){
+    if (!lightboxStage.classList.contains("a4-compare")){
+      lightboxStage.style.width = "";
+      lightboxStage.style.height = "";
+      return;
+    }
+    const availW = lightboxBody.clientWidth;
+    const availH = lightboxBody.clientHeight;
+    if (availW <= 0 || availH <= 0) return; // not laid out yet — nothing to compute against
+    const landscape = lightboxStage.classList.contains("landscape");
+    const ratio = landscape ? (297 / 210) : (210 / 297); // width / height
+    let w = availH * ratio;
+    let h = availH;
+    if (w > availW){ w = availW; h = availW / ratio; }
+    lightboxStage.style.width = `${Math.round(w)}px`;
+    lightboxStage.style.height = `${Math.round(h)}px`;
+  }
+  window.addEventListener("resize", () => {
+    if (lightbox.classList.contains("show")) layoutLightboxA4Stage();
+  });
+
+  // PDF가 하나라도 올라와 있는 상태에서 창/탭을 닫거나 새로고침하면 변경사항을 잃을 수 있으니 확인창을 띄운다.
+  // 아무 파일도 없으면(pages.length === 0) 뜨지 않는다. 브라우저는 커스텀 문구 대신 자체 기본 문구를 보여준다.
+  window.addEventListener("beforeunload", (e) => {
+    if (pages.length === 0) return;
+    e.preventDefault();
+    e.returnValue = "변경사항이 저장되지 않을 수 있습니다.";
+    return e.returnValue;
+  });
+
+  async function refreshLightboxImage(p){
+    const myIdx = lightboxIdx;
+    const myCompare = lightboxA4Compare;
+    const stillCurrent = () => lightboxIdx === myIdx && lightboxA4Compare === myCompare;
+    try{
+      const url = await renderOrientedBitmap(p, 1400);
+      if (!stillCurrent()) return;
+      lightboxImg.src = url;
+    }catch(e){
+      // Rendering failed — fall back to the plain thumbnail. transform stays "none" either way
+      // (see the comment on lightboxImg.style.transform in openLightbox for why).
+      if (stillCurrent()) lightboxImg.src = p.thumbUrl;
+    }
+  }
+
+  async function openLightbox(idx){
+    if (idx < 0 || idx >= pages.length) return;
+    lightboxIdx = idx;
+    const p = pages[idx];
+    lightboxA4Compare = !!p.fitA4;
+    lightboxImg.src = p.thumbUrl; // instant low-res placeholder, upgraded below
+    // The lightbox image NEVER uses a CSS rotate transform (unlike the grid thumbnails). A CSS
+    // transform is purely visual — it doesn't affect layout — so rotating a box that was already
+    // sized (via max-width/max-height) to fit the available space can make the ROTATED result
+    // spill outside that space whenever the total rotation is 90/270 on a non-square page (a wide
+    // slide fit to the available width, then rotated 90°, becomes far taller than the space it
+    // was fit into). The user hit exactly this: a rotated page's preview extended above and below
+    // the browser window. Instead, refreshLightboxImage() always loads a bitmap with the rotation
+    // already BAKED into the raster (renderOrientedBitmap, same math as the real PDF/PNG export),
+    // so max-width/max-height correctly constrain the already-correctly-oriented result.
+    lightboxImg.style.transform = "none";
+    lightboxCaption.textContent = `${idx + 1} / ${pages.length} · ${p.fileName}`;
+    // Show the lightbox BEFORE computing the A4 stage size — layoutLightboxA4Stage() (called
+    // from updateLightboxA4UI) measures lightboxBody's actual rendered box, which is 0×0 while
+    // .lightbox is still display:none.
+    lightbox.classList.add("show");
+    // A4비율이 켜진 페이지를 열 때는 기본으로 "실제로 다운로드될 모습"(여백 없이 A4로 늘어난 모습)을
+    // 보여주고, 토글로 원본과 비교할 수 있게 한다. A4가 꺼진 페이지에서는 토글 자체를 숨긴다.
+    updateLightboxA4UI(p);
+    await refreshLightboxImage(p);
+  }
+
+  function updateLightboxA4UI(p){
+    if (p && p.fitA4){
+      lightboxA4Toggle.style.display = "inline-flex";
+      lightboxA4Toggle.textContent = lightboxA4Compare ? "↔ 원본과 비교" : "↔ A4비율로 다시 보기";
+      lightboxStage.classList.toggle("a4-compare", lightboxA4Compare);
+      lightboxStage.classList.toggle("landscape", lightboxA4Compare && isPageLandscape(p));
+    } else {
+      lightboxA4Toggle.style.display = "none";
+      lightboxStage.classList.remove("a4-compare", "landscape");
+    }
+    layoutLightboxA4Stage();
+  }
+
+  function toggleLightboxA4Compare(){
+    if (lightboxIdx === -1) return;
+    const p = pages[lightboxIdx];
+    if (!p || !p.fitA4) return;
+    lightboxA4Compare = !lightboxA4Compare;
+    // The bitmap itself (rotation baked in) is identical either way — renderOrientedBitmap()
+    // doesn't depend on compare mode — so toggling only needs to change the CSS presentation
+    // (fill-to-A4 vs. plain contain) and re-run the stage layout, no re-render needed.
+    updateLightboxA4UI(p);
+  }
+
+  function closeLightbox(){
+    lightbox.classList.remove("show");
+    lightboxIdx = -1;
+  }
+
+  function lightboxStep(delta){
+    if (lightboxIdx === -1) return;
+    const next = lightboxIdx + delta;
+    if (next < 0 || next >= pages.length) return;
+    openLightbox(next);
+  }
+
+  function el(tag, cls, html){
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (html != null) e.innerHTML = html;
+    return e;
+  }
+
+  // 되돌릴 수 없는 동작 전에 확인을 받는 팝업. window.confirm() 대신 사이트 디자인에 맞춘 모달을 쓰고,
+  // Promise<boolean>을 반환한다 (확인=true, 취소/Esc/배경 클릭=false).
+  function showConfirm(message, opts = {}){
+    return new Promise((resolve) => {
+      const overlay = el("div", "modal-overlay");
+      const box = el("div", "modal-box");
+      const msg = el("div", "modal-message");
+      msg.textContent = message;
+      box.appendChild(msg);
+
+      const actions = el("div", "modal-actions");
+      const cancelBtn = el("button", "ghost", opts.cancelLabel || "취소");
+      cancelBtn.type = "button";
+      const okBtn = el("button", opts.danger === false ? "primary" : "danger", opts.okLabel || "확인");
+      okBtn.type = "button";
+      actions.appendChild(cancelBtn);
+      actions.appendChild(okBtn);
+      box.appendChild(actions);
+      overlay.appendChild(box);
+      document.body.appendChild(overlay);
+
+      function close(result){
+        overlay.classList.remove("show");
+        setTimeout(() => { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 150);
+        document.removeEventListener("keydown", onKey);
+        resolve(result);
+      }
+      function onKey(e){
+        if (e.key === "Escape"){ e.preventDefault(); close(false); }
+        else if (e.key === "Enter"){ e.preventDefault(); close(true); }
+      }
+      cancelBtn.addEventListener("click", () => close(false));
+      okBtn.addEventListener("click", () => close(true));
+      overlay.addEventListener("mousedown", (e) => { if (e.target === overlay) close(false); });
+      document.addEventListener("keydown", onKey);
+
+      requestAnimationFrame(() => {
+        overlay.classList.add("show");
+        okBtn.focus();
+      });
+    });
+  }
+
+  function clearAll(){
+    sources = [];
+    pages = [];
+    idSeed = 0;
+    viewMode = "page";
+    closeLightbox();
+    splitPanel.classList.remove("show");
+    splitRangesInput.value = "";
+    renderGrid();
+    toolbar.style.display = "none";
+    emptyState.style.display = "none";
+    setStatus("");
+  }
+
+  // events
+  helpToggle.addEventListener("click", () => {
+    const isOpen = helpPanel.classList.toggle("open");
+    helpToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    helpToggle.querySelector(".help-toggle-icon").textContent = isOpen ? "▼" : "▶";
+  });
+  dropzone.addEventListener("click", () => fileInput.click());
+  addMoreBtn.addEventListener("click", () => fileInput.click());
+  fileInput.addEventListener("change", (e) => {
+    handleFiles(e.target.files);
+    fileInput.value = "";
+  });
+
+  ["dragenter","dragover"].forEach(evt => {
+    dropzone.addEventListener(evt, (e) => {
+      e.preventDefault();
+      dropzone.classList.add("dragover");
+    });
+  });
+  ["dragleave","drop"].forEach(evt => {
+    dropzone.addEventListener(evt, (e) => {
+      e.preventDefault();
+      dropzone.classList.remove("dragover");
+    });
+  });
+  dropzone.addEventListener("drop", (e) => {
+    if (e.dataTransfer && e.dataTransfer.files){
+      handleFiles(e.dataTransfer.files);
+    }
+  });
+
+  downloadBtn.addEventListener("click", () => buildAndDownload(false));
+  compressDownloadBtn.addEventListener("click", () => buildAndDownload(true));
+  clearAllBtn.addEventListener("click", async () => {
+    if (pages.length === 0) return;
+    const ok = await showConfirm(
+      `지금까지 올린 파일과 편집 내용이 모두 사라져요.\n전체 지우기를 진행할까요?`,
+      { okLabel: "전체 지우기", cancelLabel: "취소" }
+    );
+    if (ok) clearAll();
+  });
+  viewToggleBtn.addEventListener("click", () => {
+    if (busy) return;
+    viewMode = (viewMode === "file") ? "page" : "file";
+    renderGrid();
+  });
+
+  splitToggleBtn.addEventListener("click", () => {
+    if (busy) return;
+    splitPanel.classList.toggle("show");
+    if (splitPanel.classList.contains("show")){
+      updateSplitPreview();
+      splitRangesInput.focus();
+    }
+  });
+  splitRangesInput.addEventListener("input", updateSplitPreview);
+  splitRangesInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") buildSplitZipAndDownload();
+  });
+  splitDownloadBtn.addEventListener("click", buildSplitZipAndDownload);
+
+  lightboxClose.addEventListener("click", closeLightbox);
+  lightboxPrev.addEventListener("click", () => lightboxStep(-1));
+  lightboxNext.addEventListener("click", () => lightboxStep(1));
+  lightboxA4Toggle.addEventListener("click", toggleLightboxA4Compare);
+  // Clicking the dark backdrop closes the lightbox — but the backdrop is now split into a
+  // topbar (holds the A4 toggle) and a body (holds the stage/nav), so a plain click on either
+  // of those wrapper divs (not on the image/buttons inside them) also counts as "backdrop".
+  lightbox.addEventListener("click", (e) => {
+    if (e.target === lightbox || e.target === lightboxTopbar || e.target === lightboxBody){
+      closeLightbox();
+    }
+  });
+  document.addEventListener("keydown", (e) => {
+    if (!lightbox.classList.contains("show")) return;
+    if (e.key === "Escape") closeLightbox();
+    else if (e.key === "ArrowLeft") lightboxStep(-1);
+    else if (e.key === "ArrowRight") lightboxStep(1);
+  });
+
+  refreshToolbar();
+})();
+</script>
+</body>
+</html>
