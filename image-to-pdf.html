@@ -932,6 +932,12 @@
   // dragover 이벤트 폭주가 아니라 "지금 커서 아래 어떤 카드가 있는지"(elementFromPoint)로만
   // 하기 때문에 끊김도 없다. 부수 효과로 터치(휴대폰)에서도 그대로 동작한다.
   var dragState = null; // { id, pointerId, startClientX, startClientY, grabOffsetX, grabOffsetY, moved }
+  // pointermove는 마우스 폴링 속도(트랙패드/게이밍 마우스는 초당 수백 번)에 따라 화면 갱신 속도보다
+  // 훨씬 자주 발생할 수 있다. 매 이벤트마다 아래 무거운 작업(강제 리플로우, elementFromPoint, 전체
+  // 리렌더)을 다 하면 한 프레임 안에 같은 계산을 여러 번 반복하게 되어 흔들리고 끊겨 보인다.
+  // 그래서 이벤트는 좌표만 저장해두고, 실제 처리는 requestAnimationFrame으로 프레임당 한 번만 한다.
+  var dragRafPending = false;
+  var lastDragEvent = null;
 
   function onCardPointerDown(e, item, cardEl){
     if (e.target.closest("button")) return; // 버튼 클릭은 드래그 시작으로 취급하지 않음
@@ -961,6 +967,18 @@
       render(); // .dragging(들어올려진) 스타일이 적용되도록 한 번 다시 그림
     }
     e.preventDefault();
+    lastDragEvent = e;
+    if (!dragRafPending){
+      dragRafPending = true;
+      requestAnimationFrame(processDragFrame);
+    }
+  }
+
+  // 실제 드래그 처리(카드 위치 갱신 + 카드 교체 판정)는 여기서, 프레임당 딱 한 번만 실행.
+  function processDragFrame(){
+    dragRafPending = false;
+    if (!dragState || !lastDragEvent) return;
+    var e = lastDragEvent;
     updateDraggedTransform(e);
 
     var elAtPoint = document.elementFromPoint(e.clientX, e.clientY);
@@ -980,6 +998,7 @@
     document.removeEventListener("pointermove", onDragMove);
     document.removeEventListener("pointerup", onDragEnd);
     document.removeEventListener("pointercancel", onDragEnd);
+    lastDragEvent = null;
     var draggedEl = itemEls[dragState.id];
     if (draggedEl){
       draggedEl.style.transition = "none";
@@ -1021,6 +1040,14 @@
   // FLIP 애니메이션. 카드마다 "읽기(getBoundingClientRect) → 쓰기(transform) → 강제 리플로우"를
   // 하나씩 반복하면 카드가 여러 장일 때 레이아웃을 여러 번 다시 계산하게 되어(레이아웃 스래싱)
   // 끊겨 보이므로, 읽기 단계와 쓰기 단계를 완전히 분리해서 리플로우가 한 번만 일어나게 함.
+  //
+  // 드래그 중 흔들림(트램블링) 방지: FLIP으로 자리를 옮기는 중인 카드는 애니메이션이 끝날 때까지
+  // pointer-events를 꺼둔다. elementFromPoint는 실제로 "그려지는(transform이 반영된) 위치"를
+  // 기준으로 히트테스트하는데, 방금 옆으로 밀려난 카드가 아직 옛 자리 쪽으로 슬라이드하는 도중이면
+  // 커서가 그 카드 위에 다시 걸려서 "방금 바꾼 순서를 즉시 원래대로 되돌리는" 일이 반복된다
+  // (바꿈→되돌림→바꿈...이 프레임마다 반복돼서 잡고 있는 카드가 부들부들 떨리는 것처럼 보임).
+  // 애니메이션 중인 카드를 커서가 "투과"하게 만들면 이 되돌림 루프 자체가 생기지 않는다.
+  var FLIP_MS = 220;
   function playFlip(oldRects){
     var toAnimate = [];
     Object.keys(itemEls).forEach(function(id){ // 1) 읽기만 몰아서 처리
@@ -1038,12 +1065,22 @@
     toAnimate.forEach(function(rec){ // 2) 쓰기만 몰아서 처리 (읽기와 절대 섞지 않음)
       rec.el.style.transition = "none";
       rec.el.style.transform = "translate(" + rec.dx + "px," + rec.dy + "px)";
+      rec.el.style.pointerEvents = "none"; // 슬라이드 다 끝날 때까지 커서 히트테스트에서 제외
+      if (rec.el.__flipRestoreTimer){ clearTimeout(rec.el.__flipRestoreTimer); }
     });
     void grid.offsetHeight; // 3) 강제 리플로우는 전체 통틀어 딱 한 번만
     requestAnimationFrame(function(){
       toAnimate.forEach(function(rec){
-        rec.el.style.transition = "transform .22s cubic-bezier(.2,.7,.3,1)";
+        rec.el.style.transition = "transform " + FLIP_MS + "ms cubic-bezier(.2,.7,.3,1)";
         rec.el.style.transform = "";
+        // transitionend에만 기대면 애니메이션 도중 다시 순서가 바뀌어 transition이 끊길 때
+        // (transition:none으로 다시 덮어쓸 때) 이벤트가 안 와서 pointer-events:none이 영영
+        // 안 풀릴 수 있다 — 그래서 타이머로 확실히 복구한다(다음 playFlip이 다시 걸면 타이머는
+        // 위에서 clearTimeout으로 매번 새로 시작됨).
+        rec.el.__flipRestoreTimer = setTimeout(function(){
+          rec.el.style.pointerEvents = "";
+          rec.el.__flipRestoreTimer = null;
+        }, FLIP_MS + 30);
       });
     });
   }
