@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="author" content="고윤태">
 <meta name="generator" content="고윤태 · yuntaeko.com">
-<title>쓸모연구소</title>
+<title>써봄</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%B0%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -275,6 +275,14 @@
   .footer-credit-name{ color:var(--text-secondary); font-weight:600; }
   .footer-credit-link{ color:var(--accent); text-decoration:none; }
   .footer-credit-link:hover{ text-decoration:underline; }
+  .footer-updated{
+    display:block;
+    margin-top:4px;
+    font-size:11.5px;
+    color:var(--text-muted);
+    opacity:.75;
+    letter-spacing:.02em;
+  }
 
   @media (prefers-reduced-motion: reduce){
     *{ transition:none !important; scroll-behavior:auto !important; }
@@ -285,7 +293,7 @@
 <header class="topbar">
   <div class="wrap topbar-inner">
     <a class="brand" href="#top">
-      <span class="brand-mark display">쓸모연구소</span>
+      <span class="brand-mark display">써봄</span>
       <span class="brand-site">yuntaeko.com</span>
     </a>
     <button id="btn-theme" type="button" aria-label="다크모드 전환">🌓 다크모드</button>
@@ -296,7 +304,7 @@
   <section class="hero" id="top">
     <div class="wrap">
       <span class="hero-eyebrow">완전 무료 · 로그인 · 구독 없이 바로 사용</span>
-      <h1 class="display">설치도, 가입도 없이<br>바로 쓰는 도구들</h1>
+      <h1 class="display">설치도, 가입도 없이<br>필요한 건, 일단 써봄.</h1>
       <p class="hero-sub">
         쓸모 있는 웹 도구를 모아두는 곳입니다. 링크만 열면 브라우저 안에서 바로 작동하고,
         회원가입이나 별도 프로그램 설치가 필요 없습니다. 앞으로 도움이 될 만한 도구를 계속 추가할 예정입니다.
@@ -356,13 +364,14 @@
           <div class="tool-body">
             <div class="tool-name">설문 대시보드</div>
             <p class="tool-desc">
-              네이버폼이나 구글폼에서 받은 응답 엑셀 파일을 올리면 자동으로 그래프와 카드로 정리해줍니다.
-              제목과 숫자는 클릭해서 바로 고칠 수 있고, 이미지·PPT·PDF로 내보낼 수 있습니다.
+              네이버폼·구글폼 응답 엑셀을 올리면 문항 유형을 자동 인식해 그래프와 카드로 정리합니다.
+              그래프 종류·색상·글자를 클릭 몇 번으로 고치고, 여러 설문을 탭으로 함께 보며 이미지·PPT·PDF나 이어서 편집 가능한 HTML로 내보낼 수 있습니다.
             </p>
             <div class="tool-tags">
-              <span class="tool-tag">설문 결과 시각화</span>
-              <span class="tool-tag">엑셀 업로드</span>
-              <span class="tool-tag">편집 가능</span>
+              <span class="tool-tag">엑셀 업로드·자동 그래프화</span>
+              <span class="tool-tag">그래프 5종·색상 커스터마이징</span>
+              <span class="tool-tag">이미지·PPT·PDF 내보내기</span>
+              <span class="tool-tag">주관식 답변도 지원</span>
             </div>
             <a class="tool-cta" href="survey-dashboard.html">
               도구 열기
@@ -384,6 +393,7 @@
   <div class="wrap">
     이 페이지의 모든 도구는 브라우저 안에서 바로 작동하며, 별도 설치나 로그인이 필요하지 않습니다.<br>
     <span class="footer-credit-mark">ⓒ 2026</span> <span class="footer-credit-name">고윤태</span> · <a class="footer-credit-link" href="https://yuntaeko.com/" target="_blank" rel="noopener noreferrer">yuntaeko.com</a> — 정성을 담아 제작한 페이지입니다. 무단 도용 및 출처 표기 없는 재배포를 금지합니다.
+    <span class="footer-updated">업데이트 · 2026. 8. 25.</span>
   </div>
 </footer>
 
