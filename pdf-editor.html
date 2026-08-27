@@ -290,7 +290,7 @@
   }
   button:hover{border-color:var(--accent);}
   button:active{transform:scale(.97);}
-  button:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+  button:disabled{opacity:.4;cursor:not-allowed;transform:none;pointer-events:none;}
   button.primary{
     background:var(--accent);
     border-color:var(--accent);
@@ -299,6 +299,14 @@
   button.primary:hover{opacity:.92;border-color:var(--accent);}
   button.ghost{
     background:transparent;
+  }
+  /* 분할 저장 / 편집한 PDF 다운로드 토글 버튼이 켜져 있을 때(패널이 열려 있을 때)의 표시.
+     "일반 다운로드" 같은 실제 실행 버튼(primary, 파란색)과 헷갈리지 않도록 색은 다르게, 켜짐 상태만
+     또렷하게 보이도록 accent 색 테두리+옅은 배경을 쓴다. */
+  button.ghost.toggle-active{
+    background:var(--accent-dim);
+    border-color:var(--accent);
+    color:var(--accent);
   }
   button.danger-ghost{
     background:transparent;
@@ -406,11 +414,22 @@
     width:100%;
     height:100%;
     object-fit:contain;
-    transition:transform .15s ease;
+    transition:transform .15s ease, width .15s ease, height .15s ease;
     background:#fff;
     -webkit-user-drag:none;
     user-drag:none;
     -webkit-touch-callout:none;
+  }
+  /* 90도/270도로 회전된 페이지는 썸네일 박스(.thumb-box, 항상 3:4 세로 비율 고정)에 넣기 전에
+     가로/세로를 미리 서로 맞바꿔 놓아야 한다. object-fit:contain은 회전 "전" 크기를 기준으로
+     이미지를 맞추기 때문에, width:100%;height:100%인 채로 그냥 90도 돌리면 맞춰진 결과물의
+     가로/세로가 뒤바뀌면서 박스보다 넓어져 overflow:hidden에 양옆이 잘려 보인다. 박스의 가로:세로
+     비율이 3:4로 고정돼 있으므로, 회전 전 이미지 박스를 133.3333%(=4/3, 박스의 세로 길이만큼)
+     × 75%(=3/4, 박스의 가로 길이만큼)로 미리 바꿔두면 — object-fit:contain이 그 안에서 알맞게
+     맞추고 — 90도 회전한 결과가 정확히 원래 박스 크기(100%×100%)에 딱 맞게 된다. */
+  .thumb-box img.rotated-90{
+    width:133.3333%;
+    height:75%;
   }
   .order-badge{
     position:absolute;
@@ -534,11 +553,14 @@
     display:flex;
     flex-wrap:wrap;
     align-items:center;
-    gap:10px;
     padding:14px 16px;
     background:var(--card);
     border:1px solid var(--card-border);
     border-radius:var(--radius);
+    /* No `gap` here on purpose: .split-panel/.download-options-panel/.status-line each carry
+       their own top margin instead, so the spacing above a collapsed (0fr) panel can animate
+       away to nothing — a flex `gap` would keep reserving space for it even at 0 height, since
+       it's still a rendered sibling, just a very short one. */
     box-shadow:0 12px 32px rgba(0,0,0,.22);
   }
   .download-bar-row{
@@ -684,16 +706,48 @@
     box-shadow:0 6px 18px rgba(0,0,0,.12);
   }
 
-  .split-panel{
-    display:none;
+  /* 분할 저장 / 편집한 PDF 다운로드 패널이 열리고 닫힐 때 플로팅 박스 높이가 뚝 끊기지 않고
+     부드럽게 늘어나거나 줄어들게 하는 트릭. display:none↔flex 전환은 애니메이션이 안 되니까,
+     대신 바깥 요소를 grid-template-rows를 0fr↔1fr로 트랜지션하는 한 줄짜리 grid로 두고, 안쪽
+     ...-inner를 overflow:hidden으로 감싼다 — 그러면 트랙 높이가 늘어나는 만큼만 안쪽 내용이
+     드러나면서 자연스럽게 펼쳐지고 접힌다(내용 높이를 몰라도, JS로 픽셀을 재지 않아도 동작한다).
+     padding-top/border-top/margin-top은 반드시 바깥(grid 컨테이너) 쪽에 둔다 — grid가 0fr일 때
+     "-inner"는 그 트랙 높이에 맞춰 stretch되는데, border-box 특성상 padding/border는 아무리
+     트랙이 0이어도 자기 두께만큼은 그대로 차지해버려서(예: 10px 패딩 + 1px 보더 = 닫혀도 11px가
+     남음) 완전히 0으로 접히지 않고, 그 어긋난 여백 때문에 내부 내용이 위/아래 어느 쪽에서
+     나타나는지가 패널마다 미묘하게 달라 보이는 원인이 됐다(분할 저장은 위→아래, 편집한 PDF
+     다운로드는 아래→위로 보이는 문제). 바깥 요소는 stretch 대상이 아니라 grid-rows 값 자체가
+     곧 자기 높이이므로, padding/margin/border를 여기서 0↔실제값으로 같이 트랜지션하면 닫힌
+     상태가 정확히 0px가 되고, 열릴 때도 두 패널이 똑같이 위쪽에 고정된 채 아래로 펼쳐진다. */
+  .split-panel, .download-options-panel{
+    display:grid;
+    grid-template-rows:0fr;
     width:100%;
+    margin-top:0;
+    padding-top:0;
+    border-top:0 solid var(--card-border);
+    opacity:0;
+    transition:
+      grid-template-rows .3s cubic-bezier(.4,0,.2,1),
+      opacity .22s ease,
+      margin-top .3s cubic-bezier(.4,0,.2,1),
+      padding-top .3s cubic-bezier(.4,0,.2,1),
+      border-top-width .3s cubic-bezier(.4,0,.2,1);
+  }
+  .split-panel.show, .download-options-panel.show{
+    grid-template-rows:1fr;
+    margin-top:10px;
+    padding-top:10px;
+    border-top-width:1px;
+    opacity:1;
+  }
+  .split-panel-inner, .download-options-panel-inner{
+    overflow:hidden;
+    min-height:0;
+    display:flex;
     flex-direction:column;
     gap:8px;
-    padding-top:10px;
-    margin-top:2px;
-    border-top:1px solid var(--card-border);
   }
-  .split-panel.show{display:flex;}
   .split-panel .split-row{
     display:flex;
     align-items:center;
@@ -716,6 +770,17 @@
     color:var(--text-dim);
   }
   .split-preview .warn{color:var(--danger);font-weight:600;}
+
+  .download-options-panel .download-options-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+  .download-options-hint{
+    font-size:12px;
+    color:var(--text-dim);
+  }
 
   /* Preview lightbox */
   .lightbox{
@@ -791,20 +856,76 @@
     box-shadow:none;
     background:none;
   }
+  /* 지금 A4로 늘린 화면을 보는지 원본 비율을 보는지 한눈에 알 수 있도록, 텍스트가 바뀌는 버튼
+     하나 대신 두 선택지를 동시에 보여주는 세그먼트 컨트롤을 쓴다 — 켜져 있는 쪽이 항상 눈에
+     보이니 "지금 뭘 보고 있는지 헷갈린다"는 문제가 원천적으로 없다. 흰색 알약(인디케이터)은
+     두 세그먼트를 정확히 반씩 나눈 트랙 위에서 transform으로 미끄러지듯 이동한다 — 텍스트
+     너비가 서로 달라도 항상 트랙의 정확히 절반을 차지하도록 두 버튼을 flex:1로 동일 너비로
+     맞췄다(JS로 위치를 계산할 필요 없이 순수 CSS 트랜지션만으로 부드럽게 움직인다). */
   .lightbox-a4-toggle{
     display:inline-flex;
     align-items:center;
-    gap:6px;
+    gap:8px;
     background:rgba(255,255,255,.14);
-    color:#fff;
     border:1px solid rgba(255,255,255,.3);
     border-radius:999px;
-    padding:8px 16px;
+    padding:5px;
+    padding-left:14px;
+  }
+  .lightbox-a4-toggle-label{
+    color:rgba(255,255,255,.65);
+    font-size:12px;
+    font-weight:600;
+    white-space:nowrap;
+  }
+  .lightbox-a4-track{
+    position:relative;
+    display:flex;
+  }
+  .lightbox-a4-indicator{
+    position:absolute;
+    top:0;
+    left:0;
+    width:50%;
+    height:100%;
+    background:#fff;
+    border-radius:999px;
+    transform:translateX(0%);
+    transition:transform .26s cubic-bezier(.4,0,.2,1);
+  }
+  .lightbox-a4-track.mode-original .lightbox-a4-indicator{transform:translateX(100%);}
+  .lightbox-a4-seg{
+    position:relative;
+    z-index:1;
+    flex:1;
+    min-width:0; /* flex item의 기본 min-width:auto가 "A4 비율"/"원본 비율"처럼 서로 다른
+      길이의 텍스트를 각자 내용 너비만큼만 차지하게 만들어서, flex:1이 의도한 정확히 50:50
+      분할이 깨지고 있었다. 그러면 정확히 트랙의 50%인 흰색 타원(indicator)과 실제 버튼
+      박스 경계가 어긋나서, 텍스트 자체는 자기 버튼 안에서 가운데 정렬돼 있어도 타원 기준으로는
+      한쪽으로 치우쳐 보였다. min-width:0으로 그 하한선을 없애야 두 버튼이 진짜로 똑같은
+      너비가 되고, 타원과도 정확히 맞아떨어진다. */
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:transparent;
+    color:rgba(255,255,255,.75);
+    border:none;
+    border-radius:999px;
+    padding:7px 14px;
     font-size:13px;
     font-weight:600;
+    font-family:inherit;
+    text-align:center;
     cursor:pointer;
+    white-space:nowrap;
+    transition:color .18s ease;
   }
-  .lightbox-a4-toggle:hover{background:rgba(255,255,255,.28);}
+  .lightbox-a4-seg:hover{color:#fff;}
+  .lightbox-a4-seg.active{
+    color:#111;
+    cursor:default;
+  }
+  .lightbox-a4-seg.active:hover{color:#111;}
   .lightbox-close, .lightbox-nav{
     position:fixed;
     background:rgba(255,255,255,.14);
@@ -844,7 +965,13 @@
     .download-buttons button{flex:1;width:100%;}
     .split-panel .split-row{flex-direction:column;align-items:stretch;}
     .split-panel input[type=text]{width:100%;}
+    .download-options-panel .download-options-row{flex-direction:column;align-items:stretch;}
+    .download-options-panel .download-options-row button{flex:1;width:100%;}
     .lightbox-nav{width:36px;height:36px;font-size:16px;}
+    .lightbox-topbar{padding:12px 54px 0;}
+    .lightbox-a4-toggle-label{display:none;}
+    .lightbox-a4-toggle{padding-left:5px;gap:0;}
+    .lightbox-a4-seg{padding:7px 10px;font-size:12px;}
   }
 </style>
 </head>
@@ -877,7 +1004,7 @@
         <div class="help-grid">
           <div class="help-item"><span class="help-key">+ 파일 추가</span><span class="help-desc">지금 목록에 PDF 파일을 더 추가합니다.</span></div>
           <div class="help-item"><span class="help-key">전체 지우기</span><span class="help-desc">올린 파일과 페이지를 모두 지우고 처음 화면으로 되돌립니다.</span></div>
-          <div class="help-item"><span class="help-key">🔍 상세보기 / ← 파일 목록으로</span><span class="help-desc">파일을 2개 이상 올리면 파일 카드 목록이 먼저 보이는데, 이 버튼으로 페이지 단위 화면과 파일 목록 화면을 오갈 수 있습니다.</span></div>
+          <div class="help-item"><span class="help-key">페이지 단위로 보기 / ← 파일 목록으로</span><span class="help-desc">파일을 2개 이상 올리면 파일 카드 목록이 먼저 보이는데, 이 버튼으로 페이지 단위 화면과 파일 목록 화면을 오갈 수 있습니다.</span></div>
         </div>
       </div>
       <div class="help-section">
@@ -886,7 +1013,7 @@
           <div class="help-item"><span class="help-key">↑ / ↓</span><span class="help-desc">페이지를 앞/뒤로 한 칸씩 옮깁니다. 카드를 직접 마우스로 눌러 끌어서 옮길 수도 있습니다(휴대폰에서는 손가락으로 동일하게 동작).</span></div>
           <div class="help-item"><span class="help-key">↻</span><span class="help-desc">페이지를 90도씩 회전합니다. 여러 번 누르면 계속 돌아갑니다.</span></div>
           <div class="help-item"><span class="help-key">📐 A4비율</span><span class="help-desc">여백 없이 페이지를 A4 비율(세로형이면 세로 A4, 가로형이면 가로 A4)로 꽉 채워 늘립니다. 원본 비율이 A4와 다르면 살짝 눌리거나 늘어날 수 있어요 — 확대 화면에서 "원본과 비교"로 확인할 수 있습니다. 이미 A4 비율인 페이지는 버튼이 자동으로 비활성화됩니다.</span></div>
-          <div class="help-item"><span class="help-key">📥 이미지</span><span class="help-desc">이 페이지 한 장을 고화질 PNG 이미지로 저장합니다.</span></div>
+          <div class="help-item"><span class="help-key">📥 이미지</span><span class="help-desc">이 페이지 한 장을 고화질 PNG 이미지로 저장합니다. A4비율이 켜진 페이지는 원본 비율/A4 비율 중 어느 쪽으로 받을지 먼저 물어봅니다.</span></div>
           <div class="help-item"><span class="help-key">✕ 삭제</span><span class="help-desc">이 페이지를 목록에서 삭제합니다.</span></div>
           <div class="help-item"><span class="help-key"><span class="mini-zoom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.35-4.35"></path></svg></span></span><span class="help-desc">썸네일 우측 하단의 돋보기 — 페이지를 크게 확대해서 봅니다.</span></div>
         </div>
@@ -895,7 +1022,6 @@
         <div class="help-section-label">파일 카드 버튼 (파일 2개 이상일 때)</div>
         <div class="help-grid">
           <div class="help-item"><span class="help-key">↑ / ↓</span><span class="help-desc">파일 전체를 통째로 앞/뒤로 옮깁니다. 파일 안 페이지 순서는 그대로 유지됩니다.</span></div>
-          <div class="help-item"><span class="help-key">🔍 상세보기</span><span class="help-desc">이 파일의 페이지들을 페이지 단위 화면으로 열어서 순서변경·회전·삭제 등 세부 편집을 합니다.</span></div>
           <div class="help-item"><span class="help-key">✕ 파일 삭제</span><span class="help-desc">이 파일 전체(안에 있는 모든 페이지)를 목록에서 삭제합니다.</span></div>
         </div>
       </div>
@@ -904,8 +1030,7 @@
         <div class="help-grid">
           <div class="help-item"><span class="help-key">저장 파일명</span><span class="help-desc">다운로드될 PDF 파일의 이름을 정합니다.</span></div>
           <div class="help-item"><span class="help-key">✂ 분할 저장</span><span class="help-desc">"1-13, 14-30"처럼 페이지 범위를 직접 입력해서 여러 개의 PDF로 나눠 zip 파일 하나로 받습니다. 범위에 포함되지 않은 페이지(예: 13-24)는 어떤 파일에도 들어가지 않고 빠집니다.</span></div>
-          <div class="help-item"><span class="help-key">🗜 압축 다운로드</span><span class="help-desc">텍스트와 벡터는 그대로 두고, 사진처럼 용량이 큰 이미지만 다시 압축해서 전체 용량을 줄여 다운로드합니다. 사진이 적은 문서는 효과가 적을 수 있습니다.</span></div>
-          <div class="help-item"><span class="help-key">PDF로 다운로드</span><span class="help-desc">지금 화면에 보이는 순서·회전·A4비율·삭제 상태 그대로 하나의 PDF로 합쳐서 다운로드합니다.</span></div>
+          <div class="help-item"><span class="help-key">편집한 PDF 다운로드</span><span class="help-desc">누르면 아래에 "압축 다운로드"와 "일반 다운로드" 중 고를 수 있는 칸이 나타납니다. 압축은 사진·스캔 이미지만 다시 압축해서 용량을 줄이고, 일반은 지금 화면에 보이는 순서·회전·A4비율·삭제 상태 그대로 하나의 PDF로 합쳐서 다운로드합니다.</span></div>
         </div>
       </div>
       <div class="help-section">
@@ -940,21 +1065,31 @@
       <label>저장 파일명</label>
       <div class="filename-row">
         <input type="text" id="filenameInput" value="합친문서">
-        <span>.pdf</span>
+        <span id="filenameExt">.pdf</span>
       </div>
       <div class="spacer"></div>
       <div class="download-buttons">
         <button class="ghost" id="splitToggleBtn" title="원하는 페이지 범위별로 나눠서 zip으로 저장합니다.">✂ 분할 저장</button>
-        <button class="ghost" id="compressDownloadBtn" title="용량이 큰 사진/스캔 이미지만 화질을 낮춰 다시 압축합니다. 텍스트·벡터는 그대로 유지되어 형식은 바뀌지 않아요.">🗜 압축 다운로드</button>
-        <button class="primary" id="downloadBtn">PDF로 다운로드</button>
+        <button class="ghost" id="downloadToggleBtn" title="지금 화면에 보이는 순서·회전·A4비율·삭제 상태 그대로 PDF로 다운로드합니다.">편집한 PDF 다운로드</button>
       </div>
     </div>
     <div class="split-panel" id="splitPanel">
-      <div class="split-row">
-        <input type="text" id="splitRangesInput" placeholder="예: 1-13, 14-30  (범위에 안 들어간 페이지는 저장에서 빠져요)">
-        <button class="primary" id="splitDownloadBtn">분할해서 zip으로 받기</button>
+      <div class="split-panel-inner">
+        <div class="split-row">
+          <input type="text" id="splitRangesInput" placeholder="예: 1-13, 14-30  (범위에 안 들어간 페이지는 저장에서 빠져요)">
+          <button class="primary" id="splitDownloadBtn">분할해서 zip으로 받기</button>
+        </div>
+        <div class="split-preview" id="splitPreview"></div>
       </div>
-      <div class="split-preview" id="splitPreview"></div>
+    </div>
+    <div class="download-options-panel" id="downloadOptionsPanel">
+      <div class="download-options-panel-inner">
+        <div class="download-options-row">
+          <button class="ghost" id="compressDownloadBtn" title="용량이 큰 사진/스캔 이미지만 화질을 낮춰 다시 압축합니다. 텍스트·벡터는 그대로 유지되어 형식은 바뀌지 않아요.">🗜 압축 다운로드</button>
+          <button class="primary" id="downloadBtn">📄 일반 다운로드</button>
+        </div>
+        <div class="download-options-hint">🗜 압축 다운로드는 사진·스캔 이미지가 많을수록 효과가 크고, 텍스트·표 위주 문서는 원래 용량이 작아 효과가 적을 수 있어요.</div>
+      </div>
     </div>
     <div class="status-line" id="statusLine"></div>
   </div>
@@ -962,7 +1097,7 @@
   <footer class="note">
     <div>써봄 · 브라우저에서 끝나는 파일 도구</div>
     <div class="copyright"><span class="mark">ⓒ 2026</span> <span class="name">고윤태</span> · <a href="https://yuntaeko.com/" target="_blank" rel="noopener">yuntaeko.com</a> — 정성을 담아 제작한 도구입니다. 무단 도용 및 출처 표기 없는 재배포를 금지합니다.</div>
-    <div class="updated">업데이트 · 2026. 8. 25.</div>
+    <div class="updated">업데이트 · 2026. 8. 27.</div>
   </footer>
 </div>
 
@@ -973,7 +1108,14 @@
 
 <div class="lightbox" id="lightbox">
   <div class="lightbox-topbar" id="lightboxTopbar">
-    <button class="lightbox-a4-toggle" id="lightboxA4Toggle" style="display:none;" type="button"></button>
+    <div class="lightbox-a4-toggle" id="lightboxA4Toggle" style="display:none;">
+      <span class="lightbox-a4-toggle-label">지금 보는 비율</span>
+      <div class="lightbox-a4-track" id="lightboxA4Track">
+        <span class="lightbox-a4-indicator"></span>
+        <button class="lightbox-a4-seg" id="lightboxA4SegA4" type="button" data-mode="a4">A4 비율</button>
+        <button class="lightbox-a4-seg" id="lightboxA4SegOriginal" type="button" data-mode="original">원본 비율</button>
+      </div>
+    </div>
   </div>
   <div class="lightbox-body" id="lightboxBody">
     <button class="lightbox-nav prev" id="lightboxPrev" title="이전 페이지">‹</button>
@@ -1003,9 +1145,12 @@
   const fileCountEl = document.getElementById("fileCount");
   const emptyState = document.getElementById("emptyState");
   const downloadBar = document.getElementById("downloadBar");
+  const downloadToggleBtn = document.getElementById("downloadToggleBtn");
+  const downloadOptionsPanel = document.getElementById("downloadOptionsPanel");
   const downloadBtn = document.getElementById("downloadBtn");
   const compressDownloadBtn = document.getElementById("compressDownloadBtn");
   const filenameInput = document.getElementById("filenameInput");
+  const filenameExt = document.getElementById("filenameExt");
   const statusLine = document.getElementById("statusLine");
   const addMoreBtn = document.getElementById("addMoreBtn");
   const clearAllBtn = document.getElementById("clearAllBtn");
@@ -1029,6 +1174,9 @@
   const lightboxNext = document.getElementById("lightboxNext");
   const lightboxClose = document.getElementById("lightboxClose");
   const lightboxA4Toggle = document.getElementById("lightboxA4Toggle");
+  const lightboxA4Track = document.getElementById("lightboxA4Track");
+  const lightboxA4SegA4 = document.getElementById("lightboxA4SegA4");
+  const lightboxA4SegOriginal = document.getElementById("lightboxA4SegOriginal");
   const lightboxCaption = document.getElementById("lightboxCaption");
 
   // sources[fileIndex] = { name, pdfLibDoc, pdfJsDoc, numPages }
@@ -1076,14 +1224,29 @@
     statusLine.textContent = msg || "";
   }
 
+  // 분할 저장 / 편집한 PDF 다운로드는 서로 배타적인 토글이라, 한쪽 패널이 열려 있으면
+  // 다른 쪽 토글 버튼은 눌러도 반응하지 않도록 완전히 비활성화한다 — 먼저 열려있던
+  // 패널을 다시 눌러서 닫아야만(취소) 반대쪽을 다시 쓸 수 있다.
+  function updateDownloadToggleStates(){
+    const hasPages = pages.length > 0;
+    const splitOpen = splitPanel.classList.contains("show");
+    const downloadOptionsOpen = downloadOptionsPanel.classList.contains("show");
+    splitToggleBtn.disabled = busy || !hasPages || downloadOptionsOpen;
+    downloadToggleBtn.disabled = busy || !hasPages || splitOpen;
+    splitToggleBtn.classList.toggle("toggle-active", splitOpen);
+    downloadToggleBtn.classList.toggle("toggle-active", downloadOptionsOpen);
+    // 분할 저장은 zip으로 묶여서 나가니까 파일명 옆 확장자 표시도 그에 맞춰 바꿔준다.
+    filenameExt.textContent = splitOpen ? ".zip" : ".pdf";
+  }
+
   function setBusy(b, msg){
     busy = b;
     downloadBtn.disabled = b || pages.length === 0;
     compressDownloadBtn.disabled = b || pages.length === 0;
-    splitToggleBtn.disabled = b || pages.length === 0;
     splitDownloadBtn.disabled = b || pages.length === 0;
     addMoreBtn.disabled = b;
     clearAllBtn.disabled = b || pages.length === 0;
+    updateDownloadToggleStates();
     if (msg !== undefined) setStatus(msg);
   }
 
@@ -1097,19 +1260,20 @@
     fileCountEl.textContent = activeFiles;
     downloadBtn.disabled = !hasPages || busy;
     compressDownloadBtn.disabled = !hasPages || busy;
-    splitToggleBtn.disabled = !hasPages || busy;
     splitDownloadBtn.disabled = !hasPages || busy;
     clearAllBtn.disabled = !hasPages || busy;
-    if (!hasPages && splitPanel.classList.contains("show")){
+    if (!hasPages){
       splitPanel.classList.remove("show");
+      downloadOptionsPanel.classList.remove("show");
     }
+    updateDownloadToggleStates();
 
     if (activeFiles >= 2){
       viewToggleBtn.style.display = "inline-flex";
       viewHint.style.display = "block";
       if (viewMode === "file"){
-        viewToggleBtn.textContent = "🔍 상세보기 (페이지 단위)";
-        viewHint.textContent = "카드를 드래그하거나 ↑↓ 버튼으로 파일 순서를 바꿀 수 있어요. 페이지를 하나씩 다루려면 상세보기를 눌러주세요.";
+        viewToggleBtn.textContent = "페이지 단위로 보기";
+        viewHint.textContent = "카드를 드래그하거나 ↑↓ 버튼으로 파일 순서를 바꿀 수 있어요. 페이지를 하나씩 다루려면 페이지 단위로 보기를 눌러주세요.";
       } else {
         viewToggleBtn.textContent = "← 파일 목록으로";
         viewHint.textContent = "업로드한 모든 파일의 페이지가 한 그리드에 모여 있어요. 카드를 드래그하거나 ↑↓ 버튼으로 파일 경계와 상관없이 자유롭게 순서를 바꾸거나 삭제하세요.";
@@ -1250,12 +1414,13 @@
       card.className = "page-card" + (isDragging ? " dragging" : "");
       card.dataset.id = p.id;
       const nearA4 = isNearA4(p);
+      const rotated90 = Math.abs(p.rotation % 180) === 90;
 
       card.innerHTML = `
         <div class="thumb-box${p.fitA4 ? " a4-fit" : ""}">
           <span class="order-badge">${idx + 1}</span>
           ${p.fitA4 ? '<span class="a4-badge">A4</span>' : ""}
-          <img src="${p.thumbUrl}" alt="${idx+1}번째 페이지 미리보기" draggable="false" style="transform:rotate(${p.rotation}deg);">
+          <img src="${p.thumbUrl}" alt="${idx+1}번째 페이지 미리보기" draggable="false" class="${rotated90 ? "rotated-90" : ""}" style="transform:rotate(${p.rotation}deg);">
           <button class="zoom-badge" data-act="zoom" title="크게 보기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.35-4.35"></path></svg></button>
         </div>
         <div class="meta" title="${p.fileName}">${p.fileName}</div>
@@ -1278,7 +1443,7 @@
       card.addEventListener("pointerdown", (e) => onCardPointerDown(e, p, card));
 
       card.querySelectorAll("button[data-act]").forEach(btn => {
-        btn.addEventListener("click", (e) => {
+        btn.addEventListener("click", async (e) => {
           e.stopPropagation();
           if (busy) return;
           const act = btn.dataset.act;
@@ -1287,7 +1452,14 @@
           else if (act === "down") moveIndex(curIdx, curIdx + 1);
           else if (act === "rotate") rotatePage(p.id);
           else if (act === "delete") deletePage(p.id);
-          else if (act === "img") downloadPageAsImage(p, curIdx);
+          else if (act === "img"){
+            if (p.fitA4){
+              const choice = await showImageRatioChoice();
+              if (choice) downloadPageAsImage(p, curIdx, choice === "a4");
+            } else {
+              downloadPageAsImage(p, curIdx, false);
+            }
+          }
           else if (act === "a4") toggleFitA4(p.id);
           else if (act === "zoom") openLightbox(curIdx);
         });
@@ -1325,9 +1497,6 @@
             <button class="icon-btn" data-act="down" title="뒤로 이동">↓</button>
           </div>
           <div class="actions-row">
-            <button class="icon-btn" data-act="detail" title="페이지 단위로 보기" style="flex:1 1 100%;">🔍 상세보기</button>
-          </div>
-          <div class="actions-row">
             <button class="icon-btn delete" data-act="delete" title="이 파일 삭제" style="flex:1 1 100%;">✕ 파일 삭제</button>
           </div>
         </div>
@@ -1345,7 +1514,6 @@
           if (act === "up") moveRunIndex(curIdx, curIdx - 1);
           else if (act === "down") moveRunIndex(curIdx, curIdx + 1);
           else if (act === "delete") deleteRun(run.ids[0]);
-          else if (act === "detail"){ viewMode = "page"; renderGrid(); }
           else if (act === "zoom") openLightbox(pages.findIndex(pg => pg.id === run.ids[0]));
         });
       });
@@ -1468,8 +1636,26 @@
   function rotatePage(id){
     const p = pages.find(p => p.id === id);
     if (!p) return;
+    const from = p.rotation;
     p.rotation = (p.rotation + 90) % 360;
-    renderGrid();
+    // renderGrid()는 카드 전체를 지우고 새로 그리기 때문에, 곧바로 renderGrid()부터 부르면
+    // 이미지가 이미 최종 각도로 "짠" 하고 새로 나타나서 딱딱하게 느껴진다(.thumb-box img에
+    // 걸어둔 transition:transform이 재생될 새 요소-이전 요소 쌍이 없기 때문). 그래서 화면에 있는
+    // 이미지 요소를 먼저 새 각도로 직접 돌려 트랜지션이 재생되게 하고, 그게 끝날 때쯤 renderGrid()로
+    // 마무리한다(끝난 모습이 이미 똑같아서 이어붙여도 티가 안 난다).
+    // 270도→0도처럼 값이 순간적으로 줄어드는 지점에서는 from+90(예: 360도)을 그대로 써서
+    // "앞으로 90도"가 아니라 "뒤로 270도" 도는 것처럼 보이는 걸 막는다 — 최종 DOM에는 모듈로
+    // 연산이 끝난 정상 값(0~270)이 반영되므로 시각적으로는 정확히 같은 자리에서 멈춘다.
+    const img = grid.querySelector(`.page-card[data-id="${id}"] .thumb-box img`);
+    if (img){
+      const rotated90 = Math.abs(p.rotation % 180) === 90;
+      img.style.transform = `rotate(${from + 90}deg)`;
+      img.style.width = rotated90 ? "133.3333%" : "100%";
+      img.style.height = rotated90 ? "75%" : "100%";
+      setTimeout(renderGrid, 160);
+    } else {
+      renderGrid();
+    }
   }
 
   function toggleFitA4(id){
@@ -1615,7 +1801,7 @@
     renderGrid();
   }
 
-  async function downloadPageAsImage(p, idx){
+  async function downloadPageAsImage(p, idx, asA4){
     if (busy) return;
     setBusy(true, `${idx + 1}번째 페이지를 이미지로 만드는 중...`);
     try{
@@ -1635,18 +1821,34 @@
       const ctx = canvas.getContext("2d");
       await page.render({ canvasContext: ctx, viewport }).promise;
 
+      // A4비율로 받기를 골랐으면, 방금 그린(회전까지 반영된) 비트맵을 A4 비율 캔버스에 여백 없이
+      // 늘려 채운다 — addA4WrappedPage()가 실제 PDF에 쓰는 것과 동일한 "가로/세로 독립 스케일" 방식.
+      let exportCanvas = canvas;
+      if (asA4){
+        const landscape = isPageLandscape(p);
+        const longEdge = 1600;
+        const shortEdge = Math.round(1600 * A4_RATIO); // A4_RATIO ≈ 0.7071 (짧은 변 / 긴 변)
+        const outW = landscape ? longEdge : shortEdge;
+        const outH = landscape ? shortEdge : longEdge;
+        exportCanvas = document.createElement("canvas");
+        exportCanvas.width = outW;
+        exportCanvas.height = outH;
+        const exCtx = exportCanvas.getContext("2d");
+        exCtx.drawImage(canvas, 0, 0, canvas.width, canvas.height, 0, 0, outW, outH);
+      }
+
       await new Promise((resolve) => {
-        canvas.toBlob((blob) => {
+        exportCanvas.toBlob((blob) => {
           const url = URL.createObjectURL(blob);
           const baseName = src.name.replace(/\.pdf$/i, "");
           const a = document.createElement("a");
           a.href = url;
-          a.download = `${baseName}_p${p.pageIndex + 1}.png`;
+          a.download = asA4 ? `${baseName}_p${p.pageIndex + 1}_A4.png` : `${baseName}_p${p.pageIndex + 1}.png`;
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
           setTimeout(() => URL.revokeObjectURL(url), 4000);
-          setStatus(`${idx + 1}번째 페이지를 이미지로 저장했어요.`);
+          setStatus(`${idx + 1}번째 페이지를 ${asA4 ? "A4 비율 " : ""}이미지로 저장했어요.`);
           resolve();
         }, "image/png");
       });
@@ -2140,7 +2342,11 @@
   function updateLightboxA4UI(p){
     if (p && p.fitA4){
       lightboxA4Toggle.style.display = "inline-flex";
-      lightboxA4Toggle.textContent = lightboxA4Compare ? "↔ 원본과 비교" : "↔ A4비율로 다시 보기";
+      // 두 선택지를 항상 같이 보여주고 지금 보고 있는 쪽만 흰색으로 켜서, 텍스트를 읽지 않고
+      // 색만 봐도 "지금 A4를 보는지 원본을 보는지"가 바로 보이게 한다.
+      lightboxA4SegA4.classList.toggle("active", lightboxA4Compare);
+      lightboxA4SegOriginal.classList.toggle("active", !lightboxA4Compare);
+      lightboxA4Track.classList.toggle("mode-original", !lightboxA4Compare);
       lightboxStage.classList.toggle("a4-compare", lightboxA4Compare);
       lightboxStage.classList.toggle("landscape", lightboxA4Compare && isPageLandscape(p));
     } else {
@@ -2150,11 +2356,12 @@
     layoutLightboxA4Stage();
   }
 
-  function toggleLightboxA4Compare(){
+  function setLightboxA4Mode(showA4){
     if (lightboxIdx === -1) return;
     const p = pages[lightboxIdx];
     if (!p || !p.fitA4) return;
-    lightboxA4Compare = !lightboxA4Compare;
+    if (lightboxA4Compare === showA4) return; // already on that segment — no-op
+    lightboxA4Compare = showA4;
     // The bitmap itself (rotation baked in) is identical either way — renderOrientedBitmap()
     // doesn't depend on compare mode — so toggling only needs to change the CSS presentation
     // (fill-to-A4 vs. plain contain) and re-run the stage layout, no re-render needed.
@@ -2223,6 +2430,53 @@
     });
   }
 
+  // A4비율이 켜진 페이지를 "이미지로 저장"할 때, 화면 그리드의 썸네일은 원본 비율 그대로라서
+  // 사용자가 A4비율 버튼을 누른 뒤에도 자기도 모르게 원본 비율 이미지를 받아가는 경우가 많았다.
+  // 어느 쪽을 원하는지 명시적으로 고르게 한다. Promise<"a4"|"original"|null>을 반환한다(취소=null).
+  function showImageRatioChoice(){
+    return new Promise((resolve) => {
+      const overlay = el("div", "modal-overlay");
+      const box = el("div", "modal-box");
+      const msg = el("div", "modal-message");
+      msg.textContent = "이 페이지는 A4비율이 적용되어 있어요. 이미지를 어떤 비율로 받을까요?";
+      box.appendChild(msg);
+
+      const actions = el("div", "modal-actions");
+      const cancelBtn = el("button", "ghost", "취소");
+      cancelBtn.type = "button";
+      const originalBtn = el("button", "ghost", "원본 비율로 받기");
+      originalBtn.type = "button";
+      const a4Btn = el("button", "primary", "A4 비율로 받기");
+      a4Btn.type = "button";
+      actions.appendChild(cancelBtn);
+      actions.appendChild(originalBtn);
+      actions.appendChild(a4Btn);
+      box.appendChild(actions);
+      overlay.appendChild(box);
+      document.body.appendChild(overlay);
+
+      function close(result){
+        overlay.classList.remove("show");
+        setTimeout(() => { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 150);
+        document.removeEventListener("keydown", onKey);
+        resolve(result);
+      }
+      function onKey(e){
+        if (e.key === "Escape"){ e.preventDefault(); close(null); }
+      }
+      cancelBtn.addEventListener("click", () => close(null));
+      originalBtn.addEventListener("click", () => close("original"));
+      a4Btn.addEventListener("click", () => close("a4"));
+      overlay.addEventListener("mousedown", (e) => { if (e.target === overlay) close(null); });
+      document.addEventListener("keydown", onKey);
+
+      requestAnimationFrame(() => {
+        overlay.classList.add("show");
+        a4Btn.focus();
+      });
+    });
+  }
+
   function clearAll(){
     sources = [];
     pages = [];
@@ -2239,9 +2493,12 @@
 
   // events
   helpToggle.addEventListener("click", () => {
+    // 화살표는 글자를 "▶"→"▼"로 바꾸는 방법과 CSS로 90도 회전시키는 방법을 동시에 쓰고 있었다.
+    // "▼"는 이미 "▶"를 90도 돌린 모양이라, 여기에 CSS rotate(90deg)가 한 번 더 더해지면서
+    // 총 180도 돌아가 버렸다. 아래처럼 글자는 항상 "▶"로 고정해두고 CSS 회전(.help-panel.open
+    // .help-toggle-icon{transform:rotate(90deg);})만으로 아래를 향하게 한다.
     const isOpen = helpPanel.classList.toggle("open");
     helpToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
-    helpToggle.querySelector(".help-toggle-icon").textContent = isOpen ? "▼" : "▶";
   });
   dropzone.addEventListener("click", () => fileInput.click());
   addMoreBtn.addEventListener("click", () => fileInput.click());
@@ -2268,6 +2525,12 @@
     }
   });
 
+  downloadToggleBtn.addEventListener("click", () => {
+    if (busy) return;
+    downloadOptionsPanel.classList.toggle("show");
+    setStatus(""); // 분할 저장 쪽에 남아있던 오류 문구 등이 이어서 보이지 않도록 지운다.
+    updateDownloadToggleStates();
+  });
   downloadBtn.addEventListener("click", () => buildAndDownload(false));
   compressDownloadBtn.addEventListener("click", () => buildAndDownload(true));
   clearAllBtn.addEventListener("click", async () => {
@@ -2289,8 +2552,14 @@
     splitPanel.classList.toggle("show");
     if (splitPanel.classList.contains("show")){
       updateSplitPreview();
-      splitRangesInput.focus();
+      // preventScroll: 포커스를 주는 순간 패널이 아직 0fr→1fr로 펼쳐지는 애니메이션 도중이라
+      // 브라우저가 "포커스된 요소를 보이게" 페이지를 스크롤하려고 하면, 애니메이션이 끝나기 전
+      // 좁았던 위치 기준으로 스크롤했다가 다 펼쳐진 뒤 다시 안 맞아 보정되는 과정이 겹쳐서
+      // 박스가 위로 튀었다 내려오는 것처럼 보인다. 이 옵션으로 자동 스크롤 자체를 막는다.
+      splitRangesInput.focus({ preventScroll: true });
     }
+    setStatus(""); // 이전에 뜬 오류/완료 문구가 다음 상태까지 이어서 남아있지 않도록 지운다.
+    updateDownloadToggleStates();
   });
   splitRangesInput.addEventListener("input", updateSplitPreview);
   splitRangesInput.addEventListener("keydown", (e) => {
@@ -2301,7 +2570,8 @@
   lightboxClose.addEventListener("click", closeLightbox);
   lightboxPrev.addEventListener("click", () => lightboxStep(-1));
   lightboxNext.addEventListener("click", () => lightboxStep(1));
-  lightboxA4Toggle.addEventListener("click", toggleLightboxA4Compare);
+  lightboxA4SegA4.addEventListener("click", () => setLightboxA4Mode(true));
+  lightboxA4SegOriginal.addEventListener("click", () => setLightboxA4Mode(false));
   // Clicking the dark backdrop closes the lightbox — but the backdrop is now split into a
   // topbar (holds the A4 toggle) and a body (holds the stage/nav), so a plain click on either
   // of those wrapper divs (not on the image/buttons inside them) also counts as "backdrop".
