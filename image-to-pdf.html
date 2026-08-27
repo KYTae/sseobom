@@ -556,8 +556,16 @@
   .download-bar .spacer{margin-left:auto;}
   .download-buttons{
     display:flex;
+    align-items:center;
     gap:8px;
     flex-wrap:wrap;
+  }
+  .mode-row{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    flex:none; /* "파일 이름" 라벨+입력칸처럼 라벨과 버튼이 항상 한 덩어리로 붙어있게 — 공간이 부족해도
+                  "모드" 글씨만 따로 떨어져서 다음 줄로 넘어가지 않도록 함 */
   }
 
   .status-line{
@@ -726,7 +734,6 @@
         <option value="0.7">용량 최적화</option>
       </select>
     </div>
-    <button class="ghost" id="modeBtn" type="button">모드: 각각 PDF</button>
     <button class="danger-ghost" id="clearAllBtn" type="button">전체 지우기</button>
   </div>
 
@@ -742,6 +749,10 @@
       </div>
       <span class="spacer"></span>
       <div class="download-buttons">
+        <div class="mode-row">
+          <label class="mode-label">모드</label>
+          <button class="ghost" id="modeBtn" type="button">각각 PDF</button>
+        </div>
         <button class="primary" id="downloadBtn" type="button">PDF로 변환</button>
       </div>
     </div>
@@ -776,7 +787,7 @@
   <footer class="note">
     <div>써봄 · 브라우저에서 끝나는 파일 도구</div>
     <div class="copyright"><span class="mark">ⓒ 2026</span> <span class="name">고윤태</span> · <a href="https://yuntaeko.com/" target="_blank" rel="noopener">yuntaeko.com</a> — 정성을 담아 제작한 도구입니다. 무단 도용 및 출처 표기 없는 재배포를 금지합니다.</div>
-    <div class="updated">업데이트 · 2026. 8. 25.</div>
+    <div class="updated">업데이트 · 2026. 8. 27.</div>
   </footer>
 </div>
 
@@ -788,7 +799,7 @@
 
   var items = []; // {id, file, baseName, rotation(0/90/180/270), url, img(HTMLImageElement), natW, natH}
   var nextId = 1;
-  var mode = "merge"; // "separate" | "merge" — 기본은 "하나로 합치기"
+  var mode = "merge"; // "separate" | "merge" — 기본은 "하나로 합치기", 이미지를 올리면 곧바로 이 모드로 변환 버튼이 활성화됨
 
   var dropzone = document.getElementById("dropzone");
   var fileInput = document.getElementById("fileInput");
@@ -903,6 +914,7 @@
           file: file,
           baseName: baseName,
           rotation: 0,
+          displayRotation: 0,
           url: url,
           img: img,
           natW: img.naturalWidth,
@@ -1160,7 +1172,7 @@
     el.style.order = idx;
     el.classList.toggle("dragging", !!(dragState && dragState.moved && dragState.id === item.id));
     el.querySelector(".order-badge").textContent = (idx + 1);
-    el.querySelector(".thumb-box img").style.transform = "rotate(" + item.rotation + "deg)";
+    el.querySelector(".thumb-box img").style.transform = "rotate(" + (item.displayRotation || 0) + "deg)";
     var meta = el.querySelector(".meta");
     meta.textContent = item.baseName;
     meta.title = item.file.name;
@@ -1218,7 +1230,13 @@
   function rotateItem(id){
     var i = findIndex(id);
     if (i < 0) return;
+    // rotation은 실제 방향 계산(PDF 내보내기/라벨 표시)에 쓰는 0/90/180/270 값이라 360에서 0으로 wrap 시켜야 함.
+    // 하지만 썸네일 CSS transform에 이 값을 그대로 쓰면, 270deg -> 0deg로 값이 "감소"하는 걸로 인식돼서
+    // transition이 최단 경로가 아니라 숫자 그대로 역방향(왼쪽)으로 270도를 돌아버리는 버그가 생김.
+    // 그래서 화면에 실제로 그리는 용도로는 wrap 되지 않고 계속 증가만 하는 displayRotation을 따로 둬서
+    // 항상 +90도(오른쪽) 방향으로만 애니메이션되게 함.
     items[i].rotation = (items[i].rotation + 90) % 360;
+    items[i].displayRotation = (items[i].displayRotation || 0) + 90;
     render();
   }
 
@@ -1249,16 +1267,21 @@
   function updateModeUI(){
     var multi = items.length > 1;
     if (mode === "separate"){
-      modeBtn.textContent = "모드: 각각 PDF";
-      modeBtn.classList.remove("active");
+      modeBtn.textContent = "각각 PDF";
       filenameSuffix.textContent = multi ? ".zip" : ".pdf";
-      downloadBtn.textContent = multi ? "PDF로 변환 (zip)" : "PDF로 변환";
+      downloadBtn.textContent = multi ? (items.length + "개 PDF로 변환 (zip)") : "PDF로 변환";
     } else {
-      modeBtn.textContent = "모드: 하나로 합치기";
-      modeBtn.classList.add("active");
+      modeBtn.textContent = "하나로 합치기";
       filenameSuffix.textContent = ".pdf";
       downloadBtn.textContent = "하나의 PDF로 합치기";
     }
+    // 모드 버튼 두 상태(각각 PDF / 하나로 합치기)는 항상 같은 흰색(ghost) 스타일 — 어느 쪽을 골랐는지는
+    // 버튼 자체 색으로 구분하지 않고 텍스트로만 보여줌(예전엔 .active로 파란 배경을 줬었는데,
+    // 사용자가 "두 버튼 색이 다르다"고 지적해서 통일함).
+    // 기본 모드가 "하나로 합치기"라 이미지를 올리면 곧바로 변환 버튼이 활성화돼 있어야 함 —
+    // 한때 모드 버튼을 먼저 눌러야만 활성화되게 했었는데, 사용자가 그 요구사항을 철회하고
+    // "업로드하면 바로 활성화"로 되돌려달라고 해서 별도 게이팅 없이 항상 활성 상태로 둠
+    // (실제 PDF 생성 중에는 downloadBtn 클릭 핸들러가 자체적으로 잠깐 disabled 처리함).
   }
 
   // ---------- 확대 보기 ----------
