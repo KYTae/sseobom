@@ -111,7 +111,7 @@
   }
   .topbar-inner{
     display:flex; align-items:center; justify-content:space-between;
-    padding:18px 0;
+    padding:18px 6px 18px 18px;
   }
   .brand{
     display:flex; align-items:baseline; gap:9px;
@@ -180,6 +180,38 @@
     color:var(--text-secondary);
   }
   .hero-tag svg{ width:15px; height:15px; flex:none; color:var(--accent); }
+
+  .hero-stats{
+    display:flex; flex-wrap:wrap; align-items:center;
+    gap:8px 22px;
+    margin-top:22px;
+    padding:15px 20px;
+    border:1px solid var(--border);
+    border-radius:var(--radius-md);
+    background:var(--surface);
+  }
+  .hero-stat{
+    display:flex; align-items:baseline; gap:7px;
+  }
+  .hero-stat-num{
+    font-size:19px;
+    font-weight:700;
+    color:var(--accent);
+    letter-spacing:-0.01em;
+    font-variant-numeric:tabular-nums;
+  }
+  .hero-stat-label{
+    font-size:13px;
+    color:var(--text-muted);
+  }
+  .hero-stat-divider{
+    width:1px; height:16px;
+    background:var(--border-strong);
+    flex:none;
+  }
+  @media (max-width:520px){
+    .hero-stat-divider{ display:none; }
+  }
 
   /* ---------- tool section ---------- */
   .tools{
@@ -340,6 +372,22 @@
           링크 하나로 공유
         </span>
       </div>
+      <div class="hero-stats" aria-live="polite">
+        <div class="hero-stat">
+          <span class="hero-stat-num" id="statToday">–</span>
+          <span class="hero-stat-label">오늘 방문자</span>
+        </div>
+        <span class="hero-stat-divider"></span>
+        <div class="hero-stat">
+          <span class="hero-stat-num" id="statTotalVisitors">–</span>
+          <span class="hero-stat-label">누적 방문자</span>
+        </div>
+        <span class="hero-stat-divider"></span>
+        <div class="hero-stat">
+          <span class="hero-stat-num" id="statTotalDownloads">–</span>
+          <span class="hero-stat-label">누적 다운로드</span>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -433,9 +481,90 @@
   <div class="wrap">
     이 페이지의 모든 도구는 브라우저 안에서 바로 작동하며, 별도 설치나 로그인이 필요하지 않습니다.<br>
     <span class="footer-credit-mark">ⓒ 2026</span> <span class="footer-credit-name">고윤태</span> · <a class="footer-credit-link" href="https://yuntaeko.com/" target="_blank" rel="noopener noreferrer">yuntaeko.com</a> — 정성을 담아 제작한 페이지입니다. 무단 도용 및 출처 표기 없는 재배포를 금지합니다.
-    <span class="footer-updated">업데이트 · 2026. 8. 25.</span>
+    <span class="footer-updated">업데이트 · 2026. 8. 28.</span>
   </div>
 </footer>
+
+<!-- ============================================================
+     써봄 사이트 공통 이용 통계 (Firebase Realtime Database)
+     pdf 편집기 · 이미지 to pdf 변환기 · 설문 대시보드와 같은 Firebase
+     프로젝트(realtime database)를 같이 바라보기 때문에, 어느 도구에서
+     방문하거나 다운로드해도 아래 숫자로 자동 합산됩니다. 화면에 숫자를
+     보여주는 건 이 페이지(index.html)뿐이고, 나머지 세 도구 페이지는
+     집계만 하고 표시는 하지 않습니다.
+     ============================================================ -->
+<script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-database-compat.js"></script>
+<script>
+(function(){
+  "use strict";
+  // 광고 차단 확장 프로그램이나 사내망에서 gstatic.com을 막아 Firebase SDK 자체가
+  // 로드되지 않는 경우가 실제로 있다. 그럴 때는 조용히 포기하고 나머지 사이트
+  // 기능에는 영향을 주지 않는다.
+  if (typeof firebase === "undefined"){
+    console.warn("Firebase SDK를 불러오지 못해 방문자/다운로드 통계가 비활성화됐어요. 사이트의 다른 기능에는 영향 없어요.");
+    return;
+  }
+  const firebaseConfig = {
+    apiKey: "AIzaSyCEThSZsmQ7s1wJ0gwkeQtbGpY7JbqU2Ag",
+    authDomain: "sseobom-141f2.firebaseapp.com",
+    databaseURL: "https://sseobom-141f2-default-rtdb.firebaseio.com",
+    projectId: "sseobom-141f2",
+    storageBucket: "sseobom-141f2.firebasestorage.app",
+    messagingSenderId: "1096990397273",
+    appId: "1:1096990397273:web:e3ad4838b86c97bf437248",
+    measurementId: "G-HERB170LMX"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const statsRef = firebase.database().ref("stats");
+
+  function todayKey(){
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+
+  function renderStats(){
+    statsRef.once("value").then((snap) => {
+      const v = snap.val() || {};
+      const fmt = (n) => (n || 0).toLocaleString();
+      const todayCount = (v.dailyVisitors && v.dailyVisitors[todayKey()]) || 0;
+      const elToday = document.getElementById("statToday");
+      const elTotalVisitors = document.getElementById("statTotalVisitors");
+      const elTotalDownloads = document.getElementById("statTotalDownloads");
+      if (elToday) elToday.textContent = fmt(todayCount);
+      if (elTotalVisitors) elTotalVisitors.textContent = fmt(v.totalVisitors);
+      if (elTotalDownloads) elTotalDownloads.textContent = fmt(v.totalDownloads);
+    }).catch((err) => console.error("써봄 통계 읽기 실패", err));
+  }
+
+  // 같은 브라우저가 오늘 이미 방문 카운트됐으면 다시 세지 않는다. localStorage는 도메인
+  // 단위로 공유되니까, 써봄의 네 페이지 중 어디로 들어와도 하루에 한 번만 카운트된다.
+  function trackVisitor(){
+    const today = todayKey();
+    if (localStorage.getItem("sseobom_last_visit") === today){
+      renderStats();
+      return;
+    }
+    const updates = {};
+    updates["totalVisitors"] = firebase.database.ServerValue.increment(1);
+    updates[`dailyVisitors/${today}`] = firebase.database.ServerValue.increment(1);
+    statsRef.update(updates)
+      .then(() => { localStorage.setItem("sseobom_last_visit", today); renderStats(); })
+      .catch((err) => { console.error("써봄 방문자 카운트 실패", err); renderStats(); });
+  }
+
+  window.incrementSseobomDownload = function(){
+    statsRef.child("totalDownloads").set(firebase.database.ServerValue.increment(1))
+      .then(renderStats)
+      .catch((err) => console.error("써봄 다운로드 카운트 실패", err));
+  };
+
+  trackVisitor();
+})();
+</script>
 
 <script>
   (function(){

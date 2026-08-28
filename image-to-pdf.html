@@ -165,15 +165,48 @@
     color:var(--accent);
   }
   .help-panel.open .help-toggle-icon{transform:rotate(90deg);}
+  /* 사용법 박스가 열리고 닫힐 때 뚝 끊기지 않고 부드럽게 늘어나거나 줄어들도록, display:none↔block
+     대신 바깥(.help-content)을 grid-template-rows 0fr↔1fr로 트랜지션하는 한 줄짜리 grid로 두고
+     안쪽(.help-content-inner)을 overflow:hidden으로 감싼다. 위/아래 padding·margin·border는 반드시
+     바깥 쪽에서 0↔실제값으로 같이 트랜지션해야 한다 — border-box 특성상 트랙이 0이어도 안쪽
+     padding/border 두께만큼은 그대로 남아 완전히 접히지 않기 때문이다. */
   .help-content{
-    display:none;
-    margin-top:10px;
+    display:grid;
+    grid-template-rows:0fr;
+    width:100%;
+    margin-top:0;
+    padding-top:0;
+    padding-bottom:0;
     background:var(--card);
-    border:1px solid var(--card-border);
+    border-left:1px solid var(--card-border);
+    border-right:1px solid var(--card-border);
+    border-top:0 solid var(--card-border);
+    border-bottom:0 solid var(--card-border);
     border-radius:14px;
-    padding:22px 24px 24px;
+    opacity:0;
+    transition:
+      grid-template-rows .3s cubic-bezier(.4,0,.2,1),
+      opacity .22s ease,
+      margin-top .3s cubic-bezier(.4,0,.2,1),
+      padding-top .3s cubic-bezier(.4,0,.2,1),
+      padding-bottom .3s cubic-bezier(.4,0,.2,1),
+      border-top-width .3s cubic-bezier(.4,0,.2,1),
+      border-bottom-width .3s cubic-bezier(.4,0,.2,1);
   }
-  .help-panel.open .help-content{display:block;}
+  .help-panel.open .help-content{
+    grid-template-rows:1fr;
+    margin-top:10px;
+    padding-top:22px;
+    padding-bottom:24px;
+    border-top-width:1px;
+    border-bottom-width:1px;
+    opacity:1;
+  }
+  .help-content-inner{
+    overflow:hidden;
+    min-height:0;
+    padding:0 24px;
+  }
   .help-section{margin-bottom:22px;}
   .help-section:last-child{margin-bottom:0;}
   .help-section-label{
@@ -658,6 +691,13 @@
     animation:spin .8s linear infinite;
   }
   @keyframes spin{to{transform:rotate(360deg);}}
+  .loading-percent{
+    font-size:20px;
+    font-weight:700;
+    color:var(--accent);
+    letter-spacing:.01em;
+    font-variant-numeric:tabular-nums; /* 숫자가 78%→100%처럼 자릿수가 바뀌어도 폭이 안 흔들리게 */
+  }
   .loading-overlay .loading-text{
     font-size:14px;
     font-weight:600;
@@ -698,6 +738,7 @@
       <span class="help-toggle-icon">▶</span> 버튼 사용법 보기
     </button>
     <div class="help-content" id="helpContent">
+    <div class="help-content-inner">
       <div class="help-section">
         <div class="help-section-label">이미지 올리기 · 상단 버튼</div>
         <div class="help-grid">
@@ -715,6 +756,7 @@
           <div class="help-item"><span class="help-key"><span class="mini-zoom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.35-4.35"></path></svg></span></span><span class="help-desc">썸네일 우측 하단의 돋보기 — 이미지를 크게 확대해서 봅니다.</span></div>
         </div>
       </div>
+    </div>
     </div>
   </div>
 
@@ -761,6 +803,7 @@
 
   <div class="loading-overlay" id="loadingOverlay">
     <div class="spinner"></div>
+    <div class="loading-percent" id="loadingPercent"></div>
     <div class="loading-text" id="loadingText">처리하는 중...</div>
   </div>
 
@@ -787,12 +830,70 @@
   <footer class="note">
     <div>써봄 · 브라우저에서 끝나는 파일 도구</div>
     <div class="copyright"><span class="mark">ⓒ 2026</span> <span class="name">고윤태</span> · <a href="https://yuntaeko.com/" target="_blank" rel="noopener">yuntaeko.com</a> — 정성을 담아 제작한 도구입니다. 무단 도용 및 출처 표기 없는 재배포를 금지합니다.</div>
-    <div class="updated">업데이트 · 2026. 8. 27.</div>
+    <div class="updated">업데이트 · 2026. 8. 28.</div>
   </footer>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+
+<!-- ============================================================
+     써봄 사이트 공통 이용 통계 (Firebase Realtime Database)
+     pdf 편집기 · 설문 대시보드와 같은 Firebase 프로젝트(realtime database)를
+     같이 바라보기 때문에, 어느 도구에서 방문하거나 다운로드해도 자동
+     합산됩니다. 이 페이지는 집계만 하고 화면에는 숫자를 보여주지
+     않습니다 — 통계 표시는 index.html에서만 합니다.
+     ============================================================ -->
+<script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-database-compat.js"></script>
+<script>
+(function(){
+  "use strict";
+  if (typeof firebase === "undefined"){
+    console.warn("Firebase SDK를 불러오지 못해 방문자/다운로드 통계가 비활성화됐어요. 사이트의 다른 기능에는 영향 없어요.");
+    return;
+  }
+  const firebaseConfig = {
+    apiKey: "AIzaSyCEThSZsmQ7s1wJ0gwkeQtbGpY7JbqU2Ag",
+    authDomain: "sseobom-141f2.firebaseapp.com",
+    databaseURL: "https://sseobom-141f2-default-rtdb.firebaseio.com",
+    projectId: "sseobom-141f2",
+    storageBucket: "sseobom-141f2.firebasestorage.app",
+    messagingSenderId: "1096990397273",
+    appId: "1:1096990397273:web:e3ad4838b86c97bf437248",
+    measurementId: "G-HERB170LMX"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const statsRef = firebase.database().ref("stats");
+
+  function todayKey(){
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+
+  function trackVisitor(){
+    const today = todayKey();
+    if (localStorage.getItem("sseobom_last_visit") === today) return;
+    const updates = {};
+    updates["totalVisitors"] = firebase.database.ServerValue.increment(1);
+    updates[`dailyVisitors/${today}`] = firebase.database.ServerValue.increment(1);
+    statsRef.update(updates)
+      .then(() => localStorage.setItem("sseobom_last_visit", today))
+      .catch((err) => console.error("써봄 방문자 카운트 실패", err));
+  }
+
+  window.incrementSseobomDownload = function(){
+    statsRef.child("totalDownloads").set(firebase.database.ServerValue.increment(1))
+      .catch((err) => console.error("써봄 다운로드 카운트 실패", err));
+  };
+
+  trackVisitor();
+})();
+</script>
+
 <script>
 (function(){
   "use strict";
@@ -817,6 +918,7 @@
   var qualitySelect = document.getElementById("qualitySelect");
   var loadingOverlay = document.getElementById("loadingOverlay");
   var loadingText = document.getElementById("loadingText");
+  var loadingPercent = document.getElementById("loadingPercent");
   var helpPanel = document.getElementById("helpPanel");
   var helpToggle = document.getElementById("helpToggle");
   var confirmModal = document.getElementById("confirmModal");
@@ -884,11 +986,21 @@
       return;
     }
     showLoading("이미지를 불러오는 중...");
+    loadingPercent.textContent = "0%";
     // 이미지마다 디코딩 속도가 달라서, 로딩이 끝나는 대로 바로바로 items에 넣으면 실제
     // 선택한 순서와 다르게 뒤섞일 수 있다(예: 큰 사진이 늦게 끝나면 뒤로 밀림). 그래서
     // loadOneFile은 items를 직접 건드리지 않고 결과만 돌려주고, Promise.all로 다 모인 뒤에
     // (files 배열, 즉 사용자가 고른 순서 그대로) 한 번에 붙인다.
-    var loadPromises = files.map(loadOneFile);
+    // 퍼센트는 병렬로 끝나는 대로(순서 상관없이) doneCount를 세어 올린다 — 전체가 다 끝나야만
+    // 붙이는 items와 달리, 진행률 표시는 화면에 바로바로 반영돼도 되기 때문이다.
+    var doneCount = 0;
+    var loadPromises = files.map(function(f){
+      return loadOneFile(f).then(function(result){
+        doneCount++;
+        loadingPercent.textContent = Math.round((doneCount / files.length) * 100) + "%";
+        return result;
+      });
+    });
     Promise.all(loadPromises).then(function(results){
       var loaded = results.filter(function(r){ return r !== null; });
       items = items.concat(loaded);
@@ -1303,6 +1415,7 @@
   // ---------- 로딩 오버레이 ----------
   function showLoading(text){
     loadingText.textContent = text || "처리하는 중...";
+    loadingPercent.textContent = ""; // 퍼센트는 이미지 불러오기(addFiles)에서만 직접 채운다
     loadingOverlay.classList.add("show");
   }
   function hideLoading(){ loadingOverlay.classList.remove("show"); }
@@ -1388,6 +1501,7 @@
     a.click();
     document.body.removeChild(a);
     setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+    if (window.incrementSseobomDownload) window.incrementSseobomDownload();
   }
 
   function uniqueName(name, used){

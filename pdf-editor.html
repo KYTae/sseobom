@@ -164,15 +164,48 @@
     color:var(--accent);
   }
   .help-panel.open .help-toggle-icon{transform:rotate(90deg);}
+  /* 사용법 박스가 열리고 닫힐 때 뚝 끊기지 않고 부드럽게 늘어나거나 줄어들도록, display:none↔block
+     대신 바깥(.help-content)을 grid-template-rows 0fr↔1fr로 트랜지션하는 한 줄짜리 grid로 두고
+     안쪽(.help-content-inner)을 overflow:hidden으로 감싼다. 위/아래 padding·margin·border는 반드시
+     바깥 쪽에서 0↔실제값으로 같이 트랜지션해야 한다 — border-box 특성상 트랙이 0이어도 안쪽
+     padding/border 두께만큼은 그대로 남아 완전히 접히지 않기 때문이다. */
   .help-content{
-    display:none;
-    margin-top:10px;
+    display:grid;
+    grid-template-rows:0fr;
+    width:100%;
+    margin-top:0;
+    padding-top:0;
+    padding-bottom:0;
     background:var(--card);
-    border:1px solid var(--card-border);
+    border-left:1px solid var(--card-border);
+    border-right:1px solid var(--card-border);
+    border-top:0 solid var(--card-border);
+    border-bottom:0 solid var(--card-border);
     border-radius:14px;
-    padding:22px 24px 24px;
+    opacity:0;
+    transition:
+      grid-template-rows .3s cubic-bezier(.4,0,.2,1),
+      opacity .22s ease,
+      margin-top .3s cubic-bezier(.4,0,.2,1),
+      padding-top .3s cubic-bezier(.4,0,.2,1),
+      padding-bottom .3s cubic-bezier(.4,0,.2,1),
+      border-top-width .3s cubic-bezier(.4,0,.2,1),
+      border-bottom-width .3s cubic-bezier(.4,0,.2,1);
   }
-  .help-panel.open .help-content{display:block;}
+  .help-panel.open .help-content{
+    grid-template-rows:1fr;
+    margin-top:10px;
+    padding-top:22px;
+    padding-bottom:24px;
+    border-top-width:1px;
+    border-bottom-width:1px;
+    opacity:1;
+  }
+  .help-content-inner{
+    overflow:hidden;
+    min-height:0;
+    padding:0 24px;
+  }
   .help-section{margin-bottom:22px;}
   .help-section:last-child{margin-bottom:0;}
   .help-section-label{
@@ -300,9 +333,9 @@
   button.ghost{
     background:transparent;
   }
-  /* 분할 저장 / 편집한 PDF 다운로드 토글 버튼이 켜져 있을 때(패널이 열려 있을 때)의 표시.
-     "일반 다운로드" 같은 실제 실행 버튼(primary, 파란색)과 헷갈리지 않도록 색은 다르게, 켜짐 상태만
-     또렷하게 보이도록 accent 색 테두리+옅은 배경을 쓴다. */
+  /* 분할 저장 토글 버튼이 켜져 있을 때(패널이 열려 있을 때)의 표시. "편집한 PDF 다운로드" 같은
+     실제 실행 버튼(primary, 파란색)과 헷갈리지 않도록 색은 다르게, 켜짐 상태만 또렷하게 보이도록
+     accent 색 테두리+옅은 배경을 쓴다. */
   button.ghost.toggle-active{
     background:var(--accent-dim);
     border-color:var(--accent);
@@ -557,10 +590,10 @@
     background:var(--card);
     border:1px solid var(--card-border);
     border-radius:var(--radius);
-    /* No `gap` here on purpose: .split-panel/.download-options-panel/.status-line each carry
-       their own top margin instead, so the spacing above a collapsed (0fr) panel can animate
-       away to nothing — a flex `gap` would keep reserving space for it even at 0 height, since
-       it's still a rendered sibling, just a very short one. */
+    /* No `gap` here on purpose: .split-panel/.compress-hint/.status-line each carry their own
+       top margin instead, so the spacing above a collapsed (0fr) split-panel can animate away
+       to nothing — a flex `gap` would keep reserving space for it even at 0 height, since it's
+       still a rendered sibling, just a very short one. */
     box-shadow:0 12px 32px rgba(0,0,0,.22);
   }
   .download-bar-row{
@@ -597,8 +630,45 @@
   .download-bar .spacer{margin-left:auto;}
   .download-buttons{
     display:flex;
+    align-items:center;
     gap:8px;
     flex-wrap:wrap;
+  }
+  /* "편집한 PDF 다운로드"가 이제 바로 다운로드를 시작하는 실행 버튼이라, 압축 여부를 미리
+     골라두는 체크박스. 버튼 옆 라벨 형태라 다른 버튼들과 똑같이 pill 모양으로 맞췄다. */
+  .compress-toggle{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-size:13px;
+    font-weight:600;
+    color:var(--text-dim);
+    cursor:pointer;
+    padding:9px 14px 9px 11px;
+    border:1px solid var(--card-border);
+    border-radius:999px;
+    background:var(--card);
+    transition:border-color .15s ease, color .15s ease, background .15s ease;
+    user-select:none;
+  }
+  .compress-toggle:hover{border-color:var(--accent);}
+  .compress-toggle.checked{
+    background:var(--accent-dim);
+    border-color:var(--accent);
+    color:var(--accent);
+  }
+  .compress-toggle input[type=checkbox]{
+    width:15px;
+    height:15px;
+    accent-color:var(--accent);
+    cursor:pointer;
+    margin:0;
+  }
+  .compress-hint{
+    font-size:12px;
+    color:var(--text-dim);
+    width:100%;
+    margin-top:8px;
   }
 
   .status-line{
@@ -666,6 +736,11 @@
     opacity:.75;
     letter-spacing:.02em;
   }
+  footer.note .stats-line{
+    font-size:11.5px;
+    color:var(--text-dim);
+    opacity:.75;
+  }
 
   /* Shown while multiple dropped files are still being read, so a user who
      dropped 5 PDFs doesn't mistake the trickling-in of the first file's pages
@@ -695,6 +770,13 @@
     animation:spin .8s linear infinite;
   }
   @keyframes spin{to{transform:rotate(360deg);}}
+  .loading-percent{
+    font-size:20px;
+    font-weight:700;
+    color:var(--accent);
+    letter-spacing:.01em;
+    font-variant-numeric:tabular-nums; /* 숫자가 78%→100%처럼 자릿수가 바뀌어도 폭이 안 흔들리게 */
+  }
   .loading-overlay .loading-text{
     font-size:14px;
     font-weight:600;
@@ -706,20 +788,19 @@
     box-shadow:0 6px 18px rgba(0,0,0,.12);
   }
 
-  /* 분할 저장 / 편집한 PDF 다운로드 패널이 열리고 닫힐 때 플로팅 박스 높이가 뚝 끊기지 않고
-     부드럽게 늘어나거나 줄어들게 하는 트릭. display:none↔flex 전환은 애니메이션이 안 되니까,
-     대신 바깥 요소를 grid-template-rows를 0fr↔1fr로 트랜지션하는 한 줄짜리 grid로 두고, 안쪽
-     ...-inner를 overflow:hidden으로 감싼다 — 그러면 트랙 높이가 늘어나는 만큼만 안쪽 내용이
-     드러나면서 자연스럽게 펼쳐지고 접힌다(내용 높이를 몰라도, JS로 픽셀을 재지 않아도 동작한다).
-     padding-top/border-top/margin-top은 반드시 바깥(grid 컨테이너) 쪽에 둔다 — grid가 0fr일 때
-     "-inner"는 그 트랙 높이에 맞춰 stretch되는데, border-box 특성상 padding/border는 아무리
-     트랙이 0이어도 자기 두께만큼은 그대로 차지해버려서(예: 10px 패딩 + 1px 보더 = 닫혀도 11px가
-     남음) 완전히 0으로 접히지 않고, 그 어긋난 여백 때문에 내부 내용이 위/아래 어느 쪽에서
-     나타나는지가 패널마다 미묘하게 달라 보이는 원인이 됐다(분할 저장은 위→아래, 편집한 PDF
-     다운로드는 아래→위로 보이는 문제). 바깥 요소는 stretch 대상이 아니라 grid-rows 값 자체가
-     곧 자기 높이이므로, padding/margin/border를 여기서 0↔실제값으로 같이 트랜지션하면 닫힌
-     상태가 정확히 0px가 되고, 열릴 때도 두 패널이 똑같이 위쪽에 고정된 채 아래로 펼쳐진다. */
-  .split-panel, .download-options-panel{
+  /* 분할 저장 패널이 열리고 닫힐 때 플로팅 박스 높이가 뚝 끊기지 않고 부드럽게 늘어나거나
+     줄어들게 하는 트릭(예전엔 "편집한 PDF 다운로드"도 압축/일반을 고르는 패널을 열었는데, 지금은
+     체크박스+즉시 다운로드로 바뀌어서 분할 저장에만 남아 있다). display:none↔flex 전환은
+     애니메이션이 안 되니까, 대신 바깥 요소를 grid-template-rows를 0fr↔1fr로 트랜지션하는
+     한 줄짜리 grid로 두고, 안쪽 -inner를 overflow:hidden으로 감싼다 — 그러면 트랙 높이가
+     늘어나는 만큼만 안쪽 내용이 드러나면서 자연스럽게 펼쳐지고 접힌다(내용 높이를 몰라도, JS로
+     픽셀을 재지 않아도 동작한다). padding-top/border-top/margin-top은 반드시 바깥(grid 컨테이너)
+     쪽에 둔다 — grid가 0fr일 때 "-inner"는 그 트랙 높이에 맞춰 stretch되는데, border-box 특성상
+     padding/border는 아무리 트랙이 0이어도 자기 두께만큼은 그대로 차지해버려서(예: 10px 패딩 +
+     1px 보더 = 닫혀도 11px가 남음) 완전히 0으로 접히지 않는다. 바깥 요소는 stretch 대상이 아니라
+     grid-rows 값 자체가 곧 자기 높이이므로, padding/margin/border를 여기서 0↔실제값으로 같이
+     트랜지션하면 닫힌 상태가 정확히 0px가 된다. */
+  .split-panel{
     display:grid;
     grid-template-rows:0fr;
     width:100%;
@@ -734,14 +815,14 @@
       padding-top .3s cubic-bezier(.4,0,.2,1),
       border-top-width .3s cubic-bezier(.4,0,.2,1);
   }
-  .split-panel.show, .download-options-panel.show{
+  .split-panel.show{
     grid-template-rows:1fr;
     margin-top:10px;
     padding-top:10px;
     border-top-width:1px;
     opacity:1;
   }
-  .split-panel-inner, .download-options-panel-inner{
+  .split-panel-inner{
     overflow:hidden;
     min-height:0;
     display:flex;
@@ -770,17 +851,6 @@
     color:var(--text-dim);
   }
   .split-preview .warn{color:var(--danger);font-weight:600;}
-
-  .download-options-panel .download-options-row{
-    display:flex;
-    align-items:center;
-    gap:8px;
-    flex-wrap:wrap;
-  }
-  .download-options-hint{
-    font-size:12px;
-    color:var(--text-dim);
-  }
 
   /* Preview lightbox */
   .lightbox{
@@ -963,10 +1033,9 @@
     .download-bar{width:calc(100% - 20px);bottom:10px;padding:12px;}
     .download-buttons{width:100%;flex-direction:column;}
     .download-buttons button{flex:1;width:100%;}
+    .compress-toggle{width:100%;justify-content:center;}
     .split-panel .split-row{flex-direction:column;align-items:stretch;}
     .split-panel input[type=text]{width:100%;}
-    .download-options-panel .download-options-row{flex-direction:column;align-items:stretch;}
-    .download-options-panel .download-options-row button{flex:1;width:100%;}
     .lightbox-nav{width:36px;height:36px;font-size:16px;}
     .lightbox-topbar{padding:12px 54px 0;}
     .lightbox-a4-toggle-label{display:none;}
@@ -999,6 +1068,7 @@
       <span class="help-toggle-icon">▶</span> 버튼 사용법 보기
     </button>
     <div class="help-content" id="helpContent">
+    <div class="help-content-inner">
       <div class="help-section">
         <div class="help-section-label">파일 올리기 · 상단 버튼</div>
         <div class="help-grid">
@@ -1029,8 +1099,9 @@
         <div class="help-section-label">다운로드</div>
         <div class="help-grid">
           <div class="help-item"><span class="help-key">저장 파일명</span><span class="help-desc">다운로드될 PDF 파일의 이름을 정합니다.</span></div>
+          <div class="help-item"><span class="help-key">용량 압축</span><span class="help-desc">체크하면 사진·스캔 이미지만 다시 압축해서 용량을 줄입니다. "편집한 PDF 다운로드"와 "✂ 분할 저장" 둘 다에 적용됩니다.</span></div>
           <div class="help-item"><span class="help-key">✂ 분할 저장</span><span class="help-desc">"1-13, 14-30"처럼 페이지 범위를 직접 입력해서 여러 개의 PDF로 나눠 zip 파일 하나로 받습니다. 범위에 포함되지 않은 페이지(예: 13-24)는 어떤 파일에도 들어가지 않고 빠집니다.</span></div>
-          <div class="help-item"><span class="help-key">편집한 PDF 다운로드</span><span class="help-desc">누르면 아래에 "압축 다운로드"와 "일반 다운로드" 중 고를 수 있는 칸이 나타납니다. 압축은 사진·스캔 이미지만 다시 압축해서 용량을 줄이고, 일반은 지금 화면에 보이는 순서·회전·A4비율·삭제 상태 그대로 하나의 PDF로 합쳐서 다운로드합니다.</span></div>
+          <div class="help-item"><span class="help-key">편집한 PDF 다운로드</span><span class="help-desc">누르면 지금 화면에 보이는 순서·회전·A4비율·삭제 상태 그대로 하나의 PDF로 합쳐서 바로 다운로드합니다.</span></div>
         </div>
       </div>
       <div class="help-section">
@@ -1039,6 +1110,7 @@
           <div class="help-item help-tip"><span class="help-desc">💡 확대(돋보기)로 연 화면에서는 <b>‹ › 버튼</b>이나 <b>키보드 화살표</b>로 다른 페이지로 넘어갈 수 있고, <b>Esc</b>나 배경 클릭·✕ 버튼으로 닫을 수 있습니다. 파일은 서버로 전송되지 않고 이 브라우저 안에서만 처리됩니다.</span></div>
         </div>
       </div>
+    </div>
     </div>
   </div>
 
@@ -1069,10 +1141,15 @@
       </div>
       <div class="spacer"></div>
       <div class="download-buttons">
+        <label class="compress-toggle" id="compressToggle" title="용량이 큰 사진/스캔 이미지만 화질을 낮춰 다시 압축합니다. 텍스트·벡터는 그대로 유지되어 형식은 바뀌지 않아요.">
+          <input type="checkbox" id="compressCheckbox">
+          <span>용량 압축</span>
+        </label>
         <button class="ghost" id="splitToggleBtn" title="원하는 페이지 범위별로 나눠서 zip으로 저장합니다.">✂ 분할 저장</button>
-        <button class="ghost" id="downloadToggleBtn" title="지금 화면에 보이는 순서·회전·A4비율·삭제 상태 그대로 PDF로 다운로드합니다.">편집한 PDF 다운로드</button>
+        <button class="primary" id="downloadToggleBtn" title="지금 화면에 보이는 순서·회전·A4비율·삭제 상태 그대로 PDF로 바로 다운로드합니다. 왼쪽의 '용량 압축' 체크박스를 켜면 압축해서 받아요.">편집한 PDF 다운로드</button>
       </div>
     </div>
+    <div class="compress-hint" id="compressHint">✓ 압축 다운로드는 사진·스캔 이미지가 많을수록 효과가 크고, 텍스트·표 위주 문서는 원래 용량이 작아 효과가 적을 수 있어요.</div>
     <div class="split-panel" id="splitPanel">
       <div class="split-panel-inner">
         <div class="split-row">
@@ -1082,27 +1159,19 @@
         <div class="split-preview" id="splitPreview"></div>
       </div>
     </div>
-    <div class="download-options-panel" id="downloadOptionsPanel">
-      <div class="download-options-panel-inner">
-        <div class="download-options-row">
-          <button class="ghost" id="compressDownloadBtn" title="용량이 큰 사진/스캔 이미지만 화질을 낮춰 다시 압축합니다. 텍스트·벡터는 그대로 유지되어 형식은 바뀌지 않아요.">🗜 압축 다운로드</button>
-          <button class="primary" id="downloadBtn">📄 일반 다운로드</button>
-        </div>
-        <div class="download-options-hint">🗜 압축 다운로드는 사진·스캔 이미지가 많을수록 효과가 크고, 텍스트·표 위주 문서는 원래 용량이 작아 효과가 적을 수 있어요.</div>
-      </div>
-    </div>
     <div class="status-line" id="statusLine"></div>
   </div>
 
   <footer class="note">
     <div>써봄 · 브라우저에서 끝나는 파일 도구</div>
     <div class="copyright"><span class="mark">ⓒ 2026</span> <span class="name">고윤태</span> · <a href="https://yuntaeko.com/" target="_blank" rel="noopener">yuntaeko.com</a> — 정성을 담아 제작한 도구입니다. 무단 도용 및 출처 표기 없는 재배포를 금지합니다.</div>
-    <div class="updated">업데이트 · 2026. 8. 27.</div>
+    <div class="updated">업데이트 · 2026. 8. 28.</div>
   </footer>
 </div>
 
 <div class="loading-overlay" id="loadingOverlay">
   <div class="spinner"></div>
+  <div class="loading-percent" id="loadingPercent">0%</div>
   <div class="loading-text" id="loadingText">PDF를 불러오는 중...</div>
 </div>
 
@@ -1131,6 +1200,92 @@
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+
+<!-- ============================================================
+     써봄 사이트 공통 이용 통계 (Firebase Realtime Database)
+     이 블록은 pdf 편집기 · 이미지 to pdf 변환기 · 설문 대시보드 세 페이지에
+     전부 똑같이 그대로 복사해서 넣는 공용 코드입니다. 세 페이지가 같은
+     Firebase 프로젝트(realtime database)를 같이 바라보기 때문에, 어느
+     도구에서 다운로드하거나 방문해도 아래 세 숫자로 자동 합산됩니다.
+     다른 파일로 옮길 때 수정할 부분은 없습니다 — 그대로 붙여넣으면 됩니다.
+     이 페이지(pdf-editor.html)는 집계만 하고 화면에는 숫자를 보여주지
+     않습니다 — 통계 표시는 index.html에서만 합니다.
+     ============================================================ -->
+<script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-database-compat.js"></script>
+<script>
+(function(){
+  "use strict";
+  // 광고 차단 확장 프로그램이나 사내망에서 gstatic.com을 막아 Firebase SDK 자체가
+  // 로드되지 않는 경우가 실제로 있다. 그럴 때 아래 코드가 그대로 실행되면
+  // "firebase is not defined" 에러가 콘솔에 뜨는데, 통계는 부가 기능일 뿐이니
+  // 이 경우엔 조용히 포기하고 나머지 사이트 기능(다운로드 등)은 평소대로 동작해야 한다.
+  if (typeof firebase === "undefined"){
+    console.warn("Firebase SDK를 불러오지 못해 방문자/다운로드 통계가 비활성화됐어요. 사이트의 다른 기능에는 영향 없어요.");
+    return;
+  }
+  const firebaseConfig = {
+    apiKey: "AIzaSyCEThSZsmQ7s1wJ0gwkeQtbGpY7JbqU2Ag",
+    authDomain: "sseobom-141f2.firebaseapp.com",
+    databaseURL: "https://sseobom-141f2-default-rtdb.firebaseio.com",
+    projectId: "sseobom-141f2",
+    storageBucket: "sseobom-141f2.firebasestorage.app",
+    messagingSenderId: "1096990397273",
+    appId: "1:1096990397273:web:e3ad4838b86c97bf437248",
+    measurementId: "G-HERB170LMX"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const statsRef = firebase.database().ref("stats");
+
+  // YYYY-MM-DD, 로컬 시간 기준. UTC 기준으로 하면 자정 근처(한국 시간 오전 9시 전후)에
+  // 날짜가 하루 어긋나 보일 수 있어서 브라우저 로컬 시간으로 직접 계산한다.
+  function todayKey(){
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+
+  function renderStats(){
+    statsRef.once("value").then((snap) => {
+      const el = document.getElementById("sseobomStats");
+      if (!el) return; // 이 페이지 footer에 표시용 요소가 없으면 그냥 조용히 넘어간다
+      const v = snap.val() || {};
+      const fmt = (n) => (n || 0).toLocaleString();
+      const todayCount = (v.dailyVisitors && v.dailyVisitors[todayKey()]) || 0;
+      el.textContent = `오늘 방문자 ${fmt(todayCount)} · 누적 방문자 ${fmt(v.totalVisitors)} · 누적 다운로드 ${fmt(v.totalDownloads)}`;
+    }).catch((err) => console.error("써봄 통계 읽기 실패", err));
+  }
+
+  // 같은 브라우저가 오늘 이미 방문 카운트됐으면 다시 세지 않는다. localStorage는 도메인
+  // 단위로 공유되니까, 써봄의 세 도구 중 어디로 들어와도 하루에 한 번만 카운트된다.
+  function trackVisitor(){
+    const today = todayKey();
+    if (localStorage.getItem("sseobom_last_visit") === today){
+      renderStats();
+      return;
+    }
+    const updates = {};
+    updates["totalVisitors"] = firebase.database.ServerValue.increment(1);
+    updates[`dailyVisitors/${today}`] = firebase.database.ServerValue.increment(1);
+    statsRef.update(updates)
+      .then(() => { localStorage.setItem("sseobom_last_visit", today); renderStats(); })
+      .catch((err) => { console.error("써봄 방문자 카운트 실패", err); renderStats(); });
+  }
+
+  // 실제로 다운로드가 시작되는 지점에서 호출한다 — 이 페이지에서는 buildAndDownload와
+  // buildSplitZipAndDownload의 a.click() 직후에 호출.
+  window.incrementSseobomDownload = function(){
+    statsRef.child("totalDownloads").set(firebase.database.ServerValue.increment(1))
+      .then(renderStats)
+      .catch((err) => console.error("써봄 다운로드 카운트 실패", err));
+  };
+
+  trackVisitor();
+})();
+</script>
+
 <script>
 (function(){
   "use strict";
@@ -1146,9 +1301,8 @@
   const emptyState = document.getElementById("emptyState");
   const downloadBar = document.getElementById("downloadBar");
   const downloadToggleBtn = document.getElementById("downloadToggleBtn");
-  const downloadOptionsPanel = document.getElementById("downloadOptionsPanel");
-  const downloadBtn = document.getElementById("downloadBtn");
-  const compressDownloadBtn = document.getElementById("compressDownloadBtn");
+  const compressToggle = document.getElementById("compressToggle");
+  const compressCheckbox = document.getElementById("compressCheckbox");
   const filenameInput = document.getElementById("filenameInput");
   const filenameExt = document.getElementById("filenameExt");
   const statusLine = document.getElementById("statusLine");
@@ -1160,6 +1314,7 @@
   const viewHint = document.getElementById("viewHint");
   const loadingOverlay = document.getElementById("loadingOverlay");
   const loadingText = document.getElementById("loadingText");
+  const loadingPercent = document.getElementById("loadingPercent");
   const splitToggleBtn = document.getElementById("splitToggleBtn");
   const splitPanel = document.getElementById("splitPanel");
   const splitRangesInput = document.getElementById("splitRangesInput");
@@ -1224,25 +1379,22 @@
     statusLine.textContent = msg || "";
   }
 
-  // 분할 저장 / 편집한 PDF 다운로드는 서로 배타적인 토글이라, 한쪽 패널이 열려 있으면
-  // 다른 쪽 토글 버튼은 눌러도 반응하지 않도록 완전히 비활성화한다 — 먼저 열려있던
-  // 패널을 다시 눌러서 닫아야만(취소) 반대쪽을 다시 쓸 수 있다.
+  // 분할 저장 패널이 열려 있는 동안은 "편집한 PDF 다운로드"를 눌러도 반응하지 않도록
+  // 비활성화한다 — 먼저 분할 저장을 다시 눌러서 닫아야(취소) 바로 다운로드할 수 있다.
+  // ("편집한 PDF 다운로드"는 이제 패널을 여는 토글이 아니라 누르면 바로 받아지는 실행
+  // 버튼이라, 분할 저장 쪽만 서로 막아주면 된다.)
   function updateDownloadToggleStates(){
     const hasPages = pages.length > 0;
     const splitOpen = splitPanel.classList.contains("show");
-    const downloadOptionsOpen = downloadOptionsPanel.classList.contains("show");
-    splitToggleBtn.disabled = busy || !hasPages || downloadOptionsOpen;
+    splitToggleBtn.disabled = busy || !hasPages;
     downloadToggleBtn.disabled = busy || !hasPages || splitOpen;
     splitToggleBtn.classList.toggle("toggle-active", splitOpen);
-    downloadToggleBtn.classList.toggle("toggle-active", downloadOptionsOpen);
     // 분할 저장은 zip으로 묶여서 나가니까 파일명 옆 확장자 표시도 그에 맞춰 바꿔준다.
     filenameExt.textContent = splitOpen ? ".zip" : ".pdf";
   }
 
   function setBusy(b, msg){
     busy = b;
-    downloadBtn.disabled = b || pages.length === 0;
-    compressDownloadBtn.disabled = b || pages.length === 0;
     splitDownloadBtn.disabled = b || pages.length === 0;
     addMoreBtn.disabled = b;
     clearAllBtn.disabled = b || pages.length === 0;
@@ -1258,13 +1410,10 @@
     emptyState.style.display = (sources.length > 0 && !hasPages) ? "block" : "none";
     pageCountEl.textContent = pages.length;
     fileCountEl.textContent = activeFiles;
-    downloadBtn.disabled = !hasPages || busy;
-    compressDownloadBtn.disabled = !hasPages || busy;
     splitDownloadBtn.disabled = !hasPages || busy;
     clearAllBtn.disabled = !hasPages || busy;
     if (!hasPages){
       splitPanel.classList.remove("show");
-      downloadOptionsPanel.classList.remove("show");
     }
     updateDownloadToggleStates();
 
@@ -1318,6 +1467,7 @@
     loadingText.textContent = files.length > 1
       ? `PDF를 불러오는 중... (1/${files.length}번째 파일: ${files[0].name})`
       : `PDF를 불러오는 중... (${files[0].name})`;
+    loadingPercent.textContent = "0%";
     loadingOverlay.classList.add("show");
     let doneCount = 0;
     for (const file of files){
@@ -1325,19 +1475,23 @@
         loadingText.textContent = `PDF를 불러오는 중... (${doneCount + 1}/${files.length}번째 파일: ${file.name})`;
       }
       try{
-        await loadOneFile(file);
+        await loadOneFile(file, doneCount, files.length);
       }catch(err){
         console.error(err);
         setStatus(`"${file.name}" 파일을 여는 데 실패했어요. 손상된 파일이거나 암호로 보호된 PDF일 수 있습니다.`);
       }
       doneCount++;
+      loadingPercent.textContent = `${Math.round((doneCount / files.length) * 100)}%`;
     }
     loadingOverlay.classList.remove("show");
     setBusy(false, "");
     renderGrid();
   }
 
-  async function loadOneFile(file){
+  // batchIndex/batchTotal: 이 파일이 이번에 한꺼번에 올린 파일들 중 몇 번째(0-based)/총 몇 개인지.
+  // 스피너 아래 퍼센트가 파일 단위로만 뚝뚝 끊기지 않고, 지금 파일의 몇 페이지째까지 처리했는지도
+  // 반영해서 부드럽게 올라가도록 하는 데 쓴다.
+  async function loadOneFile(file, batchIndex, batchTotal){
     const buf = await file.arrayBuffer();
     // pdf-lib load (keeps this copy as the merge source)
     const pdfLibDoc = await PDFLib.PDFDocument.load(buf, { ignoreEncryption: true });
@@ -1352,6 +1506,8 @@
 
     for (let i = 0; i < pdfJsDoc.numPages; i++){
       setStatus(`"${file.name}" — ${i+1}/${pdfJsDoc.numPages} 페이지 미리보기 생성 중...`);
+      const pct = Math.round(((batchIndex + (i + 1) / pdfJsDoc.numPages) / batchTotal) * 100);
+      loadingPercent.textContent = `${pct}%`;
       const thumb = await renderThumb(pdfJsDoc, i + 1);
       pages.push({
         id: "p" + (idSeed++),
@@ -1848,6 +2004,7 @@
           a.click();
           document.body.removeChild(a);
           setTimeout(() => URL.revokeObjectURL(url), 4000);
+          if (window.incrementSseobomDownload) window.incrementSseobomDownload();
           setStatus(`${idx + 1}번째 페이지를 ${asA4 ? "A4 비율 " : ""}이미지로 저장했어요.`);
           resolve();
         }, "image/png");
@@ -2118,7 +2275,8 @@
       let name = (filenameInput.value || "합친문서").trim();
       if (!name) name = "합친문서";
       name = name.replace(/\.pdf$/i, "");
-      if (compress) name += "_압축";
+      // 압축 여부는 "압축 다운로드를 시작했어요" 완료 문구로만 알려준다 — 사용자가 직접 지정한
+      // 파일명 뒤에 "_압축"을 임의로 덧붙이지 않는다.
       const a = document.createElement("a");
       a.href = url;
       a.download = name + ".pdf";
@@ -2126,10 +2284,9 @@
       a.click();
       document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(url), 4000);
+      if (window.incrementSseobomDownload) window.incrementSseobomDownload();
       const sizeKB = Math.round(bytes.length / 1024).toLocaleString();
-      let msg = `완료! "${name}.pdf" (${sizeKB}KB) 다운로드를 시작했어요.`;
-      if (compress) msg += " (사진·스캔 이미지가 많을수록 효과가 크고, 텍스트·표 위주 문서는 원래 용량이 작아 효과가 적을 수 있어요)";
-      setStatus(msg);
+      setStatus(`완료! "${name}.pdf" (${sizeKB}KB) ${compress ? "압축 다운로드" : "다운로드"}를 시작했어요.`);
     }catch(err){
       console.error(err);
       setStatus("PDF를 만드는 중 오류가 발생했어요. 파일이 암호로 보호되어 있지 않은지 확인해주세요.");
@@ -2225,13 +2382,17 @@
       if (!baseName) baseName = "합친문서";
       baseName = baseName.replace(/\.pdf$/i, "");
 
+      // "편집한 PDF 다운로드" 옆의 압축 체크박스는 분할 저장에도 그대로 적용된다 — 압축은
+      // appendPageToDoc 안에서 사진/스캔 이미지를 다시 압축하는 처리라, 분할이냐 아니냐와
+      // 무관하게 같은 체크박스 하나로 두 다운로드 방식 모두를 제어한다.
+      const compress = compressCheckbox.checked;
       for (let idx = 0; idx < result.ranges.length; idx++){
         const r = result.ranges[idx];
         setStatus(`${idx+1}/${result.ranges.length}번째 파일(${r.start}-${r.end}페이지) 만드는 중...`);
         const outDoc = await PDFLib.PDFDocument.create();
         const imageCache = new Map();
         for (let n = r.start; n <= r.end; n++){
-          await appendPageToDoc(outDoc, pages[n - 1], false, imageCache);
+          await appendPageToDoc(outDoc, pages[n - 1], compress, imageCache);
         }
         const bytes = await outDoc.save();
         zip.file(`${baseName}_${idx + 1}.pdf`, bytes);
@@ -2247,8 +2408,9 @@
       a.click();
       document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(url), 4000);
+      if (window.incrementSseobomDownload) window.incrementSseobomDownload();
       const sizeKB = Math.round(zipBlob.size / 1024).toLocaleString();
-      setStatus(`완료! ${result.ranges.length}개 파일을 "${baseName}_분할.zip" (${sizeKB}KB)으로 저장했어요.`);
+      setStatus(`완료! ${result.ranges.length}개 파일을 "${baseName}_분할.zip" (${sizeKB}KB)으로 ${compress ? "압축 저장" : "저장"}했어요.`);
     }catch(err){
       console.error(err);
       setStatus("분할 저장 중 오류가 발생했어요.");
@@ -2525,14 +2687,17 @@
     }
   });
 
+  // 예전엔 눌렀을 때 압축/일반 중 고르는 패널이 한 번 더 열렸는데, 그 한 단계가 다운로드를
+  // "바로" 받는다는 느낌을 깨서 UX상 아쉽다는 피드백에 따라 클릭 즉시 다운로드하도록 바꿨다.
+  // 압축 여부는 미리 켜둔 왼쪽의 "용량 압축" 체크박스 상태를 그대로 따른다.
   downloadToggleBtn.addEventListener("click", () => {
     if (busy) return;
-    downloadOptionsPanel.classList.toggle("show");
     setStatus(""); // 분할 저장 쪽에 남아있던 오류 문구 등이 이어서 보이지 않도록 지운다.
-    updateDownloadToggleStates();
+    buildAndDownload(compressCheckbox.checked);
   });
-  downloadBtn.addEventListener("click", () => buildAndDownload(false));
-  compressDownloadBtn.addEventListener("click", () => buildAndDownload(true));
+  compressCheckbox.addEventListener("change", () => {
+    compressToggle.classList.toggle("checked", compressCheckbox.checked);
+  });
   clearAllBtn.addEventListener("click", async () => {
     if (pages.length === 0) return;
     const ok = await showConfirm(

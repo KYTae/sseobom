@@ -256,15 +256,48 @@
     color:var(--series-1);
   }
   .help-panel.open .help-toggle-icon{transform:rotate(90deg);}
+  /* 사용법 박스가 열리고 닫힐 때 뚝 끊기지 않고 부드럽게 늘어나거나 줄어들도록, display:none↔block
+     대신 바깥(.help-content)을 grid-template-rows 0fr↔1fr로 트랜지션하는 한 줄짜리 grid로 두고
+     안쪽(.help-content-inner)을 overflow:hidden으로 감싼다. 위/아래 padding·margin·border는 반드시
+     바깥 쪽에서 0↔실제값으로 같이 트랜지션해야 한다 — border-box 특성상 트랙이 0이어도 안쪽
+     padding/border 두께만큼은 그대로 남아 완전히 접히지 않기 때문이다. */
   .help-content{
-    display:none;
-    margin-top:10px;
+    display:grid;
+    grid-template-rows:0fr;
+    width:100%;
+    margin-top:0;
+    padding-top:0;
+    padding-bottom:0;
     background:var(--surface-1);
-    border:1px solid var(--border);
+    border-left:1px solid var(--border);
+    border-right:1px solid var(--border);
+    border-top:0 solid var(--border);
+    border-bottom:0 solid var(--border);
     border-radius:14px;
-    padding:22px 24px 24px;
+    opacity:0;
+    transition:
+      grid-template-rows .3s cubic-bezier(.4,0,.2,1),
+      opacity .22s ease,
+      margin-top .3s cubic-bezier(.4,0,.2,1),
+      padding-top .3s cubic-bezier(.4,0,.2,1),
+      padding-bottom .3s cubic-bezier(.4,0,.2,1),
+      border-top-width .3s cubic-bezier(.4,0,.2,1),
+      border-bottom-width .3s cubic-bezier(.4,0,.2,1);
   }
-  .help-panel.open .help-content{display:block;}
+  .help-panel.open .help-content{
+    grid-template-rows:1fr;
+    margin-top:10px;
+    padding-top:22px;
+    padding-bottom:24px;
+    border-top-width:1px;
+    border-bottom-width:1px;
+    opacity:1;
+  }
+  .help-content-inner{
+    overflow:hidden;
+    min-height:0;
+    padding:0 24px;
+  }
   .help-section{margin-bottom:22px;}
   .help-section:last-child{margin-bottom:0;}
   .help-section-label{
@@ -1365,6 +1398,7 @@
     <span class="help-toggle-icon">▶</span> 사용법: 설문 데이터 가져오는 법
   </button>
   <div class="help-content" id="guide-content">
+    <div class="help-content-inner">
     <div class="guide-grid">
       <div class="guide-card">
         <div class="guide-card-head">
@@ -1390,6 +1424,7 @@
       </div>
     </div>
     <div class="guide-tip">💡 업로드하면 문항 유형(단일/복수 선택, 주관식, 날짜 등)을 자동으로 인식해서 차트와 카드로 정리해줘요. 형식이 살짝 달라도 대부분 자동으로 인식되지만, 잘 안 되면 엑셀 첫 행(문항 제목)과 그 아래 응답 행 구조가 맞는지 확인해 보세요.</div>
+    </div>
   </div>
 </div>
 
@@ -1398,6 +1433,7 @@
     <span class="help-toggle-icon">▶</span> 버튼 사용법 보기
   </button>
   <div class="help-content" id="help-content">
+    <div class="help-content-inner">
     <div class="help-section">
       <div class="help-section-label">상단 버튼</div>
       <div class="help-grid">
@@ -1449,6 +1485,7 @@
         <div class="help-item help-tip"><span class="help-desc">💡 제목·문항 이름·숫자 등 대부분의 글자는 <b>클릭하면 바로 수정</b>할 수 있고, 값을 바꾸면 그래프와 비율에 실시간으로 반영됩니다. 회색 <b>Q1, Q2</b> 번호도 클릭해서 원하는 이름으로 바꿀 수 있습니다.</span></div>
       </div>
     </div>
+    </div>
   </div>
 </div>
 
@@ -1466,7 +1503,7 @@
 <footer class="page-footer">
   이 페이지는 하나의 HTML 파일로 동작하며 서버나 별도 프로그램 없이 브라우저에서 바로 편집할 수 있습니다. 값을 바꾼 뒤 파일로 저장하려면 브라우저의 "다른 이름으로 저장"을 사용하세요.
   <div class="footer-credit"><span class="footer-credit-mark">ⓒ 2026</span> <span class="footer-credit-name">고윤태</span> · <a class="footer-credit-link" href="https://yuntaeko.com/" target="_blank" rel="noopener noreferrer">yuntaeko.com</a> — 정성을 담아 제작한 대시보드입니다. 무단 도용 및 출처 표기 없는 재배포를 금지합니다.</div>
-  <div class="footer-updated">업데이트 · 2026. 8. 25.</div>
+  <div class="footer-updated">업데이트 · 2026. 8. 28.</div>
 </footer>
 
 <div class="toast" id="toast"></div>
@@ -2281,6 +2318,7 @@ async function saveFile(filename, data){
   if(downloads){
     try{
       await downloads.save({ filename, data });
+      if (window.incrementSseobomDownload) window.incrementSseobomDownload();
       return true;
     }catch(err){
       const code = err && err.code;
@@ -2301,6 +2339,7 @@ async function saveFile(filename, data){
     a.href = url; a.download = filename;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     setTimeout(()=>URL.revokeObjectURL(url), 2000);
+    if (window.incrementSseobomDownload) window.incrementSseobomDownload();
     return true;
   }catch(err){
     console.error(err);
@@ -4174,9 +4213,12 @@ function wireCollapsiblePanel(panelId, toggleId){
   const toggle = document.getElementById(toggleId);
   if(!panel || !toggle) return;
   toggle.addEventListener("click", ()=>{
+    // 화살표는 글자를 "▶"→"▼"로 바꾸는 방법과 CSS로 90도 회전시키는 방법을 동시에 쓰고 있었다.
+    // "▼"는 이미 "▶"를 90도 돌린 모양이라, 여기에 CSS rotate(90deg)가 한 번 더 더해지면서
+    // 총 180도 돌아가 버렸다. 글자는 항상 "▶"로 고정해두고 CSS 회전(.help-panel.open
+    // .help-toggle-icon{transform:rotate(90deg);})만으로 아래를 향하게 한다.
     const isOpen = panel.classList.toggle("open");
     toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
-    toggle.querySelector(".help-toggle-icon").textContent = isOpen ? "▼" : "▶";
   });
 }
 wireCollapsiblePanel("guide-panel", "guide-toggle");
@@ -4289,6 +4331,63 @@ appReady = true; // 이 시점 이후의 변경만 "저장하지 않은 수정 �
   const target = document.getElementById("help-key-resize");
   if(!target) return;
   target.innerHTML = `${ICON_SVG_EXPAND}<span class="help-key-sep">/</span>${ICON_SVG_COLLAPSE}`;
+})();
+</script>
+
+<!-- ============================================================
+     써봄 사이트 공통 이용 통계 (Firebase Realtime Database)
+     pdf 편집기 · 이미지 to pdf 변환기와 같은 Firebase 프로젝트(realtime
+     database)를 같이 바라보기 때문에, 어느 도구에서 방문하거나
+     다운로드해도 자동 합산됩니다. 이 페이지는 집계만 하고 화면에는
+     숫자를 보여주지 않습니다 — 통계 표시는 index.html에서만 합니다.
+     ============================================================ -->
+<script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-database-compat.js"></script>
+<script>
+(function(){
+  "use strict";
+  if (typeof firebase === "undefined"){
+    console.warn("Firebase SDK를 불러오지 못해 방문자/다운로드 통계가 비활성화됐어요. 사이트의 다른 기능에는 영향 없어요.");
+    return;
+  }
+  const firebaseConfig = {
+    apiKey: "AIzaSyCEThSZsmQ7s1wJ0gwkeQtbGpY7JbqU2Ag",
+    authDomain: "sseobom-141f2.firebaseapp.com",
+    databaseURL: "https://sseobom-141f2-default-rtdb.firebaseio.com",
+    projectId: "sseobom-141f2",
+    storageBucket: "sseobom-141f2.firebasestorage.app",
+    messagingSenderId: "1096990397273",
+    appId: "1:1096990397273:web:e3ad4838b86c97bf437248",
+    measurementId: "G-HERB170LMX"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const statsRef = firebase.database().ref("stats");
+
+  function todayKey(){
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+
+  function trackVisitor(){
+    const today = todayKey();
+    if (localStorage.getItem("sseobom_last_visit") === today) return;
+    const updates = {};
+    updates["totalVisitors"] = firebase.database.ServerValue.increment(1);
+    updates[`dailyVisitors/${today}`] = firebase.database.ServerValue.increment(1);
+    statsRef.update(updates)
+      .then(() => localStorage.setItem("sseobom_last_visit", today))
+      .catch((err) => console.error("써봄 방문자 카운트 실패", err));
+  }
+
+  window.incrementSseobomDownload = function(){
+    statsRef.child("totalDownloads").set(firebase.database.ServerValue.increment(1))
+      .catch((err) => console.error("써봄 다운로드 카운트 실패", err));
+  };
+
+  trackVisitor();
 })();
 </script>
 </body>
