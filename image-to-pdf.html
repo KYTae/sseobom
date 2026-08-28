@@ -310,17 +310,11 @@
     font-size:12.5px;
     color:var(--text-dim);
   }
-  .toolbar select{
-    font-family:inherit;
-    font-size:12.5px;
-    font-weight:600;
-    border-radius:999px;
-    border:1px solid var(--card-border);
-    background:var(--card);
-    color:var(--text);
-    padding:7px 12px;
-    cursor:pointer;
-  }
+  /* 화질 선택도 모드 토글과 똑같은 세그먼트 컨트롤(.mode-track/.mode-indicator/.mode-seg)을
+     재사용한다 — 시각적으로 동일한 컴포넌트라 클래스를 그대로 공유하고, "오른쪽 세그먼트가
+     선택됨" 상태만 범용 클래스(.pos-second)로 따로 둬서 모드 토글의 .mode-separate 상태와
+     서로 영향을 주지 않게 했다. */
+  .mode-track.pos-second .mode-indicator{transform:translateX(100%);}
   button{
     font-family:inherit;
     font-size:13.5px;
@@ -593,12 +587,78 @@
     gap:8px;
     flex-wrap:wrap;
   }
-  .mode-row{
+  /* 모드 전환: "모드: (하나로 합치기) | (각각 PDF)"처럼 두 선택지를 동시에 보여주는 세그먼트
+     컨트롤. pdf-editor.html 라이트박스의 "A4 비율 / 원본 비율" 토글과 같은 방식 — 흰색
+     인디케이터가 트랙 위에서 transform으로 미끄러지듯 이동한다. 두 세그먼트를 flex:1 +
+     min-width:0으로 정확히 반반 나눠야, 텍스트 길이가 달라도 인디케이터와 버튼 경계가
+     항상 정확히 맞아떨어진다. */
+  .mode-toggle-wrap{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    flex:none;
+  }
+  .mode-toggle-label{
+    font-size:12.5px;
+    font-weight:600;
+    color:var(--text-dim);
+    white-space:nowrap;
+  }
+  .mode-track{
+    position:relative;
+    display:flex;
+    background:var(--card-border); /* download-bar 배경(var(--card))과 대비가 잘 안 보이던 var(--bg) 대신,
+      card와 항상 대비되도록 설계된 card-border 색을 트랙 바탕으로 써서 컨트롤 자체가 더 또렷하게 보이게 함 */
+    border:1px solid var(--card-border);
+    border-radius:999px;
+    padding:3px;
+  }
+  .mode-indicator{
+    position:absolute;
+    top:3px;
+    left:3px;
+    width:calc(50% - 3px);
+    height:calc(100% - 6px);
+    background:var(--card);
+    border-radius:999px;
+    box-shadow:0 1px 4px rgba(0,0,0,.18);
+    transform:translateX(0%);
+    transition:transform .26s cubic-bezier(.4,0,.2,1);
+  }
+  .mode-track.mode-separate .mode-indicator{transform:translateX(100%);}
+  .mode-seg{
+    position:relative;
+    z-index:1;
+    flex:1;
+    min-width:0;
     display:flex;
     align-items:center;
-    gap:6px;
-    flex:none; /* "파일 이름" 라벨+입력칸처럼 라벨과 버튼이 항상 한 덩어리로 붙어있게 — 공간이 부족해도
-                  "모드" 글씨만 따로 떨어져서 다음 줄로 넘어가지 않도록 함 */
+    justify-content:center;
+    background:transparent;
+    color:var(--text-dim);
+    border:none;
+    border-radius:999px;
+    padding:7px 14px;
+    font-size:12.5px;
+    font-weight:600;
+    font-family:inherit;
+    text-align:center;
+    cursor:pointer;
+    white-space:nowrap;
+    transition:color .18s ease;
+  }
+  .mode-seg:hover{color:var(--text);}
+  .mode-seg.active{color:var(--accent);cursor:default;}
+  .mode-seg.active:hover{color:var(--accent);}
+  /* "하나의 PDF로 합치기" ↔ "N개 PDF로 변환 (zip)"처럼 모드에 따라 버튼 글자 길이가 크게
+     달라지는데, 폭이 뚝 끊기지 않고 부드럽게 늘어나거나 줄어들도록 JS(setDownloadBtnText)에서
+     width를 직접 트랜지션한다. */
+  #downloadBtn{
+    transition:transform .08s ease, border-color .15s ease, background .15s ease,
+      width .25s cubic-bezier(.4,0,.2,1);
+    overflow:hidden;
+    white-space:nowrap;
+    box-sizing:border-box;
   }
 
   .status-line{
@@ -771,10 +831,11 @@
     <span class="count"><strong id="countNum">0</strong>장의 이미지</span>
     <div class="quality-row">
       화질
-      <select id="qualitySelect">
-        <option value="0.92" selected>고화질</option>
-        <option value="0.7">용량 최적화</option>
-      </select>
+      <div class="mode-track" id="qualityTrack">
+        <span class="mode-indicator"></span>
+        <button class="mode-seg active" id="qualitySegHigh" type="button" data-quality="0.92">고화질</button>
+        <button class="mode-seg" id="qualitySegOptimized" type="button" data-quality="0.7" title="용량을 줄이기 위해 화질을 약간 낮춥니다.">용량 최적화</button>
+      </div>
     </div>
     <button class="danger-ghost" id="clearAllBtn" type="button">전체 지우기</button>
   </div>
@@ -791,9 +852,13 @@
       </div>
       <span class="spacer"></span>
       <div class="download-buttons">
-        <div class="mode-row">
-          <label class="mode-label">모드</label>
-          <button class="ghost" id="modeBtn" type="button">각각 PDF</button>
+        <div class="mode-toggle-wrap">
+          <span class="mode-toggle-label">모드</span>
+          <div class="mode-track" id="modeTrack">
+            <span class="mode-indicator"></span>
+            <button class="mode-seg active" id="modeSegMerge" type="button" data-mode="merge">하나로 합치기</button>
+            <button class="mode-seg" id="modeSegSeparate" type="button" data-mode="separate" title="이미지마다 PDF가 따로 만들어져 zip 하나로 받습니다.">각각 PDF</button>
+          </div>
         </div>
         <button class="primary" id="downloadBtn" type="button">PDF로 변환</button>
       </div>
@@ -913,9 +978,14 @@
   var filenameSuffix = document.getElementById("filenameSuffix");
   var downloadBtn = document.getElementById("downloadBtn");
   var statusLine = document.getElementById("statusLine");
-  var modeBtn = document.getElementById("modeBtn");
+  var modeTrack = document.getElementById("modeTrack");
+  var modeSegMerge = document.getElementById("modeSegMerge");
+  var modeSegSeparate = document.getElementById("modeSegSeparate");
   var clearAllBtn = document.getElementById("clearAllBtn");
-  var qualitySelect = document.getElementById("qualitySelect");
+  var qualityTrack = document.getElementById("qualityTrack");
+  var qualitySegHigh = document.getElementById("qualitySegHigh");
+  var qualitySegOptimized = document.getElementById("qualitySegOptimized");
+  var qualityValue = "0.92"; // "0.92"(고화질) | "0.7"(용량 최적화) — 기존 <select>의 value를 대신하는 상태값
   var loadingOverlay = document.getElementById("loadingOverlay");
   var loadingText = document.getElementById("loadingText");
   var loadingPercent = document.getElementById("loadingPercent");
@@ -1370,26 +1440,62 @@
     });
   });
 
-  // ---------- 모드 전환 (각각 PDF / 하나로 합치기) ----------
-  modeBtn.addEventListener("click", function(){
-    mode = (mode === "separate") ? "merge" : "separate";
+  // ---------- 모드 전환 (하나로 합치기 / 각각 PDF) ----------
+  function setMode(next){
+    if (mode === next) return; // 이미 선택된 세그먼트를 다시 눌러도 아무 일 없음
+    mode = next;
     updateModeUI();
-  });
+  }
+  modeSegMerge.addEventListener("click", function(){ setMode("merge"); });
+  modeSegSeparate.addEventListener("click", function(){ setMode("separate"); });
+
+  // ---------- 화질 전환 (고화질 / 용량 최적화) ----------
+  function setQuality(val, isOptimized){
+    if (qualityValue === val) return;
+    qualityValue = val;
+    qualityTrack.classList.toggle("pos-second", isOptimized);
+    qualitySegHigh.classList.toggle("active", !isOptimized);
+    qualitySegOptimized.classList.toggle("active", isOptimized);
+  }
+  qualitySegHigh.addEventListener("click", function(){ setQuality("0.92", false); });
+  qualitySegOptimized.addEventListener("click", function(){ setQuality("0.7", true); });
+
+  // "하나의 PDF로 합치기" ↔ "N개 PDF로 변환 (zip)"처럼 문구 길이가 크게 달라지는 downloadBtn의
+  // 글자를 바꿀 때, width:auto인 채로 그냥 textContent만 바꾸면 버튼 폭이 뚝 끊기며 바뀐다.
+  // 그래서 (1) 지금 렌더링된 실제 폭을 재서 고정 → (2) 문구를 바꾼 뒤 auto로 풀어 "새 문구
+  // 기준 자연스러운 폭"을 재고 다시 고정 → (3) 강제 리플로우로 그 상태를 확정 → (4) 다음
+  // 프레임에서 목표 폭으로 바꿔 트랜지션이 실제로 재생되게 한다. 이 과정은 전부 페인트 전에
+  // 동기적으로 일어나서 화면 깜빡임은 없다.
+  function setDownloadBtnText(text){
+    if (downloadBtn.textContent === text) return;
+    var oldWidth = downloadBtn.getBoundingClientRect().width;
+    downloadBtn.style.width = oldWidth + "px";
+    downloadBtn.textContent = text;
+    downloadBtn.style.width = "auto";
+    var newWidth = downloadBtn.getBoundingClientRect().width;
+    downloadBtn.style.width = oldWidth + "px";
+    downloadBtn.offsetHeight; // 강제 리플로우 — 위 oldWidth 상태를 확정시킨다
+    requestAnimationFrame(function(){
+      downloadBtn.style.width = newWidth + "px";
+    });
+    clearTimeout(setDownloadBtnText._t);
+    setDownloadBtnText._t = setTimeout(function(){
+      downloadBtn.style.width = ""; // 트랜지션이 끝나면 폭 고정을 풀어 반응형을 유지한다
+    }, 260);
+  }
 
   function updateModeUI(){
     var multi = items.length > 1;
+    modeTrack.classList.toggle("mode-separate", mode === "separate");
+    modeSegSeparate.classList.toggle("active", mode === "separate");
+    modeSegMerge.classList.toggle("active", mode !== "separate");
     if (mode === "separate"){
-      modeBtn.textContent = "각각 PDF";
       filenameSuffix.textContent = multi ? ".zip" : ".pdf";
-      downloadBtn.textContent = multi ? (items.length + "개 PDF로 변환 (zip)") : "PDF로 변환";
+      setDownloadBtnText(multi ? (items.length + "개 PDF로 변환 (zip)") : "PDF로 변환");
     } else {
-      modeBtn.textContent = "하나로 합치기";
       filenameSuffix.textContent = ".pdf";
-      downloadBtn.textContent = "하나의 PDF로 합치기";
+      setDownloadBtnText("하나의 PDF로 합치기");
     }
-    // 모드 버튼 두 상태(각각 PDF / 하나로 합치기)는 항상 같은 흰색(ghost) 스타일 — 어느 쪽을 골랐는지는
-    // 버튼 자체 색으로 구분하지 않고 텍스트로만 보여줌(예전엔 .active로 파란 배경을 줬었는데,
-    // 사용자가 "두 버튼 색이 다르다"고 지적해서 통일함).
     // 기본 모드가 "하나로 합치기"라 이미지를 올리면 곧바로 변환 버튼이 활성화돼 있어야 함 —
     // 한때 모드 버튼을 먼저 눌러야만 활성화되게 했었는데, 사용자가 그 요구사항을 철회하고
     // "업로드하면 바로 활성화"로 되돌려달라고 해서 별도 게이팅 없이 항상 활성 상태로 둠
@@ -1516,7 +1622,7 @@
 
   downloadBtn.addEventListener("click", function(){
     if (!items.length) return;
-    var quality = parseFloat(qualitySelect.value) || 0.92;
+    var quality = parseFloat(qualityValue) || 0.92;
     var baseName = safeFileName(filenameInput.value);
 
     downloadBtn.disabled = true;
