@@ -1165,7 +1165,7 @@
   <footer class="note">
     <div>써봄 · 브라우저에서 끝나는 파일 도구</div>
     <div class="copyright"><span class="mark">ⓒ 2026</span> <span class="name">고윤태</span> · <a href="https://yuntaeko.com/" target="_blank" rel="noopener">yuntaeko.com</a> — 정성을 담아 제작한 도구입니다. 무단 도용 및 출처 표기 없는 재배포를 금지합니다.</div>
-    <div class="updated">업데이트 · 2026. 8. 28.</div>
+    <div class="updated">업데이트 · 2026. 9. 5.</div>
   </footer>
 </div>
 
@@ -1498,8 +1498,27 @@
     const fileIndex = sources.length;
 
     // pdf.js load (separate copy for rendering; kept alive for later per-page image export)
+    //
+    // cMapUrl/cMapPacked/standardFontDataUrl MUST be set here. Without them, any PDF whose
+    // embedded CJK font uses a non-Identity CID ordering (CIDSystemInfo Registry/Ordering such
+    // as Adobe-Korea1/Adobe-Japan1/Adobe-GB1/Adobe-CNS1 — extremely common for Korean/Japanese/
+    // Chinese documents exported from Illustrator, InDesign, or similar tools, even when the
+    // font itself is fully embedded) fails to load its glyph mapping, and pdf.js silently
+    // renders every text run on the page as nothing — vector lines/boxes/images stay intact,
+    // but all text vanishes. This hit real users: a Korean 견적서(quotation) PDF loaded into
+    // this exact page and every cell's text disappeared in the thumbnail grid, the lightbox
+    // preview, and the per-page image export (all three read from this same pdfJsDoc). The
+    // underlying file was never corrupted — only pdf.js's in-page rendering was blind to it.
+    // standardFontDataUrl is the same kind of fix for the separate case of non-embedded
+    // standard 14 fonts. Point both at the matching pdfjs-dist@3.11.174 CDN paths (same host/
+    // version already used for GlobalWorkerOptions.workerSrc above, so it's known-reachable).
     const renderBuf = await file.arrayBuffer();
-    const loadingTask = pdfjsLib.getDocument({ data: renderBuf });
+    const loadingTask = pdfjsLib.getDocument({
+      data: renderBuf,
+      cMapUrl: "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/",
+      cMapPacked: true,
+      standardFontDataUrl: "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/standard_fonts/"
+    });
     const pdfJsDoc = await loadingTask.promise;
 
     sources.push({ name: file.name, pdfLibDoc, pdfJsDoc, numPages: pdfLibDoc.getPageCount() });
