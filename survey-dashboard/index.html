@@ -17,10 +17,10 @@
 <meta name="author" content="고윤태">
 <meta name="generator" content="고윤태 · yuntaeko.com">
 <meta name="description" content="네이버폼·구글폼 응답을 그래프와 카드로 자동 정리">
-<link rel="canonical" href="https://sseobom.kr/survey-dashboard/">
+<link rel="canonical" href="https://sseobom.kr/survey-dashboard.html">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="ko_KR">
-<meta property="og:url" content="https://sseobom.kr/survey-dashboard/">
+<meta property="og:url" content="https://sseobom.kr/survey-dashboard.html">
 <meta property="og:site_name" content="써봄">
 <meta property="og:title" content="설문 대시보드 | 써봄">
 <meta property="og:description" content="네이버폼·구글폼 응답을 그래프와 카드로 자동 정리">
@@ -1372,7 +1372,7 @@
 </head>
 <body class="viz-root">
 <div class="back-bar">
-  <a class="back-link" href="/">
+  <a class="back-link" href="index.html">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H6M12 5l-7 7 7 7"></path></svg>
     도구상자로 돌아가기
   </a>
@@ -4397,14 +4397,15 @@ appReady = true; // 이 시점 이후의 변경만 "저장하지 않은 수정 �
   }
 
   window.incrementSseobomDownload = function(){
-    // 전체 합계(totalDownloads)는 홈 화면에 그대로 보이는 값이라 그대로 두고, 이 도구만의
-    // 다운로드 수를 downloadsByTool 아래에 따로 쌓아서 Firebase 콘솔에서 도구별로 확인할 수
-    // 있게 한다.
-    const updates = {};
-    updates["totalDownloads"] = firebase.database.ServerValue.increment(1);
-    updates["downloadsByTool/survey-dashboard"] = firebase.database.ServerValue.increment(1);
-    statsRef.update(updates)
-      .catch((err) => console.error("써봄 다운로드 카운트 실패", err));
+    // 전체 합계(totalDownloads)와 도구별 개수(downloadsByTool)를 하나의 update()로 한 번에
+    // 보내면, Firebase 보안 규칙이 downloadsByTool처럼 새로 추가된 경로를 아직 허용하지 않을
+    // 때 그 경로 하나 때문에 요청 전체가(=전체 합계까지) 거부되어버린다(멀티패스 update는
+    // 원자적으로 규칙 검사가 되기 때문). 그래서 항상 따로따로 보내서, 도구별 집계가 아직
+    // 규칙 허용이 안 됐더라도 전체 합계만큼은 그대로 올라가게 한다.
+    statsRef.child("totalDownloads").set(firebase.database.ServerValue.increment(1))
+      .catch((err) => console.error("써봄 다운로드 카운트(전체) 실패", err));
+    statsRef.child("downloadsByTool/survey-dashboard").set(firebase.database.ServerValue.increment(1))
+      .catch((err) => console.error("써봄 다운로드 카운트(도구별) 실패 — Firebase 보안 규칙에서 downloadsByTool 경로 쓰기가 허용됐는지 확인해보세요.", err));
   };
 
   trackVisitor();
