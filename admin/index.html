@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>
+// 다른 써봄 페이지에서 다크모드를 켜뒀다면 이 페이지도 열자마자 그대로 반영한다.
+(function(){
+  try {
+    var t = localStorage.getItem("sseobom_theme");
+    if (t === "dark" || t === "light") document.documentElement.setAttribute("data-theme", t);
+  } catch(e){}
+})();
+</script>
+<meta name="robots" content="noindex, nofollow">
+<title>써봄 | 관리자 페이지</title>
+<style>
+  :root{
+    --bg:            #f9f9f7;
+    --surface:       #fcfcfb;
+    --surface-raised: #ffffff;
+    --text-primary:  #0b0b0b;
+    --text-secondary:#52514e;
+    --text-muted:    #898781;
+    --border:        rgba(11,11,11,0.10);
+    --border-strong: rgba(11,11,11,0.16);
+    --accent:        #2a78d6;
+    --accent-wash:   rgba(42,120,214,0.10);
+    --accent-ink:    #ffffff;
+    --danger:        #d64545;
+    --danger-wash:   rgba(214,69,69,0.10);
+    --shadow:        0 1px 2px rgba(11,11,11,0.05), 0 8px 24px rgba(11,11,11,0.05);
+    --radius-lg: 18px;
+    --radius-md: 12px;
+    --topbar-bg:#fcfcfb;
+    --topbar-border:rgba(11,11,11,0.10);
+    --topbar-text:#898781;
+    --topbar-hover:#2a78d6;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:            #0d0d0d;
+      --surface:       #1a1a19;
+      --surface-raised:#202020;
+      --text-primary:  #ffffff;
+      --text-secondary:#c3c2b7;
+      --text-muted:    #8f8d86;
+      --border:        rgba(255,255,255,0.10);
+      --border-strong: rgba(255,255,255,0.18);
+      --accent:        #4f93e8;
+      --accent-wash:   rgba(79,147,232,0.16);
+      --accent-ink:    #08121e;
+      --danger:        #e57575;
+      --danger-wash:   rgba(229,117,117,0.14);
+      --shadow:        0 1px 2px rgba(0,0,0,0.3), 0 8px 28px rgba(0,0,0,0.35);
+      --topbar-bg:#1a1a19;
+      --topbar-border:rgba(255,255,255,0.10);
+      --topbar-text:#898781;
+      --topbar-hover:#3987e5;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:            #0d0d0d;
+    --surface:       #1a1a19;
+    --surface-raised:#202020;
+    --text-primary:  #ffffff;
+    --text-secondary:#c3c2b7;
+    --text-muted:    #8f8d86;
+    --border:        rgba(255,255,255,0.10);
+    --border-strong: rgba(255,255,255,0.18);
+    --accent:        #4f93e8;
+    --accent-wash:   rgba(79,147,232,0.16);
+    --accent-ink:    #08121e;
+    --danger:        #e57575;
+    --danger-wash:   rgba(229,117,117,0.14);
+    --shadow:        0 1px 2px rgba(0,0,0,0.3), 0 8px 28px rgba(0,0,0,0.35);
+    --topbar-bg:#1a1a19;
+    --topbar-border:rgba(255,255,255,0.10);
+    --topbar-text:#898781;
+    --topbar-hover:#3987e5;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text-primary);
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",Pretendard,sans-serif;
+  }
+  html,body{ margin:0; padding:0; }
+  .top-bar{
+    background:var(--topbar-bg);
+    border-bottom:1px solid var(--topbar-border);
+  }
+  .back-link{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    max-width:760px;
+    margin:0 auto;
+    padding:12px 24px;
+    font-size:13px;
+    font-weight:600;
+    color:var(--topbar-text);
+    text-decoration:none;
+    width:fit-content;
+  }
+  .back-link svg{
+    width:14px;
+    height:14px;
+    flex:none;
+  }
+  .back-link:hover{ color:var(--topbar-hover); }
+  .wrap{ max-width:760px; margin:0 auto; padding:32px 20px 80px; }
+  h1{ font-size:22px; margin:0 0 4px; }
+  .subtitle{ color:var(--text-secondary); font-size:14px; margin:0 0 28px; }
+
+  /* ---- 로그인 화면 ---- */
+  .login-card{
+    max-width:360px;
+    margin:60px auto 0;
+    background:var(--surface-raised);
+    border:1px solid var(--border);
+    border-radius:var(--radius-lg);
+    padding:28px;
+    box-shadow:var(--shadow);
+  }
+  .login-card h2{ font-size:17px; margin:0 0 18px; text-align:center; }
+  .field{ display:flex; flex-direction:column; gap:6px; margin-bottom:14px; }
+  .field label{ font-size:13px; color:var(--text-secondary); }
+  .field input{
+    padding:10px 12px;
+    border-radius:var(--radius-md);
+    border:1px solid var(--border-strong);
+    background:var(--surface);
+    color:var(--text-primary);
+    font:inherit;
+  }
+  .field input:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-wash); }
+  .login-btn{
+    width:100%;
+    padding:11px;
+    border:none;
+    border-radius:var(--radius-md);
+    background:var(--accent);
+    color:var(--accent-ink);
+    font:inherit;
+    font-weight:700;
+    cursor:pointer;
+    margin-top:4px;
+  }
+  .login-btn:disabled{ opacity:.6; cursor:not-allowed; }
+  .login-error{
+    color:var(--danger);
+    font-size:13px;
+    margin:10px 0 0;
+    min-height:1.2em;
+    text-align:center;
+  }
+
+  /* ---- 대시보드 ---- */
+  .dash-header{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:12px; margin-bottom:20px;
+  }
+  .dash-actions{ display:flex; gap:8px; }
+  .btn-ghost{
+    padding:8px 14px;
+    border-radius:var(--radius-md);
+    border:1px solid var(--border-strong);
+    background:var(--surface);
+    color:var(--text-primary);
+    font:inherit;
+    font-size:13.5px;
+    cursor:pointer;
+  }
+  .btn-ghost:hover{ border-color:var(--accent); color:var(--accent); }
+
+  .empty-state{
+    color:var(--text-muted);
+    text-align:center;
+    padding:60px 20px;
+    font-size:14.5px;
+  }
+
+  .feedback-card{
+    background:var(--surface-raised);
+    border:1px solid var(--border);
+    border-radius:var(--radius-lg);
+    padding:18px 20px;
+    margin-bottom:14px;
+    box-shadow:var(--shadow);
+  }
+  .fc-top{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:10px; margin-bottom:10px; flex-wrap:wrap;
+  }
+  .fc-type{
+    display:inline-flex; align-items:center; gap:5px;
+    font-size:13px; font-weight:700;
+    padding:4px 10px;
+    border-radius:999px;
+    background:var(--accent-wash);
+    color:var(--accent);
+  }
+  .fc-date{ font-size:12.5px; color:var(--text-muted); }
+  .fc-message{
+    font-size:14.5px;
+    line-height:1.6;
+    white-space:pre-wrap;
+    word-break:break-word;
+    margin:0 0 10px;
+  }
+  .fc-meta{
+    display:flex; flex-wrap:wrap; gap:12px;
+    font-size:12.5px; color:var(--text-muted);
+    margin-bottom:10px;
+  }
+  .fc-meta a{ color:var(--accent); text-decoration:none; }
+  .fc-meta a:hover{ text-decoration:underline; }
+  .fc-images{ display:flex; flex-wrap:wrap; gap:8px; }
+  .fc-images img{
+    width:96px; height:96px;
+    object-fit:cover;
+    border-radius:var(--radius-md);
+    border:1px solid var(--border);
+    cursor:zoom-in;
+    display:block;
+  }
+
+  /* ---- 이미지 라이트박스 ---- */
+  .lightbox{
+    position:fixed; inset:0;
+    background:rgba(0,0,0,.82);
+    display:flex; align-items:center; justify-content:center;
+    padding:24px;
+    z-index:100;
+    cursor:zoom-out;
+  }
+  .lightbox[hidden]{ display:none; }
+  .lightbox img{
+    max-width:100%; max-height:100%;
+    border-radius:8px;
+    box-shadow:0 20px 50px rgba(0,0,0,.5);
+  }
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <a class="back-link" href="/">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H6M12 5l-7 7 7 7"></path></svg>
+    도구상자로 돌아가기
+  </a>
+</div>
+
+<div class="wrap">
+  <section id="loginSection">
+    <div class="login-card">
+      <h2>관리자 로그인</h2>
+      <form id="loginForm">
+        <div class="field">
+          <label for="loginEmail">이메일</label>
+          <input type="email" id="loginEmail" autocomplete="username" required>
+        </div>
+        <div class="field">
+          <label for="loginPassword">비밀번호</label>
+          <input type="password" id="loginPassword" autocomplete="current-password" required>
+        </div>
+        <button type="submit" class="login-btn" id="loginBtn">로그인</button>
+        <p class="login-error" id="loginError"></p>
+      </form>
+    </div>
+  </section>
+
+  <section id="dashSection" hidden>
+    <div class="dash-header">
+      <div>
+        <h1>제보함</h1>
+        <p class="subtitle" id="countLabel">불러오는 중...</p>
+      </div>
+      <div class="dash-actions">
+        <button class="btn-ghost" id="refreshBtn" type="button">새로고침</button>
+        <button class="btn-ghost" id="logoutBtn" type="button">로그아웃</button>
+      </div>
+    </div>
+    <div id="feedbackList"></div>
+  </section>
+</div>
+
+<div class="lightbox" id="lightbox" hidden>
+  <img id="lightboxImg" alt="첨부 이미지 확대보기">
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-database-compat.js"></script>
+<script>
+(function(){
+  "use strict";
+  if (typeof firebase === "undefined"){
+    document.getElementById("loginError").textContent = "Firebase를 불러오지 못했어요. 광고 차단 프로그램을 꺼거나 잠시 후 다시 시도해주세요.";
+    return;
+  }
+
+  var firebaseConfig = {
+    apiKey: "AIzaSyCEThSZsmQ7s1wJ0gwkeQtbGpY7JbqU2Ag",
+    authDomain: "sseobom-141f2.firebaseapp.com",
+    databaseURL: "https://sseobom-141f2-default-rtdb.firebaseio.com",
+    projectId: "sseobom-141f2",
+    storageBucket: "sseobom-141f2.firebasestorage.app",
+    messagingSenderId: "1096990397273",
+    appId: "1:1096990397273:web:e3ad4838b86c97bf437248",
+    measurementId: "G-HERB170LMX"
+  };
+  firebase.initializeApp(firebaseConfig);
+
+  var loginSection = document.getElementById("loginSection");
+  var dashSection = document.getElementById("dashSection");
+  var loginForm = document.getElementById("loginForm");
+  var loginBtn = document.getElementById("loginBtn");
+  var loginError = document.getElementById("loginError");
+  var logoutBtn = document.getElementById("logoutBtn");
+  var refreshBtn = document.getElementById("refreshBtn");
+  var listEl = document.getElementById("feedbackList");
+  var countLabel = document.getElementById("countLabel");
+  var lightbox = document.getElementById("lightbox");
+  var lightboxImg = document.getElementById("lightboxImg");
+
+  var TYPE_LABELS = { bug: "🐞 버그 제보", improve: "💡 개선 제안", idea: "✨ 아이디어" };
+
+  function formatDate(ts){
+    if (!ts) return "";
+    var d = new Date(ts);
+    return d.toLocaleString("ko-KR", { year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit" });
+  }
+
+  function openLightbox(src){
+    lightboxImg.src = src;
+    lightbox.hidden = false;
+  }
+  lightbox.addEventListener("click", function(){
+    lightbox.hidden = true;
+    lightboxImg.src = "";
+  });
+
+  function renderFeedback(items){
+    listEl.innerHTML = "";
+    if (!items.length){
+      var empty = document.createElement("p");
+      empty.className = "empty-state";
+      empty.textContent = "아직 들어온 제보가 없어요.";
+      listEl.appendChild(empty);
+      countLabel.textContent = "0건";
+      return;
+    }
+    countLabel.textContent = items.length + "건";
+
+    items.forEach(function(item){
+      var card = document.createElement("div");
+      card.className = "feedback-card";
+
+      var top = document.createElement("div");
+      top.className = "fc-top";
+      var typeEl = document.createElement("span");
+      typeEl.className = "fc-type";
+      typeEl.textContent = TYPE_LABELS[item.type] || item.type || "기타";
+      var dateEl = document.createElement("span");
+      dateEl.className = "fc-date";
+      dateEl.textContent = formatDate(item.createdAt);
+      top.appendChild(typeEl);
+      top.appendChild(dateEl);
+      card.appendChild(top);
+
+      var msgEl = document.createElement("p");
+      msgEl.className = "fc-message";
+      msgEl.textContent = item.message || "";
+      card.appendChild(msgEl);
+
+      var meta = document.createElement("div");
+      meta.className = "fc-meta";
+      if (item.email){
+        var emailLink = document.createElement("a");
+        emailLink.href = "mailto:" + item.email;
+        emailLink.textContent = "✉ " + item.email;
+        meta.appendChild(emailLink);
+      }
+      if (item.page){
+        var pageEl = document.createElement("span");
+        pageEl.textContent = "페이지: " + item.page;
+        meta.appendChild(pageEl);
+      }
+      if (meta.childNodes.length) card.appendChild(meta);
+
+      if (item.images && item.images.length){
+        var imgWrap = document.createElement("div");
+        imgWrap.className = "fc-images";
+        item.images.forEach(function(src){
+          var thumb = document.createElement("img");
+          thumb.src = src;
+          thumb.alt = "첨부 이미지";
+          thumb.addEventListener("click", function(){ openLightbox(src); });
+          imgWrap.appendChild(thumb);
+        });
+        card.appendChild(imgWrap);
+      }
+
+      listEl.appendChild(card);
+    });
+  }
+
+  function loadFeedback(){
+    countLabel.textContent = "불러오는 중...";
+    firebase.database().ref("feedback").once("value")
+      .then(function(snap){
+        var items = [];
+        snap.forEach(function(child){
+          var v = child.val();
+          v.key = child.key;
+          items.push(v);
+        });
+        // 최신 제보가 위로 오도록 createdAt 기준 내림차순 정렬.
+        items.sort(function(a, b){ return (b.createdAt || 0) - (a.createdAt || 0); });
+        renderFeedback(items);
+      })
+      .catch(function(err){
+        console.error("제보 목록 불러오기 실패", err);
+        countLabel.textContent = "불러오기 실패";
+        listEl.innerHTML = "";
+        var errEl = document.createElement("p");
+        errEl.className = "empty-state";
+        errEl.textContent = "제보 목록을 불러오지 못했어요. Firebase 보안 규칙에서 feedback 읽기 권한(auth != null)이 켜져 있는지 확인해주세요.";
+        listEl.appendChild(errEl);
+      });
+  }
+
+  refreshBtn.addEventListener("click", loadFeedback);
+
+  loginForm.addEventListener("submit", function(e){
+    e.preventDefault();
+    var email = document.getElementById("loginEmail").value.trim();
+    var password = document.getElementById("loginPassword").value;
+    loginBtn.disabled = true;
+    loginError.textContent = "";
+    firebase.auth().signInWithEmailAndPassword(email, password)
+      .catch(function(err){
+        console.error("로그인 실패", err);
+        loginError.textContent = "이메일 또는 비밀번호가 올바르지 않아요.";
+      })
+      .finally(function(){
+        loginBtn.disabled = false;
+      });
+  });
+
+  logoutBtn.addEventListener("click", function(){
+    firebase.auth().signOut();
+  });
+
+  firebase.auth().onAuthStateChanged(function(user){
+    if (user){
+      loginSection.hidden = true;
+      dashSection.hidden = false;
+      loginForm.reset();
+      loadFeedback();
+    } else {
+      loginSection.hidden = false;
+      dashSection.hidden = true;
+    }
+  });
+})();
+</script>
+</body>
+</html>
