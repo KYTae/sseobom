@@ -1087,6 +1087,16 @@
      ============================================================ -->
 <script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-database-compat.js"></script>
+<!-- 제보가 들어올 때마다 관리자(써봄 운영자)에게 알림 메일을 보내주는 EmailJS. Firebase는
+     데이터만 저장하고 메일을 보내주지는 않아서, 브라우저에서 바로 메일을 보낼 수 있는
+     이 서비스를 붙였다. -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script>
+  (function(){
+    if (typeof emailjs === "undefined") return;
+    emailjs.init({ publicKey: "VPVzPtjQ9D7_zJsB8" });
+  })();
+</script>
 <script>
 (function(){
   "use strict";
@@ -1224,6 +1234,21 @@
     var typeOptions = typeList ? Array.prototype.slice.call(typeList.querySelectorAll(".feedback-select-option")) : [];
     var typeDefaultValue = typeHidden ? typeHidden.value : "bug";
     if (!form) return;
+
+    var TYPE_LABELS = { bug: "🐞 버그 제보", improve: "💡 개선 제안", idea: "✨ 아이디어" };
+    var ADMIN_NOTIFY_EMAIL = "kyt6350@naver.com";
+
+    // 제보가 Firebase에 저장된 뒤, 관리자에게 EmailJS로 알림 메일을 보낸다. 실시간 메일
+    // 발송은 부가 기능이라 실패해도(EmailJS 스크립트 차단, 월 발송량 초과 등) 제보 자체는
+    // 이미 저장이 끝난 뒤라 사용자에게는 계속 "전송 성공"으로 보여주고 콘솔에만 에러를 남긴다.
+    function notifyAdminByEmail(params){
+      if (typeof emailjs === "undefined"){
+        console.warn("EmailJS를 불러오지 못해 알림 메일을 보내지 못했어요. 제보 자체는 정상 저장됐어요.");
+        return;
+      }
+      emailjs.send("service_7s0jgdm", "template_zmrhdyn", params)
+        .catch(function(err){ console.error("제보 알림 메일 발송 실패(제보 자체는 정상 저장됨)", err); });
+    }
 
     var images = []; // 첨부 이미지들을 줄여서 만든 data URL 목록. { dataUrl, name } 최대 3개.
 
@@ -1433,6 +1458,15 @@
       window.submitSseobomFeedback({ type: type, message: message, email: email, images: images.map(function(im){ return im.dataUrl; }) })
         .then(function(){
           showStatus("소중한 의견 감사합니다! 잘 전달됐어요.", true);
+          notifyAdminByEmail({
+            type_label: TYPE_LABELS[type] || type,
+            message: message,
+            reporter_email: email || ADMIN_NOTIFY_EMAIL,
+            page: location.pathname,
+            created_at: new Date().toLocaleString("ko-KR", { year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit" }),
+            image_count: images.length,
+            admin_url: "https://sseobom.kr/admin/"
+          });
           form.reset();
           resetImages();
           resetTypeSelect();
