@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://sseobom.kr/sitemap.xml
+
+# 다음(Daum) 검색등록 소유 확인용 PIN.
+# webmaster.daum.net에서 사이트를 등록하면 8~12자리 PIN 코드를 발급해줍니다.
+# 그 코드를 아래 줄의 [여기에PIN코드] 자리에 그대로 넣고 앞의 "# " 두 글자만 지워서
+# 활성화한 뒤, 다시 이 파일을 업로드하고 Daum 웹마스터도구에서 "로봇룰 테스트"를
+# 눌러 확인하세요. (지금은 주석 처리되어 있어 아무 영향 없습니다.)
+# DaumWebMasterTool:[여기에PIN코드]
