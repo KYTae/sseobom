@@ -655,22 +655,28 @@
     font-size:13px;
   }
   .feedback-select-option.is-selected .feedback-select-option-check{ opacity:1; }
+  .feedback-image-list{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:flex-start; /* 썸네일 높이가 서로 달라도 늘어나 붙지 않게 위쪽 기준으로 정렬 */
+    gap:8px;
+    margin-top:8px;
+  }
+  /* display:flex 위 규칙이 명시도와 무관하게 [hidden]의 기본 display:none을 덮어써버려서,
+     hidden 속성을 켜도 계속 보이는 문제가 있었다 — 다시 명시적으로 숨긴다. */
+  .feedback-image-list[hidden]{ display:none; }
   .feedback-image-preview{
     position:relative;
     display:inline-block;
-    margin-top:8px;
     border:1px solid var(--border);
     border-radius:var(--radius-md);
     overflow:hidden;
     line-height:0;
   }
-  /* display:inline-block 위 규칙이 명시도와 무관하게 [hidden]의 기본 display:none을
-     덮어써버려서, hidden 속성을 켜도 계속 보이는 문제가 있었다 — 다시 명시적으로 숨긴다. */
-  .feedback-image-preview[hidden]{ display:none; }
   .feedback-image-preview img{
     display:block;
-    max-width:220px;
-    max-height:160px;
+    max-width:140px;
+    max-height:110px;
   }
   .feedback-image-remove{
     position:absolute; top:6px; right:6px;
@@ -1038,19 +1044,16 @@
                 <input type="email" id="feedbackEmail" name="email" placeholder="example@email.com">
               </div>
               <div class="feedback-row">
-                <label for="feedbackImageInput">이미지 첨부 <span class="feedback-optional">(선택, 스크린샷 등)</span></label>
+                <label for="feedbackImageInput">이미지 첨부 <span class="feedback-optional">(선택, 최대 3장, 스크린샷 등)</span></label>
                 <div class="feedback-file">
-                  <input type="file" id="feedbackImageInput" accept="image/*" class="feedback-file-input">
+                  <input type="file" id="feedbackImageInput" accept="image/*" multiple class="feedback-file-input">
                   <label for="feedbackImageInput" class="feedback-file-trigger">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><path d="M7 8l5-5 5 5"></path><path d="M5 21h14"></path></svg>
                     이미지 선택
                   </label>
                   <span class="feedback-file-name" id="feedbackFileName">선택된 파일 없음</span>
                 </div>
-                <div class="feedback-image-preview" id="feedbackImagePreview" hidden>
-                  <img id="feedbackImagePreviewImg" alt="첨부한 이미지 미리보기">
-                  <button type="button" class="feedback-image-remove" id="feedbackImageRemoveBtn" aria-label="이미지 제거">✕</button>
-                </div>
+                <div class="feedback-image-list" id="feedbackImageList" hidden></div>
               </div>
               <input type="text" id="feedbackWebsite" name="website" class="feedback-honeypot" tabindex="-1" autocomplete="off" aria-hidden="true">
               <button type="submit" class="tool-cta feedback-submit" id="feedbackSubmitBtn">
@@ -1160,9 +1163,9 @@
       message: payload.message,
       email: payload.email || null,
       // 첨부 이미지는 별도 저장소 없이, 이미 화면에서 줄여둔(최대 1280px, JPEG) data URL을
-      // 그대로 이 항목에 함께 저장한다 — 제보 하나당 이미지 한 장 정도라 RTDB에 넣어도
+      // 그대로 이 항목에 배열로 함께 저장한다 — 제보 하나당 최대 3장이라 RTDB에 넣어도
       // 부담이 크지 않다.
-      image: payload.image || null,
+      images: (payload.images && payload.images.length) ? payload.images : null,
       page: location.pathname,
       userAgent: navigator.userAgent,
       createdAt: firebase.database.ServerValue.TIMESTAMP
@@ -1210,10 +1213,9 @@
     var statusEl = document.getElementById("feedbackStatus");
     var submitBtn = document.getElementById("feedbackSubmitBtn");
     var imageInput = document.getElementById("feedbackImageInput");
-    var imagePreview = document.getElementById("feedbackImagePreview");
-    var imagePreviewImg = document.getElementById("feedbackImagePreviewImg");
-    var imageRemoveBtn = document.getElementById("feedbackImageRemoveBtn");
+    var imageListEl = document.getElementById("feedbackImageList");
     var fileNameEl = document.getElementById("feedbackFileName");
+    var MAX_IMAGES = 3;
     var typeSelect = document.getElementById("feedbackTypeSelect");
     var typeTrigger = document.getElementById("feedbackTypeTrigger");
     var typeValueEl = document.getElementById("feedbackTypeValue");
@@ -1223,7 +1225,7 @@
     var typeDefaultValue = typeHidden ? typeHidden.value : "bug";
     if (!form) return;
 
-    var compressedImageData = null; // 첨부 이미지를 줄여서 만든 data URL. 없으면 null.
+    var images = []; // 첨부 이미지들을 줄여서 만든 data URL 목록. { dataUrl, name } 최대 3개.
 
     function showStatus(msg, ok){
       statusEl.textContent = msg;
@@ -1231,12 +1233,69 @@
       statusEl.classList.toggle("err", !ok);
     }
 
-    function resetImage(){
-      compressedImageData = null;
+    // 선택된 이미지 개수에 맞춰 썸네일 목록을 다시 그린다. 이미지 하나당 하나의
+    // .feedback-image-preview(썸네일 + 제거 버튼)를 만든다.
+    function renderImageList(){
+      imageListEl.innerHTML = "";
+      images.forEach(function(imgData, idx){
+        var item = document.createElement("div");
+        item.className = "feedback-image-preview";
+
+        var imgEl = document.createElement("img");
+        imgEl.src = imgData.dataUrl;
+        imgEl.alt = "첨부한 이미지 미리보기 " + (idx + 1);
+
+        var removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.className = "feedback-image-remove";
+        removeBtn.setAttribute("aria-label", "이미지 제거");
+        removeBtn.textContent = "✕";
+        removeBtn.addEventListener("click", function(){
+          images.splice(idx, 1);
+          renderImageList();
+        });
+
+        item.appendChild(imgEl);
+        item.appendChild(removeBtn);
+        imageListEl.appendChild(item);
+      });
+      imageListEl.hidden = images.length === 0;
+      if (fileNameEl){
+        fileNameEl.textContent = images.length === 0
+          ? "선택된 파일 없음"
+          : images.length + "장 선택됨 (최대 " + MAX_IMAGES + "장)";
+      }
+    }
+
+    function resetImages(){
+      images = [];
       imageInput.value = "";
-      imagePreview.hidden = true;
-      imagePreviewImg.src = "";
-      if (fileNameEl) fileNameEl.textContent = "선택된 파일 없음";
+      renderImageList();
+    }
+
+    // 파일 하나를 캔버스로 긴 변 기준 최대 1280px로 줄이고 JPEG로 다시 압축해
+    // data URL로 돌려준다. Realtime Database에 원본 그대로 넣기엔 용량이 부담스러워서다.
+    function compressImageFile(file){
+      return new Promise(function(resolve, reject){
+        var reader = new FileReader();
+        reader.onload = function(e){
+          var img = new Image();
+          img.onload = function(){
+            var maxDim = 1280;
+            var scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+            var canvas = document.createElement("canvas");
+            canvas.width = Math.max(1, Math.round(img.width * scale));
+            canvas.height = Math.max(1, Math.round(img.height * scale));
+            var ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            resolve(canvas.toDataURL("image/jpeg", 0.75));
+          };
+          img.onerror = function(){ reject(new Error("이미지를 읽는 데 실패했어요.")); };
+          img.src = e.target.result;
+        };
+        reader.onerror = function(){ reject(new Error("파일을 읽는 데 실패했어요.")); };
+        reader.readAsDataURL(file);
+      });
     }
 
     // ---- 종류 커스텀 드롭다운(콤보박스) ----
@@ -1297,47 +1356,49 @@
       });
     }
 
-    // 원본 이미지를 그대로 올리면 용량이 커서 Realtime Database에 넣기 부담스러우니,
-    // 캔버스로 긴 변 기준 최대 1280px로 줄이고 JPEG로 다시 압축한 뒤 그 data URL만 쓴다.
+    // 여러 장을 한 번에 고르거나, 이미 몇 장 담긴 상태에서 더 고를 수도 있다 — 매번
+    // input.files는 이번에 새로 고른 파일들만 담고 있으므로, 기존에 담아둔 images
+    // 배열에 이어서 최대 MAX_IMAGES장까지만 채운다.
     imageInput.addEventListener("change", function(){
-      var file = imageInput.files[0];
-      if (!file){ resetImage(); return; }
-      if (file.type.indexOf("image/") !== 0){
-        showStatus("이미지 파일만 첨부할 수 있어요.", false);
-        resetImage();
-        return;
-      }
-      if (file.size > 20 * 1024 * 1024){
-        showStatus("이미지 용량이 너무 커요. 20MB 이하로 첨부해주세요.", false);
-        resetImage();
-        return;
-      }
-      if (fileNameEl) fileNameEl.textContent = file.name;
-      var reader = new FileReader();
-      reader.onload = function(e){
-        var img = new Image();
-        img.onload = function(){
-          var maxDim = 1280;
-          var scale = Math.min(1, maxDim / Math.max(img.width, img.height));
-          var canvas = document.createElement("canvas");
-          canvas.width = Math.max(1, Math.round(img.width * scale));
-          canvas.height = Math.max(1, Math.round(img.height * scale));
-          var ctx = canvas.getContext("2d");
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          compressedImageData = canvas.toDataURL("image/jpeg", 0.75);
-          imagePreviewImg.src = compressedImageData;
-          imagePreview.hidden = false;
-        };
-        img.onerror = function(){
-          showStatus("이미지를 읽는 데 실패했어요. 다른 파일로 시도해주세요.", false);
-          resetImage();
-        };
-        img.src = e.target.result;
-      };
-      reader.readAsDataURL(file);
-    });
+      var files = Array.prototype.slice.call(imageInput.files);
+      imageInput.value = ""; // 같은 파일을 다시 골라도 change가 새로 발생하도록 매번 비워둔다.
+      if (!files.length) return;
 
-    imageRemoveBtn.addEventListener("click", resetImage);
+      var valid = [];
+      for (var i = 0; i < files.length; i++){
+        var f = files[i];
+        if (f.type.indexOf("image/") !== 0){
+          showStatus("이미지 파일만 첨부할 수 있어요.", false);
+          continue;
+        }
+        if (f.size > 20 * 1024 * 1024){
+          showStatus("이미지 용량이 너무 커요. 20MB 이하로 첨부해주세요.", false);
+          continue;
+        }
+        valid.push(f);
+      }
+      if (!valid.length) return;
+
+      var remaining = MAX_IMAGES - images.length;
+      if (remaining <= 0){
+        showStatus("이미지는 최대 " + MAX_IMAGES + "장까지 첨부할 수 있어요. 먼저 하나를 제거해주세요.", false);
+        return;
+      }
+      var toProcess = valid.slice(0, remaining);
+      if (valid.length > remaining){
+        showStatus("이미지는 최대 " + MAX_IMAGES + "장까지 첨부할 수 있어요. 앞에서부터 " + remaining + "장만 추가했어요.", false);
+      }
+
+      Promise.all(toProcess.map(function(f){
+        return compressImageFile(f).then(function(dataUrl){ return { dataUrl: dataUrl, name: f.name }; });
+      })).then(function(results){
+        results.forEach(function(r){ images.push(r); });
+        renderImageList();
+      }).catch(function(err){
+        console.error("이미지 처리 실패", err);
+        showStatus("이미지를 처리하는 데 실패했어요. 다른 파일로 시도해주세요.", false);
+      });
+    });
 
     form.addEventListener("submit", function(e){
       e.preventDefault();
@@ -1347,7 +1408,7 @@
       var honeypot = document.getElementById("feedbackWebsite");
       if (honeypot && honeypot.value){
         form.reset();
-        resetImage();
+        resetImages();
         resetTypeSelect();
         return;
       }
@@ -1369,11 +1430,11 @@
       submitBtn.disabled = true;
       showStatus("보내는 중...", true);
 
-      window.submitSseobomFeedback({ type: type, message: message, email: email, image: compressedImageData })
+      window.submitSseobomFeedback({ type: type, message: message, email: email, images: images.map(function(im){ return im.dataUrl; }) })
         .then(function(){
           showStatus("소중한 의견 감사합니다! 잘 전달됐어요.", true);
           form.reset();
-          resetImage();
+          resetImages();
           resetTypeSelect();
         })
         .catch(function(err){
