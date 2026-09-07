@@ -321,6 +321,30 @@
   .tool-cta:active{ transform:scale(.98); }
   .tool-cta svg{ width:15px; height:15px; }
 
+  /* ---------- 준비 중(coming soon) 도구 카드 ---------- */
+  .tool-card.coming-soon .tool-icon{ background:var(--bg); color:var(--text-muted); }
+  .tool-name-row{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+  .tool-name-row .tool-name{ margin-bottom:0; }
+  .tool-badge-soon{
+    font-size:11px; font-weight:700;
+    padding:3px 10px;
+    border-radius:999px;
+    letter-spacing:.01em;
+    background:var(--bg);
+    color:var(--text-muted);
+    border:1px solid var(--border);
+  }
+  /* 버튼 자체를 disabled로 둬서 클릭이 아예 안 먹도록 한다(가짜로 막은 링크가 아니라
+     진짜 비활성 버튼). .tool-cta의 기본 스타일(패딩·둥근 모서리 등)은 그대로 쓰고
+     색만 눈에 띄게 죽인다. */
+  button.tool-cta.tool-cta-disabled{
+    background:var(--bg);
+    color:var(--text-muted);
+    border:1px solid var(--border);
+    cursor:not-allowed;
+  }
+  button.tool-cta.tool-cta-disabled:hover{ filter:none; }
+
   .grow-note{
     margin-top:22px;
     font-size:13.5px;
@@ -903,6 +927,75 @@
               도구 열기
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"></path></svg>
             </a>
+          </div>
+        </article>
+
+        <article class="tool-card coming-soon">
+          <div class="tool-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+          </div>
+          <div class="tool-body">
+            <div class="tool-name-row">
+              <div class="tool-name">사운드 형식 변환</div>
+              <span class="tool-badge-soon">준비 중</span>
+            </div>
+            <p class="tool-desc">
+              오디오 파일 하나를 올리면 WAV·MP3를 비롯해 최대한 많은 형식으로 한 번에 바꿔주는 도구를 준비하고 있습니다.
+            </p>
+            <div class="tool-tags">
+              <span class="tool-tag">WAV·MP3 등 폭넓은 상호 변환</span>
+              <span class="tool-tag">형식별 개별 다운로드·전체 zip</span>
+              <span class="tool-tag">서버 업로드 없음</span>
+            </div>
+            <button class="tool-cta tool-cta-disabled" type="button" disabled aria-disabled="true">
+              Coming Soon
+            </button>
+          </div>
+        </article>
+
+        <article class="tool-card coming-soon">
+          <div class="tool-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.13 1L6 16a2 2 0 0 0 2 2h15"></path><path d="M1 6.13L16 6a2 2 0 0 1 2 2v15"></path></svg>
+          </div>
+          <div class="tool-body">
+            <div class="tool-name-row">
+              <div class="tool-name">이미지 크롭·확장</div>
+              <span class="tool-badge-soon">준비 중</span>
+            </div>
+            <p class="tool-desc">
+              이미지를 원하는 비율로 자르거나 모서리를 둥글게 다듬고, 캔버스를 넓혀서 새로 생긴 여백을 스포이드로 찍은 색으로 채워주는 도구를 준비하고 있습니다.
+            </p>
+            <div class="tool-tags">
+              <span class="tool-tag">크롭·모서리 둥글게</span>
+              <span class="tool-tag">캔버스 확장·스포이드 색상 채우기</span>
+              <span class="tool-tag">서버 업로드 없음</span>
+            </div>
+            <button class="tool-cta tool-cta-disabled" type="button" disabled aria-disabled="true">
+              Coming Soon
+            </button>
+          </div>
+        </article>
+
+        <article class="tool-card coming-soon">
+          <div class="tool-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="14" y1="10" x2="21" y2="3"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+          </div>
+          <div class="tool-body">
+            <div class="tool-name-row">
+              <div class="tool-name">이미지 용량 압축</div>
+              <span class="tool-badge-soon">준비 중</span>
+            </div>
+            <p class="tool-desc">
+              화질 저하를 최소화하면서 이미지 파일 용량을 줄여주는 도구를 준비하고 있습니다.
+            </p>
+            <div class="tool-tags">
+              <span class="tool-tag">용량 압축</span>
+              <span class="tool-tag">여러 장 한 번에 처리</span>
+              <span class="tool-tag">서버 업로드 없음</span>
+            </div>
+            <button class="tool-cta tool-cta-disabled" type="button" disabled aria-disabled="true">
+              Coming Soon
+            </button>
           </div>
         </article>
       </div>
