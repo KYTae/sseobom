@@ -590,6 +590,35 @@
   }
   .icon-btn.full{flex:1 1 100%;}
 
+  /* 복제로 새로 생긴 카드가 "짠" 하고 그냥 나타나지 않고 살짝 커지면서 부드럽게
+     등장하도록 하는 연출. renderGrid()가 그리드를 통째로 다시 그리기 때문에, 매번
+     다시 그려질 때마다 모든 카드에 이 애니메이션이 재생되면 안 되므로(예: 페이지
+     회전만 해도 전체가 다시 깜빡이며 나타나는 것처럼 보이면 어색함) — 이 클래스는
+     duplicatePage()가 방금 만든 카드 하나에만 코드로 붙였다가 애니메이션이 끝나면
+     바로 떼어낸다(자세한 내용은 playCardEnterAnimation() 참고). */
+  @keyframes pageCardPopIn{
+    from{ opacity:0; transform:scale(.88) translateY(6px); }
+    to{ opacity:1; transform:scale(1) translateY(0); }
+  }
+  .page-card.card-pop-in{
+    animation:pageCardPopIn .32s cubic-bezier(.22,1,.36,1);
+  }
+
+  /* 삭제 버튼을 누른 카드가 목록에서 "탁" 끊기듯 사라지지 않고 살짝 작아지며
+     부드럽게 사라지도록 하는 연출. deletePage()가 이 클래스를 붙인 뒤 애니메이션
+     길이(200ms)만큼 실제 배열에서 지우는 걸 미뤘다가 그 다음에 renderGrid()로
+     마무리한다 — pointer-events:none으로 사라지는 동안 이 카드의 버튼을 다시
+     누르는 것도 막는다. forwards로 끝 상태(투명·축소)를 유지해야 지워지기 직전
+     프레임에 다시 원래 크기로 튀는 깜빡임이 없다. */
+  @keyframes pageCardPopOut{
+    from{ opacity:1; transform:scale(1); }
+    to{ opacity:0; transform:scale(.86); }
+  }
+  .page-card.card-pop-out{
+    animation:pageCardPopOut .2s cubic-bezier(.4,0,1,1) forwards;
+    pointer-events:none;
+  }
+
   .view-hint{
     font-size:12.5px;
     color:var(--text-dim);
@@ -1085,9 +1114,9 @@
   <header class="top">
     <div class="brand"><span class="dot"></span>써봄</div>
     <h1>PDF 편집기</h1>
-    <p class="sub">여러 PDF를 하나로 합치고, 원하는 페이지 범위로 나누고, 순서를 바꾸거나 회전하고, 필요없는 페이지는 지우세요. 페이지를 이미지로 저장할 수도 있어요.</p>
+    <p class="sub">여러 PDF를 하나로 합치고, 원하는 페이지 범위로 나누고, 순서를 바꾸거나 회전하고, 필요한 페이지는 복제하고, 필요없는 페이지는 지우세요. 페이지를 이미지로 저장할 수도 있어요.</p>
     <div class="badge-row">
-      <span class="feature-badge">PDF 합치기 · 분할 · 압축 · 순서변경 · 회전 · A4비율 변경 · 이미지 다운로드 · 삭제</span>
+      <span class="feature-badge">PDF 합치기 · 분할 · 압축 · 순서변경 · 회전 · 복제 · A4비율 변경 · 이미지 다운로드 · 삭제</span>
       <span class="privacy-badge">파일은 서버에 업로드되지 않습니다 · 모든 처리는 이 브라우저 안에서 끝납니다</span>
       <span class="privacy-badge">로그인·구독 필요 없음 · 몇 번을 다시 편집해도 완전 무료</span>
     </div>
@@ -1113,6 +1142,7 @@
         <div class="help-grid">
           <div class="help-item"><span class="help-key">↑ / ↓</span><span class="help-desc">페이지를 앞/뒤로 한 칸씩 옮깁니다. 카드를 직접 마우스로 눌러 끌어서 옮길 수도 있습니다(휴대폰에서는 손가락으로 동일하게 동작).</span></div>
           <div class="help-item"><span class="help-key">↻</span><span class="help-desc">페이지를 90도씩 회전합니다. 여러 번 누르면 계속 돌아갑니다.</span></div>
+          <div class="help-item"><span class="help-key">페이지 복제</span><span class="help-desc">이 페이지와 완전히 똑같은 사본을 바로 뒤에 추가합니다. 회전·A4비율 등 지금 상태 그대로 복제돼요.</span></div>
           <div class="help-item"><span class="help-key">📐 A4비율</span><span class="help-desc">여백 없이 페이지를 A4 비율(세로형이면 세로 A4, 가로형이면 가로 A4)로 꽉 채워 늘립니다. 원본 비율이 A4와 다르면 살짝 눌리거나 늘어날 수 있어요 — 확대 화면에서 "원본과 비교"로 확인할 수 있습니다. 이미 A4 비율인 페이지는 버튼이 자동으로 비활성화됩니다.</span></div>
           <div class="help-item"><span class="help-key">📥 이미지</span><span class="help-desc">이 페이지 한 장을 고화질 PNG 이미지로 저장합니다. A4비율이 켜진 페이지는 원본 비율/A4 비율 중 어느 쪽으로 받을지 먼저 물어봅니다.</span></div>
           <div class="help-item"><span class="help-key">✕ 삭제</span><span class="help-desc">이 페이지를 목록에서 삭제합니다.</span></div>
@@ -1655,6 +1685,9 @@
             <button class="icon-btn" data-act="rotate" title="90도 회전">↻</button>
           </div>
           <div class="actions-row">
+            <button class="icon-btn full" data-act="dup" title="이 페이지를 복제해서 바로 뒤에 추가합니다">페이지 복제</button>
+          </div>
+          <div class="actions-row">
             <button class="icon-btn${p.fitA4 ? " active" : ""}" data-act="a4"${nearA4 ? " disabled" : ""} title="${nearA4 ? "이미 A4 비율이라 맞출 필요가 없어요" : "여백 없이 페이지를 A4 비율로 늘립니다. 원본과 비율이 다르면 살짝 눌리거나 늘어나 보일 수 있어요 — 확대 화면에서 원본과 비교해볼 수 있어요."}">📐 A4비율</button>
             <button class="icon-btn" data-act="img" title="이 페이지를 이미지로 저장">📥 이미지</button>
           </div>
@@ -1675,6 +1708,7 @@
           if (act === "up") moveIndex(curIdx, curIdx - 1);
           else if (act === "down") moveIndex(curIdx, curIdx + 1);
           else if (act === "rotate") rotatePage(p.id);
+          else if (act === "dup") duplicatePage(p.id);
           else if (act === "delete") deletePage(p.id);
           else if (act === "img"){
             if (p.fitA4){
@@ -1890,9 +1924,105 @@
   }
 
   function deletePage(id){
-    pages = pages.filter(p => p.id !== id);
-    syncViewMode();
+    const el = grid.querySelector(`.page-card[data-id="${id}"]`);
+    if (!el){
+      // 카드 엘리먼트를 못 찾은 예외적인 경우 — 애니메이션 없이 바로 처리
+      pages = pages.filter(p => p.id !== id);
+      syncViewMode();
+      renderGrid();
+      return;
+    }
+
+    // 지워질 카드가 사라지면서 그 자리를 메우려고 밀려날 나머지 카드들의 "지금"
+    // 위치를 미리 기록해둔다 — 카드가 실제로 배열/DOM에서 빠지기 전까지는 레이아웃이
+    // 안 바뀌므로 지금 재도 정확하다(duplicatePage()와 같은 FLIP 기법).
+    const before = Array.from(grid.querySelectorAll(".page-card"));
+    const firstRects = new Map();
+    before.forEach(c => firstRects.set(c.dataset.id, c.getBoundingClientRect()));
+
+    el.classList.add("card-pop-out");
+
+    // .card-pop-out 애니메이션(200ms)이 다 재생될 때까지 실제 삭제(배열에서 빼고
+    // 다시 그리기)를 미룬다 — rotatePage()가 회전 트랜지션을 먼저 보여주고 나서
+    // setTimeout(renderGrid, ...)로 마무리하는 것과 같은 패턴.
+    setTimeout(() => {
+      pages = pages.filter(p => p.id !== id);
+      syncViewMode();
+      renderGrid();
+
+      const after = Array.from(grid.querySelectorAll(".page-card"));
+      after.forEach(c => {
+        const first = firstRects.get(c.dataset.id);
+        if (!first) return; // 방금 지워진 카드 자신
+        const last = c.getBoundingClientRect();
+        const dx = first.left - last.left;
+        const dy = first.top - last.top;
+        if (dx || dy){
+          c.style.transition = "none";
+          c.style.transform = `translate(${dx}px, ${dy}px)`;
+          c.getBoundingClientRect(); // force reflow so the jump-back applies before we transition
+          c.style.transition = "transform 220ms cubic-bezier(.2,.8,.2,1)";
+          c.style.transform = "";
+        }
+      });
+    }, 200);
+  }
+
+  // 원본 페이지 바로 뒤에 완전히 같은 내용(같은 fileIndex/pageIndex, 같은 회전·A4비율 상태)의
+  // 사본을 끼워 넣는다. thumbUrl은 미리보기용 blob URL이라 복사본과 그대로 공유해도 안전하고
+  // (사용자가 두 인스턴스를 각각 다르게 회전/편집해도 썸네일만 다시 그리면 되지, blob 자체를
+  // 수정하는 게 아니므로), 내보내기 때는 appendPageToDoc()가 pages 배열의 각 항목마다
+  // outDoc.copyPages(srcDoc, [p.pageIndex])를 새로 호출하므로 같은 pageIndex를 두 번 참조해도
+  // 완전히 독립된 페이지 두 장으로 정상 출력된다 — export 쪽 코드는 손댈 필요가 없다.
+  function duplicatePage(id){
+    const idx = pages.findIndex(p => p.id === id);
+    if (idx === -1) return;
+
+    // 새 카드 한 장이 끼어들면 그 뒤(그리고 그리드가 줄바꿈되는 폭에서는 옆줄로 넘어가는)
+    // 카드들이 전부 한 칸씩 밀려나야 하는데, renderGrid()가 그리드를 통째로 다시 그리기
+    // 때문에 그냥 두면 밀려나는 카드들이 전부 순간이동하듯 "탁" 하고 새 자리로 바뀐다.
+    // reorderPages()에서 드래그 순서변경 때 쓰던 것과 같은 FLIP 기법을 그대로 재사용해서,
+    // 밀려나는 카드들도 부드럽게 슬라이드해 보이게 한다 — 새로 생긴 카드 자신은 "이전
+    // 위치"가 없으므로(firstRects에 기록될 수 없음) 이 FLIP 대상에서 자연히 제외되고,
+    // 대신 playCardEnterAnimation()의 등장 애니메이션을 따로 받는다.
+    const before = Array.from(grid.querySelectorAll(".page-card"));
+    const firstRects = new Map();
+    before.forEach(c => firstRects.set(c.dataset.id, c.getBoundingClientRect()));
+
+    const copy = { ...pages[idx], id: "p" + (idSeed++) };
+    pages.splice(idx + 1, 0, copy);
     renderGrid();
+
+    const after = Array.from(grid.querySelectorAll(".page-card"));
+    after.forEach(c => {
+      const first = firstRects.get(c.dataset.id);
+      if (!first) return; // 방금 복제로 새로 생긴 카드 — FLIP 대상 아님
+      const last = c.getBoundingClientRect();
+      const dx = first.left - last.left;
+      const dy = first.top - last.top;
+      if (dx || dy){
+        c.style.transition = "none";
+        c.style.transform = `translate(${dx}px, ${dy}px)`;
+        c.getBoundingClientRect(); // force reflow so the jump-back applies before we transition
+        c.style.transition = "transform 220ms cubic-bezier(.2,.8,.2,1)";
+        c.style.transform = "";
+      }
+    });
+
+    playCardEnterAnimation(copy.id);
+  }
+
+  // renderGrid()는 그리드 innerHTML을 통째로 새로 그리기 때문에, 방금 추가된 카드도
+  // 이미 있던 카드들과 똑같이 "이미 그 자리에 있던 것"처럼 조용히 나타난다. 새로
+  // 생긴 카드 하나만 콕 집어서 살짝 커지며 부드럽게 나타나 보이게 하려면, 렌더가
+  // 끝난 뒤 그 카드에만 .card-pop-in 클래스를 붙였다가 애니메이션이 끝나면 떼어낸다
+  // (다시 렌더될 일이 생겨도 클래스를 안 붙이면 재생되지 않으므로, 이후의 다른
+  // 조작(회전·이동 등)에서는 이 애니메이션이 엉뚱하게 다시 재생되지 않는다).
+  function playCardEnterAnimation(id){
+    const el = grid.querySelector(`.page-card[data-id="${id}"]`);
+    if (!el) return;
+    el.classList.add("card-pop-in");
+    el.addEventListener("animationend", () => el.classList.remove("card-pop-in"), { once: true });
   }
 
   // ---- file-level drag reordering (same pointer + FLIP technique, operating
