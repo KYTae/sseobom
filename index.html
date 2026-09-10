@@ -821,7 +821,7 @@
     <div class="wrap">
       <div class="tools-head">
         <h2>지금 쓸 수 있는 도구</h2>
-        <span class="tools-count">8개</span>
+        <span class="tools-count">7개</span>
       </div>
 
       <div class="tool-category">
@@ -872,18 +872,18 @@
             </a>
           </article>
 
-          <article class="tool-card">
+          <article class="tool-card coming-soon">
             <div class="tool-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"></path><path d="M21 8V5a2 2 0 0 0-2-2h-3"></path><path d="M3 16v3a2 2 0 0 0 2 2h3"></path><path d="M16 21h3a2 2 0 0 0 2-2v-3"></path></svg>
             </div>
             <div class="tool-body">
-              <div class="tool-name">이미지 스케일 업</div>
+              <div class="tool-name-row">
+                <div class="tool-name">이미지 스케일 업</div>
+                <span class="tool-badge-soon">준비 중</span>
+              </div>
               <p class="tool-desc">흐릿한 사진을 선명하게 다듬고, 확대해도 깨지지 않게 키워요.</p>
             </div>
-            <a class="tool-cta" href="/image-scale-up/">
-              도구 열기
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"></path></svg>
-            </a>
+            <button type="button" class="tool-cta tool-cta-disabled" disabled>Coming Soon</button>
           </article>
 
           <article class="tool-card coming-soon">
@@ -1031,21 +1031,6 @@
         <div class="notices-content" id="noticesContent">
           <div class="notices-content-inner">
             <ul class="notice-list">
-              <li class="notice-item">
-                <div class="notice-marker"><span class="notice-dot"></span></div>
-                <div class="notice-card">
-                  <div class="notice-meta">
-                    <span class="notice-date">2026.09.10</span>
-                    <span class="notice-tag notice-tag-new">신규 도구</span>
-                  </div>
-                  <p class="notice-text">여덟 번째 도구 "이미지 스케일 업"을 출시했습니다.</p>
-                  <ul class="notice-sublist">
-                    <li>사진 한 장을 올리면 AI가 화질을 끌어올려 2배 또는 4배 크기로 키워줘요. 단순히 늘리는 게 아니라 디테일을 새로 그려 넣는 방식이라 더 선명해요.</li>
-                    <li>고해상도 사진은 컴퓨터에 무리가 가지 않도록 처리 전에 자동으로 안전한 크기로 축소된 뒤 처리되고, 축소 여부와 정확한 크기는 화면에 미리 안내돼요.</li>
-                    <li>다른 도구와 마찬가지로 파일은 서버에 올라가지 않고 브라우저 안에서만 처리됩니다.</li>
-                  </ul>
-                </div>
-              </li>
               <li class="notice-item">
                 <div class="notice-marker"><span class="notice-dot"></span></div>
                 <div class="notice-card">
@@ -1436,7 +1421,6 @@
     if (!form) return;
 
     var TYPE_LABELS = { bug: "🐞 버그 제보", improve: "💡 개선 제안", idea: "✨ 아이디어" };
-    var ADMIN_NOTIFY_EMAIL = "kyt6350@naver.com";
 
     // 제보가 Firebase에 저장된 뒤, 관리자에게 EmailJS로 알림 메일을 보낸다. 실시간 메일
     // 발송은 부가 기능이라 실패해도(EmailJS 스크립트 차단, 월 발송량 초과 등) 제보 자체는
@@ -1661,7 +1645,13 @@
           notifyAdminByEmail({
             type_label: TYPE_LABELS[type] || type,
             message: message,
-            reporter_email: email || ADMIN_NOTIFY_EMAIL,
+            // 제보자가 이메일을 남기지 않았으면 그냥 빈 값 그대로 둔다 — 예전엔 여기에
+            // 관리자 본인 이메일을 fallback으로 넣어서 "답장을 누르면 나한테 온다"는
+            // 의도였는데, 관리자 본인에게 온 알림 메일에 답장해봤자 결국 본인에게 다시
+            // 가는 것뿐이라 실질적인 쓸모가 없었고, 오히려 마치 제보자가 이메일을 남긴
+            // 것처럼 보이는 혼동만 있었다. 이제 빈 칸이면 빈 칸 그대로 정직하게 남긴다.
+            reporter_email: email,
+            reporter_email_display: email || "(이메일 미입력)",
             page: location.pathname,
             created_at: new Date().toLocaleString("ko-KR", { year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit" }),
             image_count: images.length,
