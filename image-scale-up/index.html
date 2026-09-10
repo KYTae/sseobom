@@ -1426,7 +1426,13 @@
   // ---------- 비교 슬라이더 ----------
   function setComparePercent(pct){
     pct = Math.max(0, Math.min(100, pct));
-    compareAfterLayer.style.clipPath = "inset(0 " + (100 - pct) + "% 0 0)";
+    // "원본" 라벨은 항상 왼쪽, "AI 결과" 라벨은 항상 오른쪽에 고정되어 있으므로,
+    // AI 레이어(compareAfterLayer)는 divider 기준 오른쪽 구간([pct%, 100%])에서만
+    // 보여야 한다 — 왼쪽([0, pct%])은 잘라내서 아래 원본 레이어(compareBefore)가
+    // 비치게 한다. 이전 코드(inset(0 (100-pct)% 0 0))는 반대로 AI 레이어를 왼쪽
+    // 구간에서 보여줘서, "원본" 라벨 쪽에 AI 결과가, "AI 결과" 라벨 쪽에 원본이
+    // 뒤바뀌어 나타나는 버그가 있었다(사용자 제보로 발견 및 스크린샷으로 재현 확인).
+    compareAfterLayer.style.clipPath = "inset(0 0 0 " + pct + "%)";
     compareDivider.style.left = pct + "%";
     compareHandle.style.left = pct + "%";
     compareSlider.value = String(pct);
