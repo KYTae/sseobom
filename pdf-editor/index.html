@@ -1808,6 +1808,49 @@
     document.addEventListener("pointercancel", onDragEnd);
   }
 
+  // ---- 드래그 떨림 방지 (2026-09-12) ----
+  // 예전엔 카드를 끄는 동안 카드들이 A→B→A→B로 앞뒤로 계속 뒤바뀌며 떨렸다(6페이지에서 네 칸
+  // 옮기는데 순서 변경이 4번이 아니라 22번, 되돌아감 18번 실측). 원인 두 가지를 이미지→PDF
+  // 변환기에서 고친 방식 그대로 막는다.
+  //  1) elementFromPoint는 "지금 화면에 그려진(애니메이션 중인) 위치"로 카드를 찾는다. 막 밀려나
+  //     옛 자리 근처를 미끄러지고 있는 카드를 커서가 다시 집어서 즉시 원위치로 되돌리는 일이 반복됐다
+  //     → 드래그 중 FLIP으로 움직이는 카드는 애니메이션이 끝날 때까지 pointer-events:none으로 투과.
+  //  2) pointermove는 1초에 수백 번 올 수 있는데 매번 위치 계산+순서 변경+전체 다시 그리기를 했다
+  //     → 가장 최근 위치만 기억해두고 화면 프레임당 한 번만 처리.
+  const FLIP_MS = 220;
+
+  function playFlip(c, dx, dy){
+    c.style.transition = "none";
+    c.style.transform = `translate(${dx}px, ${dy}px)`;
+    c.getBoundingClientRect(); // force reflow so the jump-back applies before we transition
+    c.style.transition = `transform ${FLIP_MS}ms cubic-bezier(.2,.8,.2,1)`;
+    c.style.transform = "";
+    // 드래그 중일 때만 가드를 건다 — ↑↓ 버튼을 빠르게 연달아 누르는 경우엔 버튼 클릭을 막지 않도록.
+    if (dragState && dragState.moved){
+      c.style.pointerEvents = "none";
+      clearTimeout(c.__flipRestoreTimer);
+      c.__flipRestoreTimer = setTimeout(() => { c.style.pointerEvents = ""; }, FLIP_MS + 30);
+    }
+  }
+
+  let dragRafId = 0;
+  let dragLastPoint = null; // { clientX, clientY } — 이번 프레임에 처리할 가장 최근 포인터 위치
+  function scheduleDragFrame(e, processFn){
+    dragLastPoint = { clientX: e.clientX, clientY: e.clientY };
+    if (dragRafId) return;
+    dragRafId = requestAnimationFrame(() => {
+      dragRafId = 0;
+      if (dragState && dragLastPoint) processFn(dragLastPoint);
+    });
+  }
+  // 드래그를 놓는 순간 아직 처리 안 된 마지막 위치가 있으면 버리지 않고 바로 반영한 뒤 끝낸다.
+  function flushDragFrame(processFn){
+    if (!dragRafId) return;
+    cancelAnimationFrame(dragRafId);
+    dragRafId = 0;
+    if (dragState && dragLastPoint) processFn(dragLastPoint);
+  }
+
   function onDragMove(e){
     if (!dragState || dragState.kind !== "page" || e.pointerId !== dragState.pointerId) return;
     if (!dragState.moved){
@@ -1818,26 +1861,33 @@
       renderGrid(); // re-render once so the .dragging lift style applies
     }
     e.preventDefault();
-    updateDraggedTransform(e);
+    scheduleDragFrame(e, processPageDragFrame);
+  }
 
-    const el = document.elementFromPoint(e.clientX, e.clientY);
+  function processPageDragFrame(pt){
+    if (!dragState || dragState.kind !== "page") return;
+    updateDraggedTransform(pt);
+
+    const el = document.elementFromPoint(pt.clientX, pt.clientY);
     const overCard = el ? el.closest(".page-card") : null;
     if (overCard && overCard.dataset.id && overCard.dataset.id !== dragState.id){
       const fromIdx = pages.findIndex(pg => pg.id === dragState.id);
       const toIdx = pages.findIndex(pg => pg.id === overCard.dataset.id);
       if (fromIdx !== -1 && toIdx !== -1 && fromIdx !== toIdx){
         reorderPages(fromIdx, toIdx, dragState.id);
-        updateDraggedTransform(e);
+        updateDraggedTransform(pt);
       }
     }
   }
 
   function onDragEnd(e){
     if (!dragState || dragState.kind !== "page" || e.pointerId !== dragState.pointerId) return;
+    if (dragState.moved) flushDragFrame(processPageDragFrame);
     document.removeEventListener("pointermove", onDragMove);
     document.removeEventListener("pointerup", onDragEnd);
     document.removeEventListener("pointercancel", onDragEnd);
     dragState = null;
+    dragLastPoint = null;
     renderGrid();
   }
 
@@ -1879,13 +1929,7 @@
       const last = c.getBoundingClientRect();
       const dx = first.left - last.left;
       const dy = first.top - last.top;
-      if (dx || dy){
-        c.style.transition = "none";
-        c.style.transform = `translate(${dx}px, ${dy}px)`;
-        c.getBoundingClientRect(); // force reflow so the jump-back applies before we transition
-        c.style.transition = "transform 220ms cubic-bezier(.2,.8,.2,1)";
-        c.style.transform = "";
-      }
+      if (dx || dy) playFlip(c, dx, dy);
     });
   }
 
@@ -1960,13 +2004,7 @@
         const last = c.getBoundingClientRect();
         const dx = first.left - last.left;
         const dy = first.top - last.top;
-        if (dx || dy){
-          c.style.transition = "none";
-          c.style.transform = `translate(${dx}px, ${dy}px)`;
-          c.getBoundingClientRect(); // force reflow so the jump-back applies before we transition
-          c.style.transition = "transform 220ms cubic-bezier(.2,.8,.2,1)";
-          c.style.transform = "";
-        }
+        if (dx || dy) playFlip(c, dx, dy);
       });
     }, 200);
   }
@@ -2003,13 +2041,7 @@
       const last = c.getBoundingClientRect();
       const dx = first.left - last.left;
       const dy = first.top - last.top;
-      if (dx || dy){
-        c.style.transition = "none";
-        c.style.transform = `translate(${dx}px, ${dy}px)`;
-        c.getBoundingClientRect(); // force reflow so the jump-back applies before we transition
-        c.style.transition = "transform 220ms cubic-bezier(.2,.8,.2,1)";
-        c.style.transform = "";
-      }
+      if (dx || dy) playFlip(c, dx, dy);
     });
 
     playCardEnterAnimation(copy.id);
@@ -2061,9 +2093,15 @@
       renderGrid();
     }
     e.preventDefault();
-    updateDraggedRunTransform(e);
+    // 페이지 카드 드래그와 같은 떨림 방지(프레임당 1회 처리 + FLIP 중 카드 투과)를 파일 카드에도 적용.
+    scheduleDragFrame(e, processRunDragFrame);
+  }
 
-    const el = document.elementFromPoint(e.clientX, e.clientY);
+  function processRunDragFrame(pt){
+    if (!dragState || dragState.kind !== "run") return;
+    updateDraggedRunTransform(pt);
+
+    const el = document.elementFromPoint(pt.clientX, pt.clientY);
     const overCard = el ? el.closest(".page-card") : null;
     if (overCard && overCard.dataset.runKey && overCard.dataset.runKey !== dragState.key){
       const runs = getFileRuns();
@@ -2071,17 +2109,19 @@
       const toIdx = runs.findIndex(r => r.ids[0] === overCard.dataset.runKey);
       if (fromIdx !== -1 && toIdx !== -1 && fromIdx !== toIdx){
         reorderRuns(fromIdx, toIdx, dragState.key);
-        updateDraggedRunTransform(e);
+        updateDraggedRunTransform(pt);
       }
     }
   }
 
   function onRunDragEnd(e){
     if (!dragState || dragState.kind !== "run" || e.pointerId !== dragState.pointerId) return;
+    if (dragState.moved) flushDragFrame(processRunDragFrame);
     document.removeEventListener("pointermove", onRunDragMove);
     document.removeEventListener("pointerup", onRunDragEnd);
     document.removeEventListener("pointercancel", onRunDragEnd);
     dragState = null;
+    dragLastPoint = null;
     renderGrid();
   }
 
@@ -2135,13 +2175,7 @@
       const last = c.getBoundingClientRect();
       const dx = first.left - last.left;
       const dy = first.top - last.top;
-      if (dx || dy){
-        c.style.transition = "none";
-        c.style.transform = `translate(${dx}px, ${dy}px)`;
-        c.getBoundingClientRect();
-        c.style.transition = "transform 220ms cubic-bezier(.2,.8,.2,1)";
-        c.style.transform = "";
-      }
+      if (dx || dy) playFlip(c, dx, dy);
     });
   }
 
@@ -2178,13 +2212,7 @@
       const last = c.getBoundingClientRect();
       const dx = first.left - last.left;
       const dy = first.top - last.top;
-      if (dx || dy){
-        c.style.transition = "none";
-        c.style.transform = `translate(${dx}px, ${dy}px)`;
-        c.getBoundingClientRect();
-        c.style.transition = "transform 220ms cubic-bezier(.2,.8,.2,1)";
-        c.style.transform = "";
-      }
+      if (dx || dy) playFlip(c, dx, dy);
     });
   }
 
@@ -2902,7 +2930,11 @@
     const isOpen = helpPanel.classList.toggle("open");
     helpToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
   });
-  dropzone.addEventListener("click", () => fileInput.click());
+  dropzone.addEventListener("click", (e) => {
+    // fileInput은 dropzone 안에 있어서 fileInput.click()의 클릭이 다시 올라와 한 번 더 실행되는 걸 막는다.
+    if (e.target === fileInput) return;
+    fileInput.click();
+  });
   addMoreBtn.addEventListener("click", () => fileInput.click());
   fileInput.addEventListener("change", (e) => {
     handleFiles(e.target.files);
@@ -2922,7 +2954,32 @@
     });
   });
   dropzone.addEventListener("drop", (e) => {
+    if (busy) return;
     if (e.dataTransfer && e.dataTransfer.files){
+      handleFiles(e.dataTransfer.files);
+    }
+  });
+
+  // ---- 업로드 영역 밖 파일 드롭 방지 (2026-09-12) ----
+  // 브라우저는 페이지 아무 곳에나 파일을 떨어뜨리면 그 파일(PDF)을 탭에서 바로 열어버려, 작업 중이던
+  // 써봄 페이지를 벗어나게 된다. 업로드 영역을 살짝 벗어나 떨어뜨리거나, 불러오는 중 화면을 덮는 로딩
+  // 창 위에 떨어뜨려도 마찬가지였다. 페이지 전체에서 "파일" 드롭의 기본 동작을 막고, 업로드 영역 밖에
+  // 떨어뜨린 PDF도 업로드 영역에 놓은 것과 똑같이 추가한다(불러오는 중에는 무시).
+  function isFileDrag(e){
+    const types = e.dataTransfer && e.dataTransfer.types;
+    return !!types && Array.prototype.indexOf.call(types, "Files") !== -1;
+  }
+  window.addEventListener("dragover", (e) => {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    if (!dropzone.contains(e.target)) e.dataTransfer.dropEffect = busy ? "none" : "copy";
+  });
+  window.addEventListener("drop", (e) => {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    if (dropzone.contains(e.target)) return; // 업로드 영역 자체의 drop 핸들러가 이미 처리함
+    if (busy) return;
+    if (e.dataTransfer.files && e.dataTransfer.files.length){
       handleFiles(e.dataTransfer.files);
     }
   });
