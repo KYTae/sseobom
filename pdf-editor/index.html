@@ -1143,7 +1143,7 @@
           <div class="help-item"><span class="help-key">↑ / ↓</span><span class="help-desc">페이지를 앞/뒤로 한 칸씩 옮깁니다. 카드를 직접 마우스로 눌러 끌어서 옮길 수도 있습니다(휴대폰에서는 손가락으로 동일하게 동작).</span></div>
           <div class="help-item"><span class="help-key">↻</span><span class="help-desc">페이지를 90도씩 회전합니다. 여러 번 누르면 계속 돌아갑니다.</span></div>
           <div class="help-item"><span class="help-key">페이지 복제</span><span class="help-desc">이 페이지와 완전히 똑같은 사본을 바로 뒤에 추가합니다. 회전·A4비율 등 지금 상태 그대로 복제돼요.</span></div>
-          <div class="help-item"><span class="help-key">📐 A4비율</span><span class="help-desc">여백 없이 페이지를 A4 비율(세로형이면 세로 A4, 가로형이면 가로 A4)로 꽉 채워 늘립니다. 원본 비율이 A4와 다르면 살짝 눌리거나 늘어날 수 있어요 — 확대 화면에서 "원본과 비교"로 확인할 수 있습니다. 이미 A4 비율인 페이지는 버튼이 자동으로 비활성화됩니다.</span></div>
+          <div class="help-item"><span class="help-key">📐 A4비율</span><span class="help-desc">여백 없이 페이지를 A4 비율(세로형이면 세로 A4, 가로형이면 가로 A4)로 꽉 채워 늘립니다. 원본 비율이 A4와 다르면 살짝 눌리거나 늘어날 수 있어요 — 돋보기로 연 확대 화면 위쪽의 "A4 비율 / 원본 비율" 토글로 비교할 수 있습니다. 이미 A4 비율인 페이지는 버튼이 자동으로 비활성화됩니다.</span></div>
           <div class="help-item"><span class="help-key">📥 이미지</span><span class="help-desc">이 페이지 한 장을 고화질 PNG 이미지로 저장합니다. A4비율이 켜진 페이지는 원본 비율/A4 비율 중 어느 쪽으로 받을지 먼저 물어봅니다.</span></div>
           <div class="help-item"><span class="help-key">✕ 삭제</span><span class="help-desc">이 페이지를 목록에서 삭제합니다.</span></div>
           <div class="help-item"><span class="help-key"><span class="mini-zoom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.35-4.35"></path></svg></span></span><span class="help-desc">썸네일 우측 하단의 돋보기 — 페이지를 크게 확대해서 봅니다.</span></div>
@@ -1227,7 +1227,7 @@
   <footer class="note">
     <div>써봄 · 브라우저에서 끝나는 파일 도구</div>
     <div class="copyright"><span class="mark">ⓒ 2026</span> <span class="name">고윤태</span> · <a href="https://yuntaeko.com/" target="_blank" rel="noopener">yuntaeko.com</a> — 정성을 담아 제작한 도구입니다. 무단 도용 및 출처 표기 없는 재배포를 금지합니다.</div>
-    <div class="updated">업데이트 · 2026. 9. 6.</div>
+    <div class="updated">업데이트 · 2026. 9. 12.</div>
   </footer>
 </div>
 
@@ -1737,6 +1737,9 @@
       const isDragging = !!(dragState && dragState.kind === "run" && dragState.moved && dragState.key === run.ids[0]);
       const firstPage = pages.find(p => p.id === run.ids[0]);
       const src = sources[run.fileIndex];
+      // 페이지 보기(renderPageView)와 똑같이, 90°/270° 회전된 첫 페이지는 rotated-90 클래스로
+      // 가로·세로 크기를 미리 맞바꿔둬야 3:4 썸네일 박스에서 좌우가 잘리지 않는다.
+      const firstRotated90 = Math.abs(firstPage.rotation % 180) === 90;
       const card = document.createElement("div");
       card.className = "page-card" + (isDragging ? " dragging" : "");
       card.dataset.runKey = run.ids[0];
@@ -1745,7 +1748,7 @@
         <div class="thumb-box">
           <span class="order-badge">${idx + 1}</span>
           <span class="page-badge">${run.ids.length}페이지</span>
-          <img src="${firstPage.thumbUrl}" alt="${src.name} 미리보기" draggable="false" style="transform:rotate(${firstPage.rotation}deg);">
+          <img src="${firstPage.thumbUrl}" alt="${src.name} 미리보기" draggable="false" class="${firstRotated90 ? "rotated-90" : ""}" style="transform:rotate(${firstPage.rotation}deg);">
           <button class="zoom-badge" data-act="zoom" title="크게 보기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.35-4.35"></path></svg></button>
         </div>
         <div class="meta" title="${src.name}">${src.name}</div>
