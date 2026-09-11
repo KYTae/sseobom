@@ -785,10 +785,10 @@
   <header class="top">
     <div class="brand"><span class="dot"></span>써봄</div>
     <h1>PDF 전자서명</h1>
-    <p class="sub">PDF에 직접 그리거나, 이름을 입력하거나, 서명 이미지를 올려서 원하는 위치에 서명을 넣으세요. 여러 장에 걸쳐 서명해도 좋아요.</p>
+    <p class="sub">서명 이미지를 올리거나, 이름을 입력하거나, PDF에 직접 그려서 원하는 위치에 서명을 넣으세요. 여러 장에 걸쳐 서명해도 좋아요.</p>
     <div class="badge-row">
       <div class="badge-line">
-        <span class="feature-badge">그리기·입력으로 새 서명 만들기 · 이미지로 기존 서명 불러오기 · 크기·회전·위치 자유 조절 · 여러 페이지에 서명 추가</span>
+        <span class="feature-badge">이미지로 기존 서명 불러오기 · 입력·그리기로 새 서명 만들기 · 크기·회전·위치 자유 조절 · 여러 페이지에 서명 추가</span>
       </div>
       <div class="badge-line">
         <span class="privacy-badge">파일은 서버에 업로드되지 않습니다 · 모든 처리는 이 브라우저 안에서 끝납니다</span>
@@ -806,9 +806,9 @@
       <div class="help-section">
         <div class="help-section-label">서명 만들기</div>
         <div class="help-grid">
-          <div class="help-item"><span class="help-key">그리기</span><span class="help-desc">마우스나 손가락으로 서명을 직접 그립니다. 색을 고르고, 잘못 그렸으면 지우기로 다시 그릴 수 있어요.</span></div>
-          <div class="help-item"><span class="help-key">입력</span><span class="help-desc">이름을 타이핑하면 손글씨 느낌의 폰트로 자동 변환됩니다. 여러 폰트 중 마음에 드는 걸 골라보세요.</span></div>
-          <div class="help-item"><span class="help-key">업로드</span><span class="help-desc">미리 찍어둔 서명·도장 이미지를 그대로 사용합니다. 배경이 투명한 PNG를 올리면 더 깔끔해요.</span></div>
+          <div class="help-item"><span class="help-key">업로드</span><span class="help-desc">미리 찍어둔 서명·도장 이미지를 그대로 사용합니다. 배경이 투명한 PNG를 올리면 더 깔끔해요. 휴대폰으로 찍은 사진도 화면에 보이는 방향 그대로 들어가요.</span></div>
+          <div class="help-item"><span class="help-key">입력</span><span class="help-desc">이름을 타이핑하면 손글씨 느낌의 폰트로 자동 변환됩니다. 여러 폰트와 색상 중 마음에 드는 걸 골라보세요.</span></div>
+          <div class="help-item"><span class="help-key">그리기</span><span class="help-desc">마우스나 손가락으로 서명을 직접 그립니다. 색을 고르고, 잘못 그렸으면 지우기로 다시 그릴 수 있어요. 다른 탭에 다녀와도 그린 서명은 그대로 남아 있어요.</span></div>
         </div>
       </div>
       <div class="help-section">
@@ -888,6 +888,15 @@
       <div class="sig-pane" id="paneType">
         <input type="text" class="type-name-input" id="typeNameInput" placeholder="이름을 입력하세요" maxlength="20">
         <div class="font-chip-row" id="fontChipRow"></div>
+        <!-- 입력 탭에도 색상 선택을 둔다. 그리기 탭과 같은 색 상태(drawColor)를 공유하므로,
+             어느 탭에서 고르든 두 탭의 색 점이 함께 바뀐다(예전엔 입력 탭에 색 선택이 없는데
+             그리기 탭에서 고른 색이 입력 서명에 몰래 적용됐다). -->
+        <div class="color-row">
+          <span>색상</span>
+          <button class="color-dot active" data-color="#111111" style="background:#111111;" type="button" title="검정"></button>
+          <button class="color-dot" data-color="#1a4fd6" style="background:#1a4fd6;" type="button" title="파랑"></button>
+          <button class="color-dot" data-color="#c22323" style="background:#c22323;" type="button" title="빨강"></button>
+        </div>
         <div class="type-preview" id="typePreview">이름을 입력하세요</div>
       </div>
 
@@ -921,7 +930,7 @@
   <footer class="note">
     <div>써봄 · 브라우저에서 끝나는 파일 도구</div>
     <div class="copyright"><span class="mark">ⓒ 2026</span> <span class="name">고윤태</span> · <a href="https://yuntaeko.com/" target="_blank" rel="noopener">yuntaeko.com</a> — 정성을 담아 제작한 도구입니다. 무단 도용 및 출처 표기 없는 재배포를 금지합니다.</div>
-    <div class="updated">업데이트 · 2026. 9. 6.</div>
+    <div class="updated">업데이트 · 2026. 9. 12.</div>
   </footer>
 </div>
 
@@ -1122,35 +1131,58 @@
   /* ===================== 파일 로드 ===================== */
 
   async function handleFile(file){
-    if (!file) return;
-    if (!(file.type === "application/pdf" || /\.pdf$/i.test(file.name))) return;
+    if (!file || busy) return;
+    if (!(file.type === "application/pdf" || /\.pdf$/i.test(file.name))){
+      await showAlert("PDF 파일만 올릴 수 있어요.");
+      return;
+    }
+
+    // 이미 서명을 배치해둔 상태에서 다른 PDF를 열면 서명이 전부 사라지므로 먼저 확인받는다.
+    // (업로드 영역은 파일을 연 뒤에도 계속 보이고 클릭되기 때문에 실수로 누르기 쉽다.)
+    if (stamps.length > 0){
+      const ok = await showConfirm(
+        `다른 PDF를 열면 지금 배치한 서명 ${stamps.length}개가 모두 사라져요.\n새 파일로 바꿀까요?`,
+        { okLabel: "새 파일로 바꾸기", cancelLabel: "취소" }
+      );
+      if (!ok) return;
+    }
 
     setBusy(true, "PDF를 불러오는 중...");
     loadingText.textContent = `PDF를 불러오는 중... (${file.name})`;
     loadingPercent.textContent = "0%";
     loadingOverlay.classList.add("show");
-    fileNameCaption.textContent = file.name;
-    fileNameCaption.title = file.name;
 
+    // 새 파일은 전부 임시 변수에 먼저 불러오고, 끝까지 성공했을 때만 한 번에 교체한다.
+    // 예전에는 불러오기 시작하자마자 원본 바이트/문서를 덮어써서, 손상된 파일로 바꾸다 실패하면
+    // 화면에는 기존 문서와 서명이 그대로 보이는데 실제로는 원본이 사라져 다운로드가 실패했다.
+    let newJsDoc = null;
     try{
       const buf1 = await file.arrayBuffer();
-      originalPdfBytes = buf1;
-      pdfLibDoc = await PDFLib.PDFDocument.load(buf1, { ignoreEncryption: true });
+      const newLibDoc = await PDFLib.PDFDocument.load(buf1, { ignoreEncryption: true });
 
       const buf2 = await file.arrayBuffer();
       const loadingTask = pdfjsLib.getDocument(Object.assign({ data: buf2 }, PDFJS_CMAP_OPTS));
-      pdfJsDoc = await loadingTask.promise;
+      newJsDoc = await loadingTask.promise;
 
-      pages = [];
+      const newPages = [];
+      for (let i = 0; i < newJsDoc.numPages; i++){
+        loadingPercent.textContent = `${Math.round(((i + 1) / newJsDoc.numPages) * 100)}%`;
+        setStatus(`${i + 1}/${newJsDoc.numPages} 페이지 미리보기 생성 중...`);
+        const thumbUrl = await renderThumb(newJsDoc, i + 1);
+        newPages.push({ thumbUrl });
+      }
+
+      // 여기까지 왔으면 성공 — 이제서야 기존 상태를 새 파일로 교체한다.
+      const oldJsDoc = pdfJsDoc;
+      originalPdfBytes = buf1;
+      pdfLibDoc = newLibDoc;
+      pdfJsDoc = newJsDoc;
+      pages = newPages;
       stamps = [];
       currentPageIndex = 0;
-
-      for (let i = 0; i < pdfJsDoc.numPages; i++){
-        loadingPercent.textContent = `${Math.round(((i + 1) / pdfJsDoc.numPages) * 100)}%`;
-        setStatus(`${i + 1}/${pdfJsDoc.numPages} 페이지 미리보기 생성 중...`);
-        const thumbUrl = await renderThumb(i + 1);
-        pages.push({ thumbUrl });
-      }
+      fileNameCaption.textContent = file.name;
+      fileNameCaption.title = file.name;
+      if (oldJsDoc && oldJsDoc !== newJsDoc){ try{ oldJsDoc.destroy(); }catch(e){} }
 
       loadingOverlay.classList.remove("show");
       setBusy(false, "");
@@ -1159,14 +1191,18 @@
       await renderCurrentPage();
     }catch(err){
       console.error(err);
+      if (newJsDoc){ try{ newJsDoc.destroy(); }catch(e){} }
       loadingOverlay.classList.remove("show");
       setBusy(false, "");
-      alert("PDF 파일을 여는 데 실패했어요. 손상된 파일이거나 암호로 보호된 PDF일 수 있습니다.");
+      refreshToolbar();
+      await showAlert(pdfLibDoc
+        ? `"${file.name}" 파일을 여는 데 실패했어요. 손상된 파일이거나 암호로 보호된 PDF일 수 있습니다.\n지금 작업 중인 문서와 서명은 그대로 남아 있어요.`
+        : `"${file.name}" 파일을 여는 데 실패했어요. 손상된 파일이거나 암호로 보호된 PDF일 수 있습니다.`);
     }
   }
 
-  async function renderThumb(pageNum){
-    const page = await pdfJsDoc.getPage(pageNum);
+  async function renderThumb(doc, pageNum){
+    const page = await doc.getPage(pageNum);
     const targetWidth = 100;
     const baseViewport = page.getViewport({ scale: 1 });
     const scale = targetWidth / baseViewport.width;
@@ -1205,10 +1241,33 @@
 
   /* ===================== 현재 페이지 렌더링 ===================== */
 
+  // 페이지를 빠르게 넘기면(› 두 번 연타, 썸네일 연속 클릭, 창 크기 변경이 겹칠 때) renderCurrentPage()가
+  // 여러 번 동시에 실행된다. 예전에는 전부 같은 화면 캔버스에 바로 그려서 pdf.js가 "같은 캔버스에 동시
+  // 렌더링 불가" 오류로 최신 요청을 버리고, 먼저 시작한 옛 페이지만 끝까지 그려졌다 — 그러면 화면엔
+  // 2페이지가 보이는데 실제 선택은 4페이지라 서명이 보이지 않는 페이지에 추가되는 문제가 있었다.
+  // 이제는 호출마다 번호(renderSeq)를 붙여 각자 임시 캔버스에 그리고, 가장 마지막 요청만 화면에
+  // 반영한다. 새 요청이 오면 이전 렌더링은 취소해서 쓸데없는 계산도 줄인다.
+  let renderSeq = 0;
+  let activeRenderTask = null;
+
   async function renderCurrentPage(){
     if (!pdfJsDoc) return;
-    const pageNum = currentPageIndex + 1;
-    const page = await pdfJsDoc.getPage(pageNum);
+    const seq = ++renderSeq;
+    if (activeRenderTask){ try{ activeRenderTask.cancel(); }catch(e){} activeRenderTask = null; }
+    const doc = pdfJsDoc;
+    const pageIndex = currentPageIndex;
+    const pageNum = pageIndex + 1;
+    try{
+      await renderPageInto(doc, pageIndex, pageNum, seq);
+    }catch(err){
+      // 취소된 렌더링(더 새로운 요청이 들어온 경우)이나 교체되어 닫힌 문서는 조용히 무시한다.
+      if (seq === renderSeq && !(err && err.name === "RenderingCancelledException")) console.error(err);
+    }
+  }
+
+  async function renderPageInto(doc, pageIndex, pageNum, seq){
+    const page = await doc.getPage(pageNum);
+    if (seq !== renderSeq) return;
     const baseViewport = page.getViewport({ scale: 1 });
     // 페이지 폭은 "실제로 쓸 수 있는 가로 폭"과 "화면 세로 높이의 일정 비율로 뒤집어 계산한
     // 폭" 중 더 작은 쪽에 맞춘다. 폭에만 맞추면 세로로 긴 A4 페이지가 넓은 화면에서 지나치게
@@ -1222,13 +1281,30 @@
     const viewport = page.getViewport({ scale });
     const dpr = window.devicePixelRatio || 1;
 
-    pageCanvas.width = Math.floor(viewport.width * dpr);
-    pageCanvas.height = Math.floor(viewport.height * dpr);
+    // 화면 캔버스가 아니라 이 요청 전용 임시 캔버스에 먼저 그린다.
+    const offscreen = document.createElement("canvas");
+    offscreen.width = Math.floor(viewport.width * dpr);
+    offscreen.height = Math.floor(viewport.height * dpr);
+    const offCtx = offscreen.getContext("2d");
+    offCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const task = page.render({ canvasContext: offCtx, viewport });
+    activeRenderTask = task;
+    try{
+      await task.promise;
+    } finally {
+      if (activeRenderTask === task) activeRenderTask = null;
+    }
+
+    // 그리는 동안 더 새로운 요청이 들어왔거나 문서/페이지가 바뀌었으면 이 결과는 버린다.
+    if (seq !== renderSeq || doc !== pdfJsDoc || pageIndex !== currentPageIndex) return;
+
+    pageCanvas.width = offscreen.width;
+    pageCanvas.height = offscreen.height;
     pageFrame.style.width = Math.floor(viewport.width) + "px";
     pageFrame.style.height = Math.floor(viewport.height) + "px";
     const ctx = pageCanvas.getContext("2d");
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    await page.render({ canvasContext: ctx, viewport }).promise;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(offscreen, 0, 0);
 
     pageIndicator.textContent = `${pageNum} / ${pages.length}`;
     prevPageBtn.disabled = currentPageIndex === 0;
@@ -1576,14 +1652,40 @@
     hasDrawnStroke = false;
   });
 
+  // 색 점은 그리기 탭과 입력 탭에 하나씩 있지만 같은 색 상태(drawColor)를 공유한다 —
+  // 어느 쪽에서 고르든 양쪽 탭의 같은 색 점이 함께 선택되고, 입력 미리보기 색도 바로 바뀐다.
   document.querySelectorAll(".color-dot").forEach(dot => {
     dot.addEventListener("click", () => {
-      document.querySelectorAll(".color-dot").forEach(d => d.classList.remove("active"));
-      dot.classList.add("active");
       drawColor = dot.getAttribute("data-color");
+      document.querySelectorAll(".color-dot").forEach(d => d.classList.toggle("active", d.getAttribute("data-color") === drawColor));
       if (drawPad._ctx) drawPad._ctx.strokeStyle = drawColor;
+      updateTypePreview();
     });
   });
+
+  // 그리기 판의 실제 픽셀 크기를 화면에 보이는 크기에 맞춘다. 캔버스 크기를 다시 정하면 그려둔
+  // 내용이 지워지므로, 크기가 실제로 달라졌을 때만 다시 만들고 그 전에 그린 서명을 옮겨 그린다.
+  // (예전엔 탭을 바꿀 때마다 무조건 새로 만들어서, 그리기 탭에 다시 돌아오면 그린 서명이 사라졌다.
+  //  또 창 크기가 바뀌어 판의 화면 폭이 달라져도 픽셀 크기는 그대로라 선이 늘어나 보였다.)
+  function ensureDrawPadSize(){
+    const cssW = drawPad.clientWidth;
+    if (!cssW) return; // 숨겨진 상태에서는 크기를 알 수 없으니 보일 때 다시 맞춘다
+    if (drawPad._ctx && drawPad._cssW === cssW) return;
+    let snapshot = null;
+    const oldCssW = drawPad._cssW, oldCssH = drawPad._cssH;
+    if (drawPad._ctx && hasDrawnStroke){
+      snapshot = document.createElement("canvas");
+      snapshot.width = drawPad.width;
+      snapshot.height = drawPad.height;
+      snapshot.getContext("2d").drawImage(drawPad, 0, 0);
+    }
+    setupDrawPad();
+    if (snapshot){
+      // 원래 크기 그대로 옮기되, 판이 좁아졌으면 서명이 잘리지 않도록 비율을 유지한 채 줄인다.
+      const s = Math.min(1, cssW / oldCssW);
+      drawPad._ctx.drawImage(snapshot, 0, 0, oldCssW * s, oldCssH * s);
+    }
+  }
 
   // 캔버스 안에서 실제로 그려진 영역만 잘라내 여백 없는 서명 이미지를 만든다.
   function trimCanvas(canvas){
@@ -1701,18 +1803,58 @@
 
   /* ===================== 서명 만들기: 업로드 ===================== */
 
+  // 올린 이미지를 그대로 쓰지 않고, 브라우저가 화면에 보여주는 모습 그대로 캔버스에 한 번 다시
+  // 그려서 PNG(투명 배경 보존) 또는 JPG로 저장해 쓴다. 이유는 두 가지:
+  //  1) pdf-lib은 PNG·JPG만 PDF에 넣을 수 있다 — 예전엔 WebP·GIF·BMP 등을 올리면 화면 배치까지는
+  //     되는데 "서명 완료 PDF 다운로드"에서 실패했다.
+  //  2) 휴대폰 사진(JPG)은 픽셀은 옆으로 누운 채 저장하고 "세워서 보여줘" 정보(EXIF 방향)만 따로
+  //     붙어 있는 경우가 많다. 화면은 그 정보를 반영하지만 PDF에 원본 바이트를 그대로 넣으면 무시되어,
+  //     서명이 PDF 안에서 90도 돌아간 채 찌그러져 들어갔다. 캔버스에 다시 그리면 보이는 방향으로 굳어진다.
+  // 너무 큰 사진은 긴 변 2000px로 줄인다(서명 용도로는 충분하고, 결과 PDF 용량이 불필요하게 커지지 않게).
+  const UPLOAD_MAX_SIDE = 2000;
+
   function handleUploadFile(file){
-    if (!file || !/^image\//.test(file.type)) return;
+    if (!file) return;
+    if (!/^image\//.test(file.type)){
+      showAlert("이미지 파일만 서명으로 올릴 수 있어요.\nPNG·JPG 같은 이미지 파일을 선택해주세요.");
+      return;
+    }
+    const isJpeg = /^image\/jpe?g$/i.test(file.type);
     const reader = new FileReader();
+    reader.onerror = () => {
+      showAlert("이미지 파일을 읽는 데 실패했어요. 다른 파일로 다시 시도해주세요.");
+    };
     reader.onload = (e) => {
       const img = new Image();
       img.onload = () => {
-        uploadedSig = { dataUrl: e.target.result, aspect: img.naturalHeight / img.naturalWidth };
+        const nw = img.naturalWidth, nh = img.naturalHeight;
+        if (!nw || !nh){
+          showAlert("이 이미지는 크기를 읽을 수 없어요. PNG나 JPG로 저장해서 다시 올려주세요.");
+          return;
+        }
+        const scale = Math.min(1, UPLOAD_MAX_SIDE / Math.max(nw, nh));
+        const w = Math.max(1, Math.round(nw * scale));
+        const h = Math.max(1, Math.round(nh * scale));
+        const canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        if (isJpeg){
+          // JPG는 원래 투명 배경이 없으니 흰 바탕 위에 그려 JPG로 유지(PNG로 바꾸면 용량만 커진다).
+          ctx.fillStyle = "#fff";
+          ctx.fillRect(0, 0, w, h);
+        }
+        ctx.drawImage(img, 0, 0, w, h);
+        const dataUrl = isJpeg ? canvas.toDataURL("image/jpeg", 0.92) : canvas.toDataURL("image/png");
+        uploadedSig = { dataUrl, aspect: h / w };
         uploadPreview.style.display = "flex";
         uploadPreview.innerHTML = "";
         const previewImg = document.createElement("img");
-        previewImg.src = e.target.result;
+        previewImg.src = dataUrl;
         uploadPreview.appendChild(previewImg);
+        setStatus("");
+      };
+      img.onerror = () => {
+        showAlert("이 이미지는 브라우저에서 열 수 없는 형식이에요.\nHEIC(아이폰 사진 기본 형식) 같은 파일은 JPG나 PNG로 바꿔서 올려주세요.");
       };
       img.src = e.target.result;
     };
@@ -1720,7 +1862,9 @@
   }
 
   uploadInput.addEventListener("change", () => {
-    handleUploadFile(uploadInput.files[0]);
+    const file = uploadInput.files[0];
+    uploadInput.value = ""; // 같은 이미지를 다시 골라도 change가 다시 발생하도록 비워둔다.
+    handleUploadFile(file);
   });
 
   // 서명 이미지도 메인 PDF 업로드처럼 끌어다 놓기(드래그 앤 드롭)를 지원한다.
@@ -1761,7 +1905,7 @@
       paneDraw.classList.toggle("show", activeTab === "draw");
       paneType.classList.toggle("show", activeTab === "type");
       paneUpload.classList.toggle("show", activeTab === "upload");
-      if (activeTab === "draw") setupDrawPad();
+      if (activeTab === "draw") ensureDrawPadSize();
     });
   });
 
@@ -1817,8 +1961,17 @@
 
   /* ===================== 파일 업로드 UI ===================== */
 
-  dropzone.addEventListener("click", () => fileInput.click());
-  fileInput.addEventListener("change", () => handleFile(fileInput.files[0]));
+  dropzone.addEventListener("click", (e) => {
+    // fileInput은 dropzone 안에 있어서, fileInput.click()의 클릭 이벤트가 다시 dropzone으로
+    // 올라와 이 핸들러가 한 번 더 실행되는 걸 막는다.
+    if (e.target === fileInput) return;
+    fileInput.click();
+  });
+  fileInput.addEventListener("change", () => {
+    const file = fileInput.files[0];
+    fileInput.value = ""; // 같은 파일을 다시 골라도(예: 교체 확인에서 취소한 뒤) change가 다시 발생하도록
+    handleFile(file);
+  });
   ["dragenter", "dragover"].forEach(evt => {
     dropzone.addEventListener(evt, (e) => { e.preventDefault(); dropzone.classList.add("dragover"); });
   });
@@ -1882,6 +2035,44 @@
     });
   }
 
+  // 확인/취소가 필요 없는 안내 팝업. window.alert() 대신 사이트 디자인에 맞춘 모달(showConfirm과
+  // 같은 모양, 확인 버튼 하나)을 쓴다. Enter·Esc·배경 클릭으로도 닫힌다.
+  function showAlert(message, opts = {}){
+    return new Promise((resolve) => {
+      const overlay = el("div", "modal-overlay");
+      const box = el("div", "modal-box");
+      const msg = el("div", "modal-message");
+      msg.textContent = message;
+      box.appendChild(msg);
+
+      const actions = el("div", "modal-actions");
+      const okBtn = el("button", "primary", opts.okLabel || "확인");
+      okBtn.type = "button";
+      actions.appendChild(okBtn);
+      box.appendChild(actions);
+      overlay.appendChild(box);
+      document.body.appendChild(overlay);
+
+      function close(){
+        overlay.classList.remove("show");
+        setTimeout(() => { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 150);
+        document.removeEventListener("keydown", onKey);
+        resolve();
+      }
+      function onKey(e){
+        if (e.key === "Escape" || e.key === "Enter"){ e.preventDefault(); close(); }
+      }
+      okBtn.addEventListener("click", close);
+      overlay.addEventListener("mousedown", (e) => { if (e.target === overlay) close(); });
+      document.addEventListener("keydown", onKey);
+
+      requestAnimationFrame(() => {
+        overlay.classList.add("show");
+        okBtn.focus();
+      });
+    });
+  }
+
   clearStampsBtn.addEventListener("click", async () => {
     if (stamps.length === 0) return;
     const ok = await showConfirm(
@@ -1913,6 +2104,8 @@
   // 묶인 이미지를 새 문서에 그대로 쓰려다 오류가 난다).
   async function getEmbeddedImage(doc, cache, dataUrl){
     if (cache.has(dataUrl)) return cache.get(dataUrl);
+    // 서명 이미지는 그리기·입력은 PNG, 업로드는 handleUploadFile()에서 PNG 또는 JPG로 정리해두므로
+    // 여기에는 항상 이 두 형식만 들어온다.
     const isPng = dataUrl.startsWith("data:image/png");
     const bytes = dataUrlToBytes(dataUrl);
     const embedded = isPng ? await doc.embedPng(bytes) : await doc.embedJpg(bytes);
@@ -1985,7 +2178,8 @@
       }
 
       const bytes = await exportDoc.save();
-      const name = (filenameInput.value || "서명완료").trim() || "서명완료";
+      // 파일명 칸에 "계약서.pdf"처럼 확장자까지 적어도 "계약서.pdf.pdf"가 되지 않게 끝의 .pdf를 뗀다.
+      const name = (filenameInput.value || "").trim().replace(/\.pdf$/i, "").trim() || "서명완료";
       const blob = new Blob([bytes], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -2018,6 +2212,7 @@
   // 새 크기에 맞게 다시 그려지도록 한다.
   let resizeTimer = null;
   window.addEventListener("resize", () => {
+    if (paneDraw.classList.contains("show")) ensureDrawPadSize();
     if (!pdfJsDoc) return;
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(renderCurrentPage, 150);
