@@ -1983,6 +1983,38 @@
     if (file) handleFile(file);
   });
 
+  // ---- 업로드 영역 밖 파일 드롭 방지 (2026-09-12, PDF 편집기와 같은 방식) ----
+  // 브라우저는 페이지 아무 곳에나 파일을 떨어뜨리면 그 파일(PDF)을 탭에서 바로 열어버려, 서명 작업 중이던
+  // 써봄 페이지를 벗어나게 된다(불러오는 중 화면을 덮는 로딩 창 위에 떨어뜨려도 마찬가지). 페이지 전체에서
+  // "파일" 드롭의 기본 동작을 막고, 업로드 영역 밖에 떨어뜨린 PDF도 업로드 영역에 놓은 것과 똑같이 처리한다
+  // (서명이 이미 있으면 handleFile()이 교체 확인 팝업을 먼저 띄운다). 불러오는 중이거나 팝업이 떠 있을 땐 무시.
+  function isFileDrag(e){
+    const types = e.dataTransfer && e.dataTransfer.types;
+    return !!types && Array.prototype.indexOf.call(types, "Files") !== -1;
+  }
+  window.addEventListener("dragover", (e) => {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    if (!dropzone.contains(e.target) && !uploadDrop.contains(e.target)){
+      e.dataTransfer.dropEffect = (busy || document.querySelector(".modal-overlay")) ? "none" : "copy";
+    }
+  });
+  window.addEventListener("drop", (e) => {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    // 메인 업로드 영역·서명 이미지 업로드 영역은 각자의 drop 핸들러가 이미 처리한다.
+    if (dropzone.contains(e.target) || uploadDrop.contains(e.target)) return;
+    if (busy || document.querySelector(".modal-overlay")) return;
+    const file = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (!file) return;
+    // 서명 이미지를 엉뚱한 곳에 떨어뜨린 경우엔 "PDF만 올릴 수 있어요" 대신 올바른 자리를 알려준다.
+    if (/^image\//.test(file.type) && pdfLibDoc){
+      showAlert("서명 이미지는 '서명 만들기'의 업로드 탭 점선 영역에 끌어다 놓아주세요.");
+      return;
+    }
+    handleFile(file);
+  });
+
   changeFileBtn.addEventListener("click", () => fileInput.click());
 
   function el(tag, cls, html){
