@@ -324,6 +324,11 @@
     cursor:pointer;
     transition:border-color .15s ease, background .15s ease;
   }
+  /* 키보드로 이 영역에 왔을 때 어디에 있는지 보여준다(마우스 hover와 같은 색). */
+  .dropzone:focus-visible{
+    outline:2px solid var(--accent);
+    outline-offset:3px;
+  }
   .dropzone:hover, .dropzone.dragover{
     border-color:var(--accent);
     background:var(--accent-dim);
@@ -769,11 +774,11 @@
     </div>
   </div>
 
-  <div class="dropzone" id="dropzone">
+  <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-describedby="dropzoneHint" aria-label="이미지 파일 선택 — 한 번에 한 장">
     <input type="file" id="fileInput" accept="image/*,.tif,.tiff,.tga,.targa,.ppm,.pgm,.pbm,.pnm,.svg,.avif">
     <div class="icon">🖼️</div>
     <div class="main-txt">이미지를 여기로 끌어다 놓거나 클릭해서 올리세요</div>
-    <div class="sub-txt">PNG, JPG, WEBP, AVIF, BMP, ICO, GIF, TIFF, TGA, PPM, SVG 등 대부분의 이미지 형식을 올릴 수 있어요 (한 번에 한 장)</div>
+    <div class="sub-txt" id="dropzoneHint">PNG, JPG, WEBP, AVIF, BMP, ICO, GIF, TIFF, TGA, PPM, SVG 등 대부분의 이미지 형식을 올릴 수 있어요 (한 번에 한 장)</div>
   </div>
 
   <div class="file-info" id="fileInfo" hidden>
@@ -813,7 +818,7 @@
   <div class="result-section" id="resultSection" hidden>
     <div class="result-toolbar">
       <span class="count" id="resultCount"></span>
-      <a class="dl-btn disabled" id="downloadAllBtn" href="#" download>전체 zip으로 받기</a>
+      <a class="dl-btn disabled" id="downloadAllBtn" href="#" download aria-disabled="true" tabindex="-1">전체 zip으로 받기</a>
     </div>
     <div class="result-grid" id="resultGrid"></div>
     <button class="primary more-formats-btn" id="moreFormatsBtn" type="button" hidden></button>
@@ -831,7 +836,7 @@
   <footer class="note">
     <div>써봄 · 브라우저에서 끝나는 파일 도구</div>
     <div class="copyright"><span class="mark">ⓒ 2026</span> <span class="name">고윤태</span> · <a href="https://yuntaeko.com/" target="_blank" rel="noopener">yuntaeko.com</a> — 정성을 담아 제작한 도구입니다. 무단 도용 및 출처 표기 없는 재배포를 금지합니다.</div>
-    <div class="updated">업데이트 · 2026. 9. 12.</div>
+    <div class="updated">업데이트 · 2026. 9. 13.</div>
   </footer>
 </div>
 
@@ -910,13 +915,19 @@
     if (html != null) e.innerHTML = html;
     return e;
   }
+  var alertSeq = 0;
   function showAlert(message, opts){
     opts = opts || {};
     return new Promise(function(resolve){
       var overlay = el("div", "modal-overlay");
+      overlay.setAttribute("role", "dialog");
+      overlay.setAttribute("aria-modal", "true");
       var box = el("div", "modal-box");
       var msg = el("div", "modal-message");
       msg.textContent = message;
+      // 창 이름으로 안내 문구 자체를 쓴다 — 열리는 순간 무슨 안내인지 바로 읽힌다.
+      msg.id = "alertMessage" + (++alertSeq);
+      overlay.setAttribute("aria-labelledby", msg.id);
       box.appendChild(msg);
       var actions = el("div", "modal-actions");
       var okBtn = el("button", "primary", opts.okLabel || "확인");
@@ -2387,6 +2398,20 @@
     });
   }
 
+  // <a>는 button처럼 disabled가 없어서 .disabled 클래스 + pointer-events:none으로 막아왔는데,
+  // pointer-events는 마우스만 막는다 — Tab으로 가서 Enter를 누를 수 있고, 화면 읽기
+  // 프로그램에도 평범한 링크로 읽힌다. 클래스와 함께 속성도 같이 맞춘다.
+  function setLinkDisabled(el, off){
+    el.classList.toggle("disabled", off);
+    if (off){
+      el.setAttribute("aria-disabled", "true");
+      el.setAttribute("tabindex", "-1");
+    } else {
+      el.removeAttribute("aria-disabled");
+      el.removeAttribute("tabindex");
+    }
+  }
+
   function renderCard(f, blob){
     var card = document.createElement("div");
     card.className = "result-card";
@@ -2416,7 +2441,7 @@
     card.innerHTML =
       '<div class="fmt-row"><span class="fmt-label">' + f.label + '</span>' +
       '<span class="fmt-status" style="color:var(--danger)">변환 실패</span></div>' +
-      '<div class="dl-row"><a class="dl-btn disabled" href="#" download>다운로드</a></div>';
+      '<div class="dl-row"><a class="dl-btn disabled" href="#" download aria-disabled="true" tabindex="-1">다운로드</a></div>';
     resultGrid.appendChild(card);
   }
 
@@ -2425,7 +2450,7 @@
     resultSection.hidden = true;
     resultGrid.innerHTML = "";
     resultCount.textContent = "";
-    downloadAllBtn.classList.add("disabled");
+    setLinkDisabled(downloadAllBtn, true);
     downloadAllBtn.href = "#";
     emptyNote.hidden = true;
     unsupportedNote.hidden = true;
@@ -2589,7 +2614,7 @@
     busy = false;
     resultSection.hidden = false;
     resultCount.textContent = currentResults.length + "개 형식으로 변환 완료";
-    if (currentResults.length > 0) downloadAllBtn.classList.remove("disabled");
+    if (currentResults.length > 0) setLinkDisabled(downloadAllBtn, false);
 
     if (moreTargets.length > 0){
       pendingMoreTargets = moreTargets;
@@ -2776,6 +2801,16 @@
     if (busy) return;
     fileInput.click();
   });
+  // 숨긴 file input은 display:none이라 포커스를 받을 수 없다 — 그래서 이 영역이
+  // Tab 순서에 없으면 키보드만으로는 파일을 올릴 방법이 아예 없었다(업로드 전 Tab
+  // 순서가 "돌아가기 → 사용법 보기 → 푸터 링크" 셋뿐이었다). 이 영역을 버튼으로
+  // 알리고 Enter·Space를 직접 받아준다. Space는 기본 동작이 페이지 스크롤이라 막는다.
+  dropzone.addEventListener("keydown", function(e){
+    if (e.key !== "Enter" && e.key !== " " && e.key !== "Spacebar") return;
+    e.preventDefault();
+    if (busy) return;
+    fileInput.click();
+  });
   fileInput.addEventListener("change", function(){
     var file = fileInput.files[0];
     fileInput.value = ""; // 같은 파일을 다시 골라도 change가 다시 발생하도록 비워둔다.
@@ -2857,7 +2892,7 @@
     hideLoading();
     busy = false;
     resultCount.textContent = currentResults.length + "개 형식으로 변환 완료";
-    if (currentResults.length > 0) downloadAllBtn.classList.remove("disabled");
+    if (currentResults.length > 0) setLinkDisabled(downloadAllBtn, false);
   });
 
   // 결과가 크면 zip으로 묶는 데 몇 초 걸린다 — 그동안 로딩 화면과 진행률을 보여주고, 다시 눌러도
