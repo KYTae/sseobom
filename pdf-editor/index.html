@@ -1086,7 +1086,6 @@
   }
 
   @media (max-width:520px){
-    h1{font-size:21px;}
     .grid{grid-template-columns:repeat(auto-fill, minmax(120px,1fr));}
     .filename-row input[type=text]{width:110px;}
     .download-bar{width:calc(100% - 20px);bottom:10px;padding:12px;}
@@ -1519,8 +1518,18 @@
   }
 
   async function handleFiles(fileList){
-    const files = Array.from(fileList).filter(f => f.type === "application/pdf" || /\.pdf$/i.test(f.name));
-    if (files.length === 0) return;
+    const picked = Array.from(fileList);
+    const files = picked.filter(f => f.type === "application/pdf" || /\.pdf$/i.test(f.name));
+    // 예전엔 PDF가 아닌 파일을 조용히 걸러내고 그냥 끝내서, 이미지를 올린 사용자는 아무 반응도 보지 못했다.
+    const skippedCount = picked.length - files.length;
+    if (files.length === 0){
+      if (picked.length > 0){
+        await showAlert(picked.length === 1
+          ? "PDF 파일만 올릴 수 있어요.\n다른 파일을 골라주세요."
+          : `PDF 파일만 올릴 수 있어요.\n고르신 ${picked.length}개 중에 PDF가 없어요.`);
+      }
+      return;
+    }
 
     // Decide the view mode up front, based on how many files will be active
     // once this batch finishes loading:
@@ -1549,6 +1558,7 @@
     loadingPercent.textContent = "0%";
     loadingOverlay.classList.add("show");
     let doneCount = 0;
+    const failed = [];
     for (const file of files){
       if (files.length > 1){
         loadingText.textContent = `PDF를 불러오는 중... (${doneCount + 1}/${files.length}번째 파일: ${file.name})`;
@@ -1557,14 +1567,29 @@
         await loadOneFile(file, doneCount, files.length);
       }catch(err){
         console.error(err);
-        setStatus(`"${file.name}" 파일을 여는 데 실패했어요. 손상된 파일이거나 암호로 보호된 PDF일 수 있습니다.`);
+        // 안내 문구를 여기서 바로 setStatus로 넣으면 아래 setBusy(false, "")가 곧바로 덮어써서
+        // 한 글자도 보이지 않고 사라졌다. 모아뒀다가 다 끝난 뒤에 한 번에 알린다.
+        failed.push({ name: file.name, encrypted: !!err && (err.name === "PasswordException" || err.code === 1 || /password/i.test(err.message || "")) });
       }
       doneCount++;
       loadingPercent.textContent = `${Math.round((doneCount / files.length) * 100)}%`;
     }
     loadingOverlay.classList.remove("show");
-    setBusy(false, "");
+
+    // 안내 문구 만들기: 열지 못한 파일 + PDF가 아니어서 건너뛴 파일
+    const notes = [];
+    if (failed.length === 1){
+      notes.push(failed[0].encrypted
+        ? `"${failed[0].name}"은(는) 암호로 보호된 PDF라서 열 수 없어요. 암호를 푼 뒤 올려주세요.`
+        : `"${failed[0].name}" 파일을 열지 못했어요. 손상된 파일이거나 암호로 보호된 PDF일 수 있어요.`);
+    } else if (failed.length > 1){
+      notes.push(`${failed.length}개 파일을 열지 못했어요: ${failed.map(f => f.name).join(", ")}\n손상된 파일이거나 암호로 보호된 PDF일 수 있어요.`);
+    }
+    if (skippedCount > 0) notes.push(`PDF가 아닌 파일 ${skippedCount}개는 건너뛰었어요.`);
+
+    setBusy(false, notes.length ? notes.join(" ").replace(/\n/g, " ") : "");
     renderGrid();
+    if (notes.length) await showAlert(notes.join("\n\n"));
   }
 
   // batchIndex/batchTotal: 이 파일이 이번에 한꺼번에 올린 파일들 중 몇 번째(0-based)/총 몇 개인지.
@@ -2860,6 +2885,45 @@
     });
   }
 
+  // 알리기만 하는 팝업(확인 버튼 하나). 하단 다운로드 바의 안내 줄은 페이지가 한 장도 없으면
+  // 바 자체가 숨겨져 있어서 보이지 않는다 — 파일을 아예 못 열었을 때처럼 "지금 화면에 남은 것이
+  // 없는" 상황은 반드시 이 팝업으로 알려야 한다. (다른 도구들과 같은 showAlert)
+  function showAlert(message, opts = {}){
+    return new Promise((resolve) => {
+      const overlay = el("div", "modal-overlay");
+      const box = el("div", "modal-box");
+      const msg = el("div", "modal-message");
+      msg.textContent = message;
+      box.appendChild(msg);
+
+      const actions = el("div", "modal-actions");
+      const okBtn = el("button", "primary", opts.okLabel || "확인");
+      okBtn.type = "button";
+      actions.appendChild(okBtn);
+      box.appendChild(actions);
+      overlay.appendChild(box);
+      document.body.appendChild(overlay);
+
+      function close(){
+        overlay.classList.remove("show");
+        setTimeout(() => { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 150);
+        document.removeEventListener("keydown", onKey);
+        resolve();
+      }
+      function onKey(e){
+        if (e.key === "Escape" || e.key === "Enter"){ e.preventDefault(); close(); }
+      }
+      okBtn.addEventListener("click", close);
+      overlay.addEventListener("mousedown", (e) => { if (e.target === overlay) close(); });
+      document.addEventListener("keydown", onKey);
+
+      requestAnimationFrame(() => {
+        overlay.classList.add("show");
+        okBtn.focus();
+      });
+    });
+  }
+
   // A4비율이 켜진 페이지를 "이미지로 저장"할 때, 화면 그리드의 썸네일은 원본 비율 그대로라서
   // 사용자가 A4비율 버튼을 누른 뒤에도 자기도 모르게 원본 비율 이미지를 받아가는 경우가 많았다.
   // 어느 쪽을 원하는지 명시적으로 고르게 한다. Promise<"a4"|"original"|null>을 반환한다(취소=null).
@@ -2954,7 +3018,9 @@
     });
   });
   dropzone.addEventListener("drop", (e) => {
-    if (busy) return;
+    // 팝업(안내·확인 모달)이 떠 있는 동안 떨어뜨린 파일은 무시한다 — 그대로 처리하면 팝업 위에
+    // 또 다른 팝업이 겹쳐 쌓인다. window 쪽 가드와 같은 조건을 쓴다.
+    if (busy || document.querySelector(".modal-overlay")) return;
     if (e.dataTransfer && e.dataTransfer.files){
       handleFiles(e.dataTransfer.files);
     }
@@ -2972,13 +3038,13 @@
   window.addEventListener("dragover", (e) => {
     if (!isFileDrag(e)) return;
     e.preventDefault();
-    if (!dropzone.contains(e.target)) e.dataTransfer.dropEffect = busy ? "none" : "copy";
+    if (!dropzone.contains(e.target)) e.dataTransfer.dropEffect = (busy || document.querySelector(".modal-overlay")) ? "none" : "copy";
   });
   window.addEventListener("drop", (e) => {
     if (!isFileDrag(e)) return;
     e.preventDefault();
     if (dropzone.contains(e.target)) return; // 업로드 영역 자체의 drop 핸들러가 이미 처리함
-    if (busy) return;
+    if (busy || document.querySelector(".modal-overlay")) return;
     if (e.dataTransfer.files && e.dataTransfer.files.length){
       handleFiles(e.dataTransfer.files);
     }
