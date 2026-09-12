@@ -694,7 +694,7 @@
   .filename-row input[type=text]{
     font-family:inherit; font-size:13.5px; padding:9px 12px;
     border-radius:999px; border:1px solid var(--card-border);
-    background:var(--bg); color:var(--text); width:150px;
+    background:var(--bg); color:var(--text); width:160px;
   }
   .filename-row span{ font-size:13px; color:var(--text-dim); }
   .download-bar .spacer{ margin-left:auto; }
@@ -769,7 +769,7 @@
   }
 
   @media (max-width:520px){
-    .filename-row input[type=text]{ width:100px; }
+    .filename-row input[type=text]{ width:110px; }
     .download-bar{ width:calc(100% - 20px); bottom:10px; padding:12px; }
   }
 </style>
@@ -1130,7 +1130,8 @@
 
   /* ===================== 파일 로드 ===================== */
 
-  async function handleFile(file){
+  // extraNote: 파일 자체가 아니라 "고르는 과정"에서 알려줄 것(여러 개를 한꺼번에 놓았을 때 등).
+  async function handleFile(file, extraNote){
     if (!file || busy) return;
     if (!(file.type === "application/pdf" || /\.pdf$/i.test(file.name))){
       await showAlert("PDF 파일만 올릴 수 있어요.");
@@ -1185,7 +1186,7 @@
       if (oldJsDoc && oldJsDoc !== newJsDoc){ try{ oldJsDoc.destroy(); }catch(e){} }
 
       loadingOverlay.classList.remove("show");
-      setBusy(false, "");
+      setBusy(false, extraNote || "");
       refreshToolbar();
       renderThumbStrip();
       await renderCurrentPage();
@@ -1195,9 +1196,14 @@
       loadingOverlay.classList.remove("show");
       setBusy(false, "");
       refreshToolbar();
+      // 암호가 걸린 PDF는 pdf.js가 PasswordException을 던진다 — 손상 파일과 원인이 달라서 따로 안내한다.
+      const encrypted = !!err && (err.name === "PasswordException" || /password/i.test(err.message || ""));
+      const reason = encrypted
+        ? `"${file.name}"은(는) 암호로 보호된 PDF라서 열 수 없어요. 암호를 푼 뒤 올려주세요.`
+        : `"${file.name}" 파일을 열지 못했어요. 손상된 파일이거나 암호로 보호된 PDF일 수 있어요.`;
       await showAlert(pdfLibDoc
-        ? `"${file.name}" 파일을 여는 데 실패했어요. 손상된 파일이거나 암호로 보호된 PDF일 수 있습니다.\n지금 작업 중인 문서와 서명은 그대로 남아 있어요.`
-        : `"${file.name}" 파일을 여는 데 실패했어요. 손상된 파일이거나 암호로 보호된 PDF일 수 있습니다.`);
+        ? `${reason}\n지금 작업 중인 문서와 서명은 그대로 남아 있어요.`
+        : reason);
     }
   }
 
@@ -1883,6 +1889,7 @@
     });
   });
   uploadDrop.addEventListener("drop", (e) => {
+    if (busy || document.querySelector(".modal-overlay")) return;
     const file = e.dataTransfer.files && e.dataTransfer.files[0];
     if (file) handleUploadFile(file);
   });
@@ -1978,9 +1985,16 @@
   ["dragleave", "drop"].forEach(evt => {
     dropzone.addEventListener(evt, (e) => { e.preventDefault(); dropzone.classList.remove("dragover"); });
   });
+  // 이 도구는 한 번에 PDF 한 개만 다룬다 — 여러 개를 놓으면 예전엔 말없이 첫 개만 열렸다.
+  function multiDropNote(files){
+    return files && files.length > 1 ? `${files.length}개를 놓으셨는데, 이 도구는 한 번에 한 개만 열 수 있어서 첫 번째 파일("${files[0].name}")만 불러왔어요.` : "";
+  }
   dropzone.addEventListener("drop", (e) => {
-    const file = e.dataTransfer.files[0];
-    if (file) handleFile(file);
+    // 팝업이 떠 있는 동안 떨어뜨린 파일은 무시한다(window 쪽 가드와 같은 조건).
+    if (busy || document.querySelector(".modal-overlay")) return;
+    const files = e.dataTransfer.files;
+    const file = files && files[0];
+    if (file) handleFile(file, multiDropNote(files));
   });
 
   // ---- 업로드 영역 밖 파일 드롭 방지 (2026-09-12, PDF 편집기와 같은 방식) ----
@@ -2005,14 +2019,15 @@
     // 메인 업로드 영역·서명 이미지 업로드 영역은 각자의 drop 핸들러가 이미 처리한다.
     if (dropzone.contains(e.target) || uploadDrop.contains(e.target)) return;
     if (busy || document.querySelector(".modal-overlay")) return;
-    const file = e.dataTransfer.files && e.dataTransfer.files[0];
+    const files = e.dataTransfer.files;
+    const file = files && files[0];
     if (!file) return;
     // 서명 이미지를 엉뚱한 곳에 떨어뜨린 경우엔 "PDF만 올릴 수 있어요" 대신 올바른 자리를 알려준다.
     if (/^image\//.test(file.type) && pdfLibDoc){
       showAlert("서명 이미지는 '서명 만들기'의 업로드 탭 점선 영역에 끌어다 놓아주세요.");
       return;
     }
-    handleFile(file);
+    handleFile(file, multiDropNote(files));
   });
 
   changeFileBtn.addEventListener("click", () => fileInput.click());
