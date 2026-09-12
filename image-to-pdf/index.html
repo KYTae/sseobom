@@ -45,6 +45,7 @@
     --accent2:#7c5cd1;
     --accent2-dim:#efe9fb;
     --danger:#d64545;
+    --warn:#8a5a00;
     --radius:16px;
     --radius-sm:10px;
     --topbar-bg:#fcfcfb;
@@ -64,6 +65,7 @@
       --accent2:#a78bfa;
       --accent2-dim:#221b35;
       --danger:#e8685f;
+      --warn:#e0a458;
       --topbar-bg:#1a1a19;
       --topbar-border:rgba(255,255,255,0.10);
       --topbar-text:#898781;
@@ -83,6 +85,7 @@
     --accent2:#a78bfa;
     --accent2-dim:#221b35;
     --danger:#e8685f;
+    --warn:#e0a458;
     --topbar-bg:#1a1a19;
     --topbar-border:rgba(255,255,255,0.10);
     --topbar-text:#898781;
@@ -371,6 +374,13 @@
     border-color:var(--accent);
     color:var(--accent);
   }
+  /* 되돌릴 수 없는 동작의 확인 버튼 — PDF 편집기·전자서명과 같은 빨강 채움. */
+  button.danger{
+    background:var(--danger);
+    border-color:var(--danger);
+    color:#fff;
+  }
+  button.danger:hover{ opacity:.92; border-color:var(--danger); }
   button.danger-ghost{
     background:transparent;
     color:var(--danger);
@@ -406,6 +416,7 @@
     margin:0 0 18px;
   }
   .modal-actions{display:flex; justify-content:flex-end; gap:8px;}
+
   .modal-actions button{padding:8px 16px;}
 
   .lightbox-box{
@@ -430,6 +441,27 @@
     color:var(--text-dim);
     text-align:center;
   }
+  /* 확대 보기 좌우 이동 — 이미지 양옆에 동그란 버튼(PDF 편집기 확대 보기와 같은 역할). */
+  .lightbox-row{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    min-width:0;
+  }
+  .lightbox-row img{ min-width:0; }
+  .lightbox-nav{
+    flex:none;
+    width:34px;
+    height:34px;
+    padding:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:20px;
+    line-height:1;
+  }
+  .lightbox-nav:disabled{ opacity:.35; }
 
   .grid{
     display:grid;
@@ -528,6 +560,13 @@
     overflow:hidden;
     text-overflow:ellipsis;
   }
+  /* 움직이는 GIF처럼 "이 이미지는 이렇게 처리돼요"를 카드에서 바로 알려주는 한 줄. */
+  .photo-card .card-note{
+    font-size:10.5px;
+    line-height:1.4;
+    color:var(--warn);
+    margin-top:-2px;
+  }
   .card-actions{
     display:flex;
     flex-direction:column;
@@ -571,7 +610,8 @@
     display:flex;
     flex-wrap:wrap;
     align-items:center;
-    gap:10px;
+    /* gap을 두지 않는다(pdf-editor와 동일) — 안쪽 줄(.download-bar-row·.status-line)이 각자
+       margin으로 간격을 잡기 때문에, 바에 gap까지 주면 안내줄 간격이 10px씩 더 벌어진다. */
     padding:14px 16px;
     background:var(--card);
     border:1px solid var(--card-border);
@@ -603,7 +643,7 @@
     border:1px solid var(--card-border);
     background:var(--bg);
     color:var(--text);
-    width:150px;
+    width:160px;
   }
   .filename-row span{
     font-size:13px;
@@ -633,9 +673,18 @@
     color:var(--text-dim);
     white-space:nowrap;
   }
+  /* 두 세그먼트를 "가장 긴 라벨 + 좌우 여백" 크기로 똑같이 나눈다.
+     예전에는 .mode-seg를 flex:1(기준 폭 0)으로만 두어서, 트랙의 자연 폭이 글자 길이에 딱 붙게
+     계산됐다 — "이미지 크기"처럼 라벨이 긴 세그먼트는 좌우 여백이 1px밖에 남지 않아 글자가 흰
+     인디케이터에 닿아 보였다(같은 컴포넌트인데 "용량 최적화"는 6px, "하나로 합치기"는 8px로
+     제각각이었다). width:max-content 그리드 + 1fr 두 칸으로 두면 두 칸 모두 "가장 긴 라벨 +
+     14px 여백" 크기로 같아져서, 세 토글(화질·페이지·모드)의 여백이 항상 같아진다. */
   .mode-track{
     position:relative;
-    display:flex;
+    display:grid;
+    grid-auto-flow:column;
+    grid-template-columns:repeat(2, 1fr);
+    width:max-content;
     background:var(--card-border); /* download-bar 배경(var(--card))과 대비가 잘 안 보이던 var(--bg) 대신,
       card와 항상 대비되도록 설계된 card-border 색을 트랙 바탕으로 써서 컨트롤 자체가 더 또렷하게 보이게 함 */
     border:1px solid var(--card-border);
@@ -658,7 +707,8 @@
   .mode-seg{
     position:relative;
     z-index:1;
-    flex:1;
+    /* 트랙이 grid이므로 flex:1은 효과가 없어 지웠다. min-width:0은 grid에서도 필요하다
+       (1fr 칸이 글자 길이보다 좁아질 수 있게 해준다). */
     min-width:0;
     display:flex;
     align-items:center;
@@ -690,6 +740,15 @@
     box-sizing:border-box;
   }
 
+  /* 고화질은 원본 해상도를 유지해서 결과가 커진다 — 변환 전에 미리 알려주는 줄. */
+  .size-hint{
+    width:100%;
+    font-size:12px;
+    line-height:1.5;
+    color:var(--warn);
+    margin-top:8px;
+  }
+  .size-hint[hidden]{ display:none; }
   .status-line{
     font-size:12.5px;
     color:var(--text-dim);
@@ -796,6 +855,17 @@
     border-radius:999px;
     box-shadow:0 6px 18px rgba(0,0,0,.12);
   }
+  /* 좁은 화면 규칙(다른 도구와 같은 520px 기준) — 지금까지 이 도구에만 없었다.
+     제목(h1) 크기는 세 도구와 같이 26px 그대로 둔다. */
+  @media (max-width:520px){
+    .filename-row input[type=text]{ width:110px; }
+    .download-bar{ width:calc(100% - 20px); bottom:10px; padding:12px; }
+    .download-buttons{ width:100%; flex-direction:column; align-items:stretch; gap:8px; }
+    .mode-toggle-wrap{ width:100%; }
+    .mode-toggle-wrap .mode-track{ flex:1; }
+    #downloadBtn{ width:100%; }
+    .grid{ grid-template-columns:repeat(auto-fill, minmax(120px,1fr)); }
+  }
 </style>
 </head>
 <body>
@@ -809,7 +879,7 @@
   <header class="top">
     <div class="brand"><span class="dot"></span>써봄</div>
     <h1>이미지 → PDF 변환기</h1>
-    <p class="sub">여러 장의 사진이나 이미지를 순서대로 정리해서 PDF로 만드세요. 회전하거나 필요없는 사진은 빼고, 이미지마다 따로 PDF를 받거나 한 개의 PDF로 합칠 수도 있어요.</p>
+    <p class="sub">여러 장의 사진이나 이미지를 순서대로 정리해서 PDF로 만드세요. 이미지 크기 그대로 또는 A4 페이지로 맞출 수 있어요. 회전하거나 필요없는 사진은 빼고, 이미지마다 따로 PDF를 받거나 한 개의 PDF로 합칠 수도 있어요.</p>
     <div class="badge-row">
       <div class="badge-line">
         <span class="feature-badge">이미지 → PDF 변환 · 여러 장 합치기 · 순서변경 · 회전 · 삭제</span>
@@ -830,18 +900,20 @@
       <div class="help-section">
         <div class="help-section-label">이미지 올리기 · 상단 버튼</div>
         <div class="help-grid">
-          <div class="help-item"><span class="help-key">+ 이미지 추가</span><span class="help-desc">지금 목록에 이미지를 더 추가합니다.</span></div>
-          <div class="help-item"><span class="help-key">전체 지우기</span><span class="help-desc">올린 이미지를 모두 지우고 처음 화면으로 되돌립니다.</span></div>
-          <div class="help-item help-item-wide"><span class="help-key">모드: 각각 PDF / 모드: 하나로 합치기</span><span class="help-desc">누를 때마다 두 모드를 오갑니다. <b>각각 PDF</b>는 이미지마다 PDF 파일이 따로 만들어져 zip 하나로 받고, <b>하나로 합치기</b>는 지금 순서대로 이어붙인 PDF 한 개가 만들어집니다.</span></div>
+          <div class="help-item"><span class="help-key">드롭존</span><span class="help-desc">이미지를 끌어다 놓거나 눌러서 파일 선택 창을 열어요. 여러 장을 한 번에 고를 수 있고, 이미 올린 목록에 계속 더할 수도 있어요. JPG·PNG·WebP·AVIF·GIF·BMP를 올릴 수 있고, 움직이는 GIF는 첫 장면만 들어가요.</span></div>
+          <div class="help-item"><span class="help-key">전체 지우기</span><span class="help-desc">올린 이미지를 모두 지우고 처음 화면으로 되돌려요.</span></div>
+          <div class="help-item help-item-wide"><span class="help-key">화질 (고화질 / 용량 최적화)</span><span class="help-desc"><b>고화질</b>은 원본 해상도를 그대로 유지해요(JPG 사진은 조건이 맞으면 원본 파일을 손대지 않고 그대로 넣고, PNG·BMP처럼 무손실 이미지는 무손실로 넣어요). 사진이 여러 장이면 결과가 100MB를 넘을 수 있어 미리 알려드려요. <b>용량 최적화</b>는 페이지 크기에 맞는 해상도(150dpi)로 줄이고 JPG로 압축해서, 같은 사진 12장이 약 4분의 1 크기가 돼요. 투명한 부분이 있는 이미지는 투명을 잃지 않도록 그대로 둬요.</span></div>
+          <div class="help-item help-item-wide"><span class="help-key">페이지 (이미지 크기 / A4)</span><span class="help-desc"><b>이미지 크기</b>는 이미지 비율 그대로 페이지를 만들어요(지금까지의 방식). <b>A4</b>는 모든 페이지를 A4로 통일하고 이미지를 여백 안에 가운데로 넣어서, 여러 장을 인쇄할 때 크기가 들쭉날쭉하지 않아요. A4보다 작은 이미지는 억지로 늘려 흐려지지 않게 원래 크기로 놓아요.</span></div>
+          <div class="help-item help-item-wide"><span class="help-key">모드 (하나로 합치기 / 각각 PDF)</span><span class="help-desc">두 칸 중 원하는 쪽을 누르면 바뀌어요. <b>각각 PDF</b>는 이미지마다 PDF 파일이 따로 만들어져 zip 하나로 받고(zip 안의 PDF 이름은 원본 이미지 이름을 그대로 쓰고, 아래 "파일 이름" 칸은 zip 파일 이름에만 쓰여요), <b>하나로 합치기</b>는 지금 순서대로 이어붙인 PDF 한 개가 만들어져요.</span></div>
         </div>
       </div>
       <div class="help-section">
         <div class="help-section-label">이미지 카드 버튼</div>
         <div class="help-grid">
-          <div class="help-item"><span class="help-key">↑ / ↓</span><span class="help-desc">이미지를 앞/뒤로 한 칸씩 옮깁니다. 카드를 직접 눌러 끌어서 옮길 수도 있습니다(휴대폰에서는 손가락으로 동일하게 동작).</span></div>
-          <div class="help-item"><span class="help-key">↻</span><span class="help-desc">이미지를 90도씩 회전합니다. 여러 번 누르면 계속 돌아갑니다.</span></div>
-          <div class="help-item"><span class="help-key">✕ 삭제</span><span class="help-desc">이 이미지를 목록에서 삭제합니다.</span></div>
-          <div class="help-item"><span class="help-key"><span class="mini-zoom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.35-4.35"></path></svg></span></span><span class="help-desc">썸네일 우측 하단의 돋보기 — 이미지를 크게 확대해서 봅니다.</span></div>
+          <div class="help-item"><span class="help-key">↑ / ↓</span><span class="help-desc">이미지를 앞/뒤로 한 칸씩 옮겨요. 카드를 직접 눌러 끌어서 옮길 수도 있어요(휴대폰에서는 손가락으로 똑같이 돼요).</span></div>
+          <div class="help-item"><span class="help-key">↻</span><span class="help-desc">이미지를 90도씩 회전해요. 여러 번 누르면 계속 돌아가요.</span></div>
+          <div class="help-item"><span class="help-key">✕ 삭제</span><span class="help-desc">이 이미지를 목록에서 지워요.</span></div>
+          <div class="help-item"><span class="help-key"><span class="mini-zoom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.35-4.35"></path></svg></span></span><span class="help-desc">썸네일 우측 하단의 돋보기 — 이미지를 크게 확대해서 봐요. 열린 상태에서 ‹ › 버튼이나 방향키(←·→)로 다음·이전 이미지를 넘겨볼 수 있고, Esc나 "닫기"로 닫아요. 회전한 이미지는 회전된 모습 그대로 보여줘요.</span></div>
         </div>
       </div>
     </div>
@@ -851,8 +923,8 @@
   <div class="dropzone" id="dropzone">
     <div class="icon">🖼️</div>
     <div class="main-txt">이미지를 여기로 끌어다 놓거나 클릭해서 올리세요</div>
-    <div class="sub-txt">JPG · PNG · WebP · GIF · BMP 지원 · 여러 장을 한 번에 선택할 수 있어요</div>
-    <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp,image/gif,image/bmp,image/x-ms-bmp" multiple>
+    <div class="sub-txt">JPG · PNG · WebP · AVIF · GIF · BMP 지원 · 여러 장을 한 번에 선택할 수 있어요</div>
+    <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp,image/avif,image/gif,image/bmp,image/x-ms-bmp,.jpg,.jpeg,.png,.webp,.avif,.gif,.bmp" multiple>
   </div>
 
   <div class="toolbar" id="toolbar" style="display:none">
@@ -861,8 +933,16 @@
       화질
       <div class="mode-track" id="qualityTrack">
         <span class="mode-indicator"></span>
-        <button class="mode-seg active" id="qualitySegHigh" type="button" data-quality="0.92">고화질</button>
-        <button class="mode-seg" id="qualitySegOptimized" type="button" data-quality="0.7" title="용량을 줄이기 위해 화질을 약간 낮춥니다.">용량 최적화</button>
+        <button class="mode-seg active" id="qualitySegHigh" type="button" data-quality="0.92" title="원본 해상도를 그대로 유지합니다. 조건이 맞는 JPG 사진은 원본 파일을 그대로 넣고, PNG·BMP 같은 무손실 이미지는 무손실로 넣습니다.">고화질</button>
+        <button class="mode-seg" id="qualitySegOptimized" type="button" data-quality="0.7" title="페이지 크기에 맞는 해상도(150dpi)로 줄이고 JPG로 압축해 파일을 작게 만듭니다. 투명한 부분이 있는 이미지는 투명을 그대로 유지합니다.">용량 최적화</button>
+      </div>
+    </div>
+    <div class="quality-row">
+      페이지
+      <div class="mode-track" id="pageTrack">
+        <span class="mode-indicator"></span>
+        <button class="mode-seg active" id="pageSegImage" type="button" data-page="image" title="이미지 크기에 맞춰 페이지를 만듭니다(지금까지의 방식).">이미지 크기</button>
+        <button class="mode-seg" id="pageSegA4" type="button" data-page="a4" title="모든 페이지를 A4로 맞추고 이미지를 여백 안에 넣습니다.">A4</button>
       </div>
     </div>
     <button class="danger-ghost" id="clearAllBtn" type="button">전체 지우기</button>
@@ -891,6 +971,7 @@
         <button class="primary" id="downloadBtn" type="button">PDF로 변환</button>
       </div>
     </div>
+    <p class="size-hint" id="sizeHint" hidden></p>
     <div class="status-line" id="statusLine"></div>
   </div>
 
@@ -905,14 +986,18 @@
       <p class="modal-message" id="confirmMessage"></p>
       <div class="modal-actions">
         <button class="ghost" id="confirmCancelBtn" type="button">취소</button>
-        <button class="danger-ghost" id="confirmOkBtn" type="button">확인</button>
+        <button class="danger" id="confirmOkBtn" type="button">확인</button>
       </div>
     </div>
   </div>
 
   <div class="modal-overlay" id="lightbox">
     <div class="modal-box lightbox-box">
-      <img id="lightboxImg" alt="확대 미리보기">
+      <div class="lightbox-row">
+        <button class="ghost lightbox-nav" id="lightboxPrev" type="button" title="이전 이미지 (←)">‹</button>
+        <img id="lightboxImg" alt="확대 미리보기">
+        <button class="ghost lightbox-nav" id="lightboxNext" type="button" title="다음 이미지 (→)">›</button>
+      </div>
       <div class="lightbox-meta" id="lightboxMeta"></div>
       <div class="modal-actions">
         <button class="ghost" id="lightboxCloseBtn" type="button">닫기</button>
@@ -923,7 +1008,7 @@
   <footer class="note">
     <div>써봄 · 브라우저에서 끝나는 파일 도구</div>
     <div class="copyright"><span class="mark">ⓒ 2026</span> <span class="name">고윤태</span> · <a href="https://yuntaeko.com/" target="_blank" rel="noopener">yuntaeko.com</a> — 정성을 담아 제작한 도구입니다. 무단 도용 및 출처 표기 없는 재배포를 금지합니다.</div>
-    <div class="updated">업데이트 · 2026. 9. 6.</div>
+    <div class="updated">업데이트 · 2026. 9. 12.</div>
   </footer>
 </div>
 
@@ -1034,8 +1119,21 @@
   var lightboxImg = document.getElementById("lightboxImg");
   var lightboxMeta = document.getElementById("lightboxMeta");
   var lightboxCloseBtn = document.getElementById("lightboxCloseBtn");
+  var lightboxPrev = document.getElementById("lightboxPrev");
+  var lightboxNext = document.getElementById("lightboxNext");
+  var pageTrack = document.getElementById("pageTrack");
+  var pageSegImage = document.getElementById("pageSegImage");
+  var pageSegA4 = document.getElementById("pageSegA4");
+  var sizeHint = document.getElementById("sizeHint");
 
-  var ACCEPTED_TYPES = ["image/jpeg","image/png","image/webp","image/gif","image/bmp","image/x-ms-bmp"];
+  // 이미지를 불러오거나 PDF를 만드는 동안은 true — 그 사이에 파일이 더 들어오거나 버튼이
+  // 한 번 더 눌려서 작업이 겹치지 않게 막는다(다른 써봄 도구와 같은 방식).
+  var busy = false;
+  // 팝업(확인·안내·확대 보기)이 떠 있는 동안 떨어뜨린 파일은 무시하기 위한 카운트.
+  var openModals = 0;
+
+  var ACCEPTED_TYPES = ["image/jpeg","image/png","image/webp","image/avif","image/gif","image/bmp","image/x-ms-bmp"];
+  var ACCEPTED_EXT = /\.(jpe?g|png|webp|avif|gif|bmp)$/i;
 
   // ---------- 도움말 접기/펼치기 ----------
   helpToggle.addEventListener("click", function(){
@@ -1044,23 +1142,95 @@
   });
 
   // ---------- 확인 모달 (confirm() 대체) ----------
+  // Esc·배경 클릭으로도 취소되게 했다(다른 써봄 도구와 동일) — 예전에는 "취소" 버튼만 먹혔다.
   var confirmResolve = null;
-  function askConfirm(message){
+  function askConfirm(message, opts){
+    opts = opts || {};
     confirmMessage.textContent = message;
+    // 확인 버튼 문구는 "확인"보다 실제 동작 이름이 안전하다(다른 도구와 같은 패턴).
+    confirmOkBtn.textContent = opts.okLabel || "확인";
+    confirmCancelBtn.textContent = opts.cancelLabel || "취소";
     confirmModal.classList.add("show");
+    openModals++;
     return new Promise(function(resolve){ confirmResolve = resolve; });
   }
-  confirmOkBtn.addEventListener("click", function(){
+  function closeConfirm(result){
+    if (!confirmModal.classList.contains("show")) return;
     confirmModal.classList.remove("show");
-    if (confirmResolve) confirmResolve(true);
-  });
-  confirmCancelBtn.addEventListener("click", function(){
-    confirmModal.classList.remove("show");
-    if (confirmResolve) confirmResolve(false);
+    openModals = Math.max(0, openModals - 1);
+    var r = confirmResolve;
+    confirmResolve = null;
+    if (r) r(result);
+  }
+  confirmOkBtn.addEventListener("click", function(){ closeConfirm(true); });
+  confirmCancelBtn.addEventListener("click", function(){ closeConfirm(false); });
+  confirmModal.addEventListener("mousedown", function(e){ if (e.target === confirmModal) closeConfirm(false); });
+
+  // ---------- 안내 팝업 (알림 전용, 확인 버튼 하나) ----------
+  // 안내 문구를 하단 바의 상태줄에만 쓰면, 이미지가 0장일 때는 바 자체가 숨겨져 있어서
+  // (열 수 없는 파일을 처음 올린 경우) 아무것도 보이지 않는다 — 그런 경우는 이 팝업으로 알린다.
+  function el(tag, cls, text){
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function showAlert(message, opts){
+    opts = opts || {};
+    return new Promise(function(resolve){
+      var overlay = el("div", "modal-overlay");
+      var box = el("div", "modal-box");
+      box.appendChild(el("p", "modal-message", message));
+      var actions = el("div", "modal-actions");
+      var okBtn = el("button", "primary", opts.okLabel || "확인");
+      okBtn.type = "button";
+      actions.appendChild(okBtn);
+      box.appendChild(actions);
+      overlay.appendChild(box);
+      document.body.appendChild(overlay);
+      openModals++;
+      function close(){
+        overlay.classList.remove("show");
+        setTimeout(function(){ if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 150);
+        document.removeEventListener("keydown", onKey);
+        openModals = Math.max(0, openModals - 1);
+        resolve();
+      }
+      function onKey(e){
+        if (e.key === "Escape" || e.key === "Enter"){ e.preventDefault(); close(); }
+      }
+      okBtn.addEventListener("click", close);
+      overlay.addEventListener("mousedown", function(e){ if (e.target === overlay) close(); });
+      document.addEventListener("keydown", onKey);
+      requestAnimationFrame(function(){
+        overlay.classList.add("show");
+        okBtn.focus();
+      });
+    });
+  }
+
+  // 확인 팝업은 Esc=취소 / Enter=확인, 확대 보기는 Esc=닫기.
+  document.addEventListener("keydown", function(e){
+    if (lightbox.classList.contains("show")){
+      if (e.key === "Escape"){ e.preventDefault(); closeLightbox(); }
+      else if (e.key === "ArrowLeft"){ e.preventDefault(); moveLightbox(-1); }
+      else if (e.key === "ArrowRight"){ e.preventDefault(); moveLightbox(1); }
+      return;
+    }
+    if (confirmModal.classList.contains("show")){
+      if (e.key === "Escape"){ e.preventDefault(); closeConfirm(false); }
+      else if (e.key === "Enter"){ e.preventDefault(); closeConfirm(true); }
+    }
   });
 
   // ---------- 파일 올리기 ----------
-  dropzone.addEventListener("click", function(){ fileInput.click(); });
+  // fileInput이 dropzone 안에 있어서, fileInput.click()의 클릭이 다시 dropzone으로 올라와
+  // 파일 선택 창이 두 번 열리던 문제를 막는다(다른 도구와 같은 가드).
+  dropzone.addEventListener("click", function(e){
+    if (e.target === fileInput) return;
+    if (busy) return;
+    fileInput.click();
+  });
   fileInput.addEventListener("change", function(){
     addFiles(fileInput.files);
     fileInput.value = "";
@@ -1078,45 +1248,160 @@
     });
   });
   dropzone.addEventListener("drop", function(e){
+    if (busy || openModals > 0) return;
     if (e.dataTransfer && e.dataTransfer.files) addFiles(e.dataTransfer.files);
   });
 
+  // ---- 업로드 영역 밖 파일 드롭 방지 (PDF 편집기·전자서명·이미지 형식 변환과 같은 방식) ----
+  // 브라우저는 페이지 아무 곳에나 파일을 떨어뜨리면 그 파일을 탭에서 바로 열어버려 지금까지의
+  // 작업(올려둔 이미지 순서·회전)을 잃게 된다. 페이지 전체에서 "파일" 드롭의 기본 동작을 막고,
+  // 업로드 영역 밖에 떨어뜨린 이미지도 업로드 영역에 놓은 것과 똑같이 처리한다.
+  function isFileDrag(e){
+    var types = e.dataTransfer && e.dataTransfer.types;
+    return !!types && Array.prototype.indexOf.call(types, "Files") !== -1;
+  }
+  window.addEventListener("dragover", function(e){
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    if (!dropzone.contains(e.target)) e.dataTransfer.dropEffect = (busy || openModals > 0) ? "none" : "copy";
+  });
+  window.addEventListener("drop", function(e){
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    if (dropzone.contains(e.target)) return; // 업로드 영역 자체의 drop 핸들러가 이미 처리함
+    if (busy || openModals > 0) return;
+    if (e.dataTransfer.files && e.dataTransfer.files.length) addFiles(e.dataTransfer.files);
+  });
+
+  function listNames(arr){
+    return arr.length <= 3 ? arr.join(", ") : (arr.slice(0, 3).join(", ") + " 등 " + arr.length + "개");
+  }
+
+  // 건너뛴 파일을 종류별로 묶어 한 번에 알린다. 예전에는 이미지가 아닌 파일은 하단 바의 상태줄에만
+  // (그 바가 숨겨져 있어 보이지 않았고) 안내했고, 열리지 않는 이미지는 아무 안내도 없이 조용히 빠졌다.
+  function alertForSkipped(heic, notImage, failed){
+    var blocks = [];
+    if (heic.length){
+      blocks.push("HEIC·HEIF(아이폰 사진 기본 형식)는 이 브라우저에서 열 수 없어요: " + listNames(heic) +
+        "\n아이폰 '설정 > 카메라 > 포맷'을 '높은 호환성'으로 바꿔 찍거나, JPG로 저장해서 올려주세요.");
+    }
+    if (notImage.length){
+      blocks.push("이미지 파일이 아니어서 건너뛰었어요: " + listNames(notImage) +
+        "\nJPG·PNG·WebP·AVIF·GIF·BMP 파일을 올릴 수 있어요.");
+    }
+    if (failed.length){
+      blocks.push(listNames(failed) + " 파일은 열지 못해서 건너뛰었어요." +
+        "\n파일이 손상됐거나, 이 브라우저가 지원하지 않는 형식일 수 있어요.");
+    }
+    if (!blocks.length) return Promise.resolve();
+    return showAlert(blocks.join("\n\n"));
+  }
+
   function addFiles(fileList){
-    var files = Array.prototype.filter.call(fileList, function(f){
-      return ACCEPTED_TYPES.indexOf(f.type) !== -1 ||
-        /\.(jpe?g|png|webp|gif|bmp)$/i.test(f.name);
+    if (busy) return Promise.resolve();
+    var all = Array.prototype.slice.call(fileList || []);
+    if (!all.length) return Promise.resolve();
+
+    var heic = [], notImage = [];
+    var files = all.filter(function(f){
+      var name = (f.name || "").toLowerCase();
+      var type = (f.type || "").toLowerCase();
+      if (ACCEPTED_TYPES.indexOf(type) !== -1 || ACCEPTED_EXT.test(name)) return true;
+      if (/\.(heic|heif)$/.test(name) || type.indexOf("heic") !== -1 || type.indexOf("heif") !== -1) heic.push(f.name);
+      else notImage.push(f.name);
+      return false;
     });
     if (!files.length){
-      if (fileList.length) setStatus("이미지 파일(JPG·PNG·WebP·GIF·BMP)만 올릴 수 있어요.");
-      return;
+      setStatus("");
+      return alertForSkipped(heic, notImage, []);
     }
+
+    busy = true;
     showLoading("이미지를 불러오는 중...");
-    loadingPercent.textContent = "0%";
-    // 이미지마다 디코딩 속도가 달라서, 로딩이 끝나는 대로 바로바로 items에 넣으면 실제
-    // 선택한 순서와 다르게 뒤섞일 수 있다(예: 큰 사진이 늦게 끝나면 뒤로 밀림). 그래서
-    // loadOneFile은 items를 직접 건드리지 않고 결과만 돌려주고, Promise.all로 다 모인 뒤에
-    // (files 배열, 즉 사용자가 고른 순서 그대로) 한 번에 붙인다.
-    // 퍼센트는 병렬로 끝나는 대로(순서 상관없이) doneCount를 세어 올린다 — 전체가 다 끝나야만
-    // 붙이는 items와 달리, 진행률 표시는 화면에 바로바로 반영돼도 되기 때문이다.
+    setPercent(0);
+    // 한 장씩 순서대로 읽는다. 예전에는 Promise.all로 전부 동시에 읽어서, 큰 사진 수십 장이면
+    // 디코딩된 이미지가 한꺼번에 메모리에 쌓였다(휴대폰에서 위험). 순서대로 읽으면 메모리가
+    // 완만하게 오르고, 실측으로 오히려 더 빨랐다(1200만 화소 12장: 동시 2.2초 → 순서대로 0.93초 —
+    // 동시에 디코딩하면 서로 자원을 다투기 때문). 결과는 고른 순서 그대로 items에 붙는다.
     var doneCount = 0;
-    var loadPromises = files.map(function(f){
-      return loadOneFile(f).then(function(result){
-        doneCount++;
-        loadingPercent.textContent = Math.round((doneCount / files.length) * 100) + "%";
-        return result;
+    var results = [];
+    var chain = Promise.resolve();
+    files.forEach(function(f){
+      chain = chain.then(function(){
+        return loadOneFile(f).then(function(r){
+          results.push(r);
+          doneCount++;
+          setPercent(doneCount / files.length);
+        });
       });
     });
-    Promise.all(loadPromises).then(function(results){
-      var loaded = results.filter(function(r){ return r !== null; });
+    return chain.then(function(){ return results; }).then(function(results){
+      var loaded = [], failed = [];
+      results.forEach(function(r, i){
+        if (r) loaded.push(r); else failed.push(files[i].name);
+      });
       items = items.concat(loaded);
       hideLoading();
+      busy = false;
       render();
+      if (loaded.length && (failed.length || heic.length || notImage.length)){
+        setStatus(loaded.length + "장을 불러왔어요. " + (failed.length + heic.length + notImage.length) + "개 파일은 건너뛰었어요.");
+      } else {
+        setStatus("");
+      }
+      return alertForSkipped(heic, notImage, failed);
     }).catch(function(err){
       hideLoading();
+      busy = false;
       console.error(err);
-      setStatus("일부 이미지를 불러오지 못했어요.");
       render();
+      return showAlert("이미지를 불러오는 중 문제가 생겼어요.\n다른 파일로 다시 시도해주세요.");
     });
+  }
+
+  // 움직이는 GIF는 캔버스에 첫 장면만 그려진다. 장면 수를 세어 카드에 안내 문구를 붙인다.
+  function countGifFrames(bytes){
+    try {
+      var len = bytes.length;
+      if (len < 13 || bytes[0] !== 0x47 || bytes[1] !== 0x49 || bytes[2] !== 0x46) return 0;
+      var pos = 13;
+      if (bytes[10] & 0x80) pos += 3 * (1 << ((bytes[10] & 7) + 1));
+      var frames = 0;
+      function skipSubBlocks(){
+        while (pos < len){
+          var n = bytes[pos++];
+          if (n === 0) return;
+          pos += n;
+        }
+      }
+      while (pos < len){
+        var b = bytes[pos++];
+        if (b === 0x2C){
+          frames++;
+          if (pos + 9 > len) break;
+          var flags = bytes[pos + 8];
+          pos += 9;
+          if (flags & 0x80) pos += 3 * (1 << ((flags & 7) + 1));
+          pos++; // LZW 최소 코드 크기
+          skipSubBlocks();
+        } else if (b === 0x21){
+          pos++; // 확장 종류
+          skipSubBlocks();
+        } else {
+          break; // 0x3B(끝) 또는 알 수 없는 바이트
+        }
+      }
+      return frames;
+    } catch (e){ return 0; }
+  }
+
+  function gifNoteFor(file){
+    var isGif = (file.type || "").toLowerCase().indexOf("gif") !== -1 || /\.gif$/i.test(file.name || "");
+    if (!isGif) return Promise.resolve("");
+    return file.arrayBuffer().then(function(buf){
+      var n = countGifFrames(new Uint8Array(buf));
+      return n > 1 ? ("움직이는 GIF(" + n + "장면) 중 첫 장면만 들어가요") : "";
+    }).catch(function(){ return ""; });
   }
 
   function loadOneFile(file){
@@ -1126,7 +1411,7 @@
       img.onload = function(){
         var dot = file.name.lastIndexOf(".");
         var baseName = dot > 0 ? file.name.slice(0, dot) : file.name;
-        resolve({
+        var item = {
           id: nextId++,
           file: file,
           baseName: baseName,
@@ -1135,8 +1420,11 @@
           url: url,
           img: img,
           natW: img.naturalWidth,
-          natH: img.naturalHeight
-        });
+          natH: img.naturalHeight,
+          note: ""
+        };
+        if (!item.natW || !item.natH){ URL.revokeObjectURL(url); resolve(null); return; }
+        gifNoteFor(file).then(function(note){ item.note = note; resolve(item); });
       };
       img.onerror = function(){
         URL.revokeObjectURL(url);
@@ -1356,6 +1644,11 @@
     meta.className = "meta";
     card.appendChild(meta);
 
+    var note = document.createElement("div");
+    note.className = "card-note";
+    note.style.display = "none";
+    card.appendChild(note);
+
     var actions = document.createElement("div");
     actions.className = "card-actions";
 
@@ -1393,6 +1686,9 @@
     var meta = el.querySelector(".meta");
     meta.textContent = item.baseName;
     meta.title = item.file.name;
+    var noteEl = el.querySelector(".card-note");
+    noteEl.textContent = item.note || "";
+    noteEl.style.display = item.note ? "block" : "none";
     el.querySelector(".icon-btn.up").disabled = (idx === 0);
     el.querySelector(".icon-btn.down").disabled = (idx === items.length - 1);
   }
@@ -1430,6 +1726,7 @@
     countNum.textContent = items.length;
 
     updateModeUI();
+    updateSizeHint();
     playFlip(oldRects);
   }
 
@@ -1466,8 +1763,9 @@
   }
 
   clearAllBtn.addEventListener("click", function(){
-    if (!items.length) return;
-    askConfirm("올린 이미지 " + items.length + "장을 모두 지울까요?\n이 동작은 되돌릴 수 없어요.").then(function(ok){
+    if (!items.length || busy) return;
+    askConfirm("지금까지 올린 이미지 " + items.length + "장과 순서·회전이 모두 사라져요.\n전체 지우기를 진행할까요?",
+      { okLabel: "전체 지우기", cancelLabel: "취소" }).then(function(ok){
       if (!ok) return;
       items.forEach(function(it){ URL.revokeObjectURL(it.url); });
       items = [];
@@ -1491,6 +1789,40 @@
     qualityTrack.classList.toggle("pos-second", isOptimized);
     qualitySegHigh.classList.toggle("active", !isOptimized);
     qualitySegOptimized.classList.toggle("active", isOptimized);
+    updateSizeHint();
+  }
+
+  // ---------- 페이지 크기 전환 (이미지 크기 / A4) ----------
+  var pageSizeMode = "image"; // "image" | "a4"
+  function setPageSizeMode(next){
+    if (pageSizeMode === next) return;
+    pageSizeMode = next;
+    var isA4 = next === "a4";
+    pageTrack.classList.toggle("pos-second", isA4);
+    pageSegImage.classList.toggle("active", !isA4);
+    pageSegA4.classList.toggle("active", isA4);
+    updateSizeHint();
+  }
+  pageSegImage.addEventListener("click", function(){ setPageSizeMode("image"); });
+  pageSegA4.addEventListener("click", function(){ setPageSizeMode("a4"); });
+
+  // 고화질은 원본 해상도를 그대로 유지하기 때문에 사진이 많으면 결과가 수십~수백 MB가 된다.
+  // 몰래 줄이지 않는 대신, 변환하기 전에 눈에 보이게 알려준다(써봄의 다른 도구와 같은 원칙).
+  function updateSizeHint(){
+    if (!sizeHint) return;
+    var totalBytes = items.reduce(function(sum, it){ return sum + (it.file.size || 0); }, 0);
+    // 안내가 뜨는 조건: 화질이 "고화질"이고, 올린 이미지 용량 합계가 20MB를 넘을 때(장수는 상관 없음).
+    // 고화질은 원본 해상도를 그대로 넣기 때문에 결과가 대략 "원본 용량 합계" 이상이 된다.
+    var show = qualityValue === "0.92" && totalBytes > 20 * 1024 * 1024;
+    if (show){
+      var msg = "고화질은 원본 해상도를 그대로 유지해요 — 지금 올린 " + items.length + "장이면 결과가 약 " +
+        formatSize(totalBytes) + " 이상이 될 수 있어요. 작게 받으려면 위쪽 화질에서 '용량 최적화'를 골라주세요.";
+      if (sizeHint.textContent !== msg) sizeHint.textContent = msg; // 드래그 중 매 프레임 다시 쓰지 않게
+      sizeHint.hidden = false;
+    } else {
+      sizeHint.hidden = true;
+      sizeHint.textContent = "";
+    }
   }
   qualitySegHigh.addEventListener("click", function(){ setQuality("0.92", false); });
   qualitySegOptimized.addEventListener("click", function(){ setQuality("0.7", true); });
@@ -1503,6 +1835,16 @@
   // 동기적으로 일어나서 화면 깜빡임은 없다.
   function setDownloadBtnText(text){
     if (downloadBtn.textContent === text) return;
+    // 다운로드 바가 숨겨져 있을 때는 폭을 재도 0이 나온다. 그 0을 인라인 폭으로 남겨두면,
+    // 260ms 타이머가 지우기 전에 바가 나타나는 순간 버튼이 좌우 여백만 남은 34px로 찌그러져 보였다
+    // (이미지를 올린 직후, 그리고 "전체 지우기" 뒤 바로 다시 올렸을 때). 안 보일 때는 글자만 바꾸고
+    // 폭 애니메이션은 건너뛴다 — 어차피 눈에 보이지 않는 구간이다.
+    if (!downloadBtn.getClientRects().length){
+      downloadBtn.textContent = text;
+      downloadBtn.style.width = "";
+      clearTimeout(setDownloadBtnText._t);
+      return;
+    }
     var oldWidth = downloadBtn.getBoundingClientRect().width;
     downloadBtn.style.width = oldWidth + "px";
     downloadBtn.textContent = text;
@@ -1539,25 +1881,90 @@
 
   // ---------- 확대 보기 ----------
   var lightboxId = null;
+  // 회전한 이미지를 CSS transform으로 돌리면 레이아웃 크기는 그대로여서 팝업 밖으로 삐져나온다
+  // (세로 사진을 90° 돌리면 위아래로 넘쳐 잘려 보였다). pdf-editor 확대 보기와 같은 방식으로
+  // 회전을 비트맵에 직접 반영해서, 팝업이 실제 크기를 알고 맞춰 줄일 수 있게 한다.
+  // 미리보기는 화면으로만 보는 용도라 PNG로 만들 이유가 없다 — 1200만 화소 사진에서 PNG는
+  // 481ms(6.1MB data URL)나 걸려 확대 버튼을 누른 순간 화면이 멈췄다. JPEG로 바꾸면 44ms·1.0MB다.
+  // 확대 팝업의 이미지 배경은 이미 흰색이라, 투명한 부분을 흰색으로 깔고 JPEG로 만들어도 보이는
+  // 모습은 같다.
+  function rotatedPreviewUrl(item){
+    var maxSide = 1400;
+    var swap = (item.rotation === 90 || item.rotation === 270);
+    var w = swap ? item.natH : item.natW;
+    var h = swap ? item.natW : item.natH;
+    var scale = Math.min(1, maxSide / Math.max(w, h));
+    var cw = Math.max(1, Math.round(w * scale));
+    var ch = Math.max(1, Math.round(h * scale));
+    var c = document.createElement("canvas");
+    c.width = cw; c.height = ch;
+    var ctx = c.getContext("2d");
+    if (!ctx) return item.url;
+    ctx.imageSmoothingQuality = "high";
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, cw, ch);
+    ctx.translate(cw / 2, ch / 2);
+    ctx.rotate(item.rotation * Math.PI / 180);
+    ctx.drawImage(item.img, -item.natW * scale / 2, -item.natH * scale / 2, item.natW * scale, item.natH * scale);
+    try { return c.toDataURL("image/jpeg", 0.9); } catch (e){ return item.url; }
+  }
+  var lightboxIndex = -1;
+  function renderLightbox(i){
+    var item = items[i];
+    if (!item) return;
+    lightboxIndex = i;
+    lightboxId = item.id;
+    lightboxImg.style.transform = "";
+    lightboxImg.src = item.rotation ? rotatedPreviewUrl(item) : item.url;
+    lightboxMeta.textContent = (i + 1) + " / " + items.length + " · " + item.file.name + " · " +
+      item.natW + " × " + item.natH + "px" + (item.rotation ? " · " + item.rotation + "° 회전 적용됨" : "");
+    lightboxPrev.disabled = (i <= 0);
+    lightboxNext.disabled = (i >= items.length - 1);
+  }
+  // 확대한 채로 다음·이전 이미지를 넘겨본다(‹ › 버튼과 방향키). 닫고 다시 열지 않아도 여러 장을 훑을 수 있다.
+  function moveLightbox(delta){
+    if (!lightbox.classList.contains("show")) return;
+    var next = lightboxIndex + delta;
+    if (next < 0 || next >= items.length) return;
+    renderLightbox(next);
+  }
   function openLightbox(id){
     var i = findIndex(id);
     if (i < 0) return;
-    lightboxId = id;
-    var item = items[i];
-    lightboxImg.src = item.url;
-    lightboxImg.style.transform = "rotate(" + item.rotation + "deg)";
-    lightboxMeta.textContent = item.file.name + " · " + item.natW + " × " + item.natH + "px" +
-      (item.rotation ? " · " + item.rotation + "° 회전 적용됨" : "");
+    renderLightbox(i);
     lightbox.classList.add("show");
+    openModals++;
   }
-  lightboxCloseBtn.addEventListener("click", function(){ lightbox.classList.remove("show"); });
-  lightbox.addEventListener("click", function(e){ if (e.target === lightbox) lightbox.classList.remove("show"); });
+  lightboxPrev.addEventListener("click", function(){ moveLightbox(-1); });
+  lightboxNext.addEventListener("click", function(){ moveLightbox(1); });
+  function closeLightbox(){
+    if (!lightbox.classList.contains("show")) return;
+    lightbox.classList.remove("show");
+    lightboxImg.src = "";  // 회전 미리보기로 만든 큰 data URL을 붙잡아두지 않는다
+    lightboxIndex = -1;
+    openModals = Math.max(0, openModals - 1);
+  }
+  lightboxCloseBtn.addEventListener("click", closeLightbox);
+  lightbox.addEventListener("click", function(e){ if (e.target === lightbox) closeLightbox(); });
 
   // ---------- 로딩 오버레이 ----------
-  function showLoading(text){
+  function showLoading(text, keepPercent){
     loadingText.textContent = text || "처리하는 중...";
-    loadingPercent.textContent = ""; // 퍼센트는 이미지 불러오기(addFiles)에서만 직접 채운다
+    if (!keepPercent) loadingPercent.textContent = "";
     loadingOverlay.classList.add("show");
+  }
+  function setPercent(frac){
+    loadingPercent.textContent = Math.max(0, Math.min(100, Math.round(frac * 100))) + "%";
+  }
+  // 방금 갱신한 퍼센트가 실제로 화면에 그려질 틈을 준다 — 무거운 작업이 곧바로 이어지면
+  // 브라우저가 리페인트할 기회가 없어서 퍼센트가 멈춰 보인다.
+  function nextFrame(){
+    return new Promise(function(resolve){ setTimeout(resolve, 0); });
+  }
+  function formatSize(n){
+    if (n < 1024) return n + " B";
+    if (n < 1024 * 1024) return (n / 1024).toFixed(1) + " KB";
+    return (n / 1024 / 1024).toFixed(1) + " MB";
   }
   function hideLoading(){ loadingOverlay.classList.remove("show"); }
   function setStatus(text){ statusLine.textContent = text || ""; }
@@ -1565,7 +1972,14 @@
   // ---------- 이미지 → 캔버스 (회전 반영) → PNG/JPEG bytes ----------
   var PT_PER_PX = 72 / 150; // 150dpi 기준으로 픽셀 크기를 PDF 포인트로 환산
   var TARGET_LONG_EDGE_PT = 1000; // 이보다 크면 비율을 유지한 채 줄임(원본 화질은 이미지 자체 해상도로 유지)
+  var A4 = { w: 595.28, h: 841.89 }; // A4 = 210 × 297mm
+  var A4_MARGIN = 24;                // 약 8.5mm — 프린터가 인쇄하지 못하는 가장자리를 피하는 여백
+  var DPI_OPTIMIZED = 150;           // "용량 최적화"에서 페이지 크기 대비 넣을 최대 해상도
 
+  // 아주 작은 이미지도 페이지가 너무 작아지지 않게 긴 변을 최소 18pt(약 6mm)로 맞춘다.
+  // (PDF 규격상 한계는 3pt지만, 32×32 아이콘이 15pt·1×1이 0.48pt짜리 페이지가 되면 뷰어에서
+  //  열기조차 어색해서 여유를 둔 값이다.)
+  var MIN_PAGE_PT = 18;
   function pageSizeFor(wPx, hPx){
     var w = wPx * PT_PER_PX;
     var h = hPx * PT_PER_PX;
@@ -1573,53 +1987,201 @@
     if (long > TARGET_LONG_EDGE_PT){
       var scale = TARGET_LONG_EDGE_PT / long;
       w *= scale; h *= scale;
+    } else if (long > 0 && long < MIN_PAGE_PT){
+      var up = MIN_PAGE_PT / long;
+      w *= up; h *= up;
     }
-    return { w: w, h: h };
+    return { w: Math.max(w, 1), h: Math.max(h, 1) };
   }
 
-  function rasterize(item, quality){
+  // 이미지 한 장이 어떤 페이지 위에 어디에 얼마 크기로 놓일지 계산한다.
+  // - "이미지 크기" 모드: 지금까지와 같이 이미지 비율 그대로의 페이지를 만들고 가득 채운다.
+  // - "A4" 모드: 페이지를 A4(가로 이미지는 가로 A4)로 고정하고 여백 안에 가운데로 놓는다.
+  //   A4보다 작은 이미지는 억지로 늘리지 않는다(32px 아이콘을 A4로 늘리면 흐려지기만 한다).
+  function layoutFor(item){
+    var swap = (item.rotation === 90 || item.rotation === 270);
+    var wPx = swap ? item.natH : item.natW;
+    var hPx = swap ? item.natW : item.natH;
+    if (pageSizeMode === "a4"){
+      var landscape = wPx > hPx;
+      var pw = landscape ? A4.h : A4.w;
+      var ph = landscape ? A4.w : A4.h;
+      var availW = pw - A4_MARGIN * 2, availH = ph - A4_MARGIN * 2;
+      var natW = wPx * PT_PER_PX, natH = hPx * PT_PER_PX;
+      var scale = Math.min(1, availW / natW, availH / natH);
+      var dw = natW * scale, dh = natH * scale;
+      return { pageW: pw, pageH: ph, x: (pw - dw) / 2, y: (ph - dh) / 2, w: dw, h: dh, wPx: wPx, hPx: hPx };
+    }
+    var size = pageSizeFor(wPx, hPx);
+    return { pageW: size.w, pageH: size.h, x: 0, y: 0, w: size.w, h: size.h, wPx: wPx, hPx: hPx };
+  }
+
+  // 투명한 픽셀이 하나라도 있는지 확인한다. 예전에는 확장자만 보고(PNG·GIF·WebP면) 무조건 무손실
+  // PNG로 넣어서, "용량 최적화"를 골라도 PNG 사진은 결과가 1바이트도 줄지 않았다. 투명이 없으면
+  // JPG로 압축해도 잃는 게 없으므로 실제 픽셀을 확인해서 정한다(한 번에 다 읽지 않고 가로줄 단위로
+  // 읽어 큰 이미지에서도 메모리를 많이 쓰지 않는다).
+  function hasTransparency(canvas){
+    var ctx = canvas.getContext("2d");
+    if (!ctx) return true;
+    var band = 256;
+    for (var y = 0; y < canvas.height; y += band){
+      var hh = Math.min(band, canvas.height - y);
+      var data = ctx.getImageData(0, y, canvas.width, hh).data;
+      for (var i = 3; i < data.length; i += 4){
+        if (data[i] !== 255) return true;
+      }
+    }
+    return false;
+  }
+
+  // EXIF의 회전 정보(Orientation) 읽기 — 1(회전 없음)이 아니면 원본 바이트를 그대로 넣으면 안 된다
+  // (PDF는 EXIF를 보지 않아서 사진이 옆으로 누운 채 들어간다).
+  function readExifOrientation(bytes, segStart, segEnd){
+    try {
+      if (segEnd - segStart < 14) return 0;
+      if (!(bytes[segStart] === 0x45 && bytes[segStart+1] === 0x78 && bytes[segStart+2] === 0x69 && bytes[segStart+3] === 0x66)) return 0; // "Exif"
+      var tiff = segStart + 6;
+      var le = bytes[tiff] === 0x49 && bytes[tiff+1] === 0x49;
+      function u16(at){ return le ? (bytes[at] | (bytes[at+1] << 8)) : ((bytes[at] << 8) | bytes[at+1]); }
+      function u32(at){ return le ? (bytes[at] | (bytes[at+1] << 8) | (bytes[at+2] << 16) | (bytes[at+3] << 24)) : ((bytes[at] << 24) | (bytes[at+1] << 16) | (bytes[at+2] << 8) | bytes[at+3]); }
+      if (u16(tiff + 2) !== 42) return 0;
+      var ifd = tiff + u32(tiff + 4);
+      if (ifd + 2 > segEnd) return 0;
+      var count = u16(ifd);
+      for (var i = 0; i < count; i++){
+        var entry = ifd + 2 + i * 12;
+        if (entry + 12 > segEnd) break;
+        if (u16(entry) === 0x0112) return u16(entry + 8);
+      }
+      return 0;
+    } catch (e){ return 0; }
+  }
+
+  // 이 JPG를 다시 압축하지 않고 "원본 파일 바이트 그대로" PDF에 넣어도 안전한지 확인한다.
+  // 안전 조건: 베이스라인/확장 순차 JPEG(프로그레시브·산술부호화 제외), 흑백(1채널) 또는 YCbCr(3채널),
+  // Adobe APP14(CMYK/YCCK 변환) 없음, EXIF 회전 없음. 하나라도 어긋나면 null을 돌려주고
+  // 지금까지와 똑같이 캔버스에 다시 그려 넣는 경로로 간다.
+  function jpegPassthroughInfo(bytes){
+    if (bytes.length < 4 || bytes[0] !== 0xFF || bytes[1] !== 0xD8) return null;
+    var i = 2, sofFound = false, comps = 0, w = 0, h = 0, orientation = 1;
+    while (i + 3 < bytes.length){
+      if (bytes[i] !== 0xFF) return null;
+      var marker = bytes[i + 1];
+      if (marker === 0xFF){ i++; continue; }                       // 패딩
+      if (marker === 0x01 || (marker >= 0xD0 && marker <= 0xD9)){ i += 2; continue; }
+      if (marker === 0xDA) break;                                   // 스캔 시작 — 헤더 끝
+      var len = (bytes[i + 2] << 8) | bytes[i + 3];
+      if (len < 2) return null;
+      var segStart = i + 4, segEnd = i + 2 + len;
+      if (segEnd > bytes.length) return null;
+      if (marker === 0xC0 || marker === 0xC1){                      // SOF0/SOF1
+        h = (bytes[segStart + 1] << 8) | bytes[segStart + 2];
+        w = (bytes[segStart + 3] << 8) | bytes[segStart + 4];
+        comps = bytes[segStart + 5];
+        sofFound = true;
+      } else if (marker >= 0xC2 && marker <= 0xCF && marker !== 0xC4 && marker !== 0xC8 && marker !== 0xCC){
+        return null;                                                // 프로그레시브·무손실·산술부호화 등
+      } else if (marker === 0xEE){
+        return null;                                                // Adobe APP14 (CMYK/YCCK 가능성)
+      } else if (marker === 0xE1){
+        var ori = readExifOrientation(bytes, segStart, segEnd);
+        if (ori) orientation = ori;
+      }
+      i = segEnd;
+    }
+    if (!sofFound || (comps !== 1 && comps !== 3)) return null;
+    if (orientation !== 1) return null;
+    return { width: w, height: h };
+  }
+
+  // 캔버스에 (회전 반영해서) 다시 그린 뒤 PNG/JPG 바이트로 만든다.
+  // "용량 최적화"에서는 페이지에 놓이는 실제 크기 기준 150dpi를 넘는 픽셀은 의미가 없으므로 줄인다
+  // (1200만 화소 사진 12장이 69.8MB → 15MB). "고화질"은 사용자가 고른 그대로 원본 해상도를 유지한다.
+  function rasterize(item, quality, layout){
     return new Promise(function(resolve, reject){
-      var rot = item.rotation;
-      var swap = (rot === 90 || rot === 270);
-      var w = swap ? item.natH : item.natW;
-      var h = swap ? item.natW : item.natH;
+      var optimized = quality < 0.9;
+      var wPx = layout.wPx, hPx = layout.hPx;
+      var scale = 1;
+      if (optimized){
+        var maxLongPx = Math.max(layout.w, layout.h) / 72 * DPI_OPTIMIZED;
+        scale = Math.min(1, maxLongPx / Math.max(wPx, hPx));
+      }
+      var w = Math.max(1, Math.round(wPx * scale));
+      var h = Math.max(1, Math.round(hPx * scale));
       var canvas = document.createElement("canvas");
       canvas.width = w;
       canvas.height = h;
       var ctx = canvas.getContext("2d");
+      if (!ctx){ reject(new Error("이미지를 변환하지 못했어요.")); return; }
+      ctx.imageSmoothingQuality = "high";
       ctx.save();
       ctx.translate(w / 2, h / 2);
-      ctx.rotate(rot * Math.PI / 180);
-      ctx.drawImage(item.img, -item.natW / 2, -item.natH / 2, item.natW, item.natH);
+      ctx.rotate(item.rotation * Math.PI / 180);
+      var dw = item.natW * scale, dh = item.natH * scale;
+      ctx.drawImage(item.img, -dw / 2, -dh / 2, dw, dh);
       ctx.restore();
 
-      var srcType = item.file.type;
-      var useAlpha = (srcType === "image/png" || srcType === "image/gif" || srcType === "image/webp");
+      var name = (item.file.name || "").toLowerCase();
+      var srcType = (item.file.type || "").toLowerCase();
+      var mayHaveAlpha = /png|gif|webp|avif/.test(srcType) || /\.(png|gif|webp|avif)$/.test(name);
+      var isJpegSrc = srcType.indexOf("jpeg") !== -1 || srcType.indexOf("jpg") !== -1 || /\.jpe?g$/.test(name);
+      // 고화질: JPG 원본만 JPG로 넣고(이미 JPG 압축된 사진이라 성격이 같다), PNG·BMP·GIF·WebP·AVIF
+      //   처럼 원본이 무손실이거나 투명을 가질 수 있는 형식은 무손실 PNG로 넣는다 — 예전에는 BMP가
+      //   고화질에서도 JPG로 바뀌어 무손실 원본의 화질을 잃었다.
+      // 용량 최적화: 실제로 투명한 부분이 있을 때만 PNG를 유지하고, 없으면 JPG로 압축한다.
+      var useAlpha = optimized ? (mayHaveAlpha && hasTransparency(canvas)) : !isJpegSrc;
       var mime = useAlpha ? "image/png" : "image/jpeg";
       canvas.toBlob(function(blob){
         if (!blob){ reject(new Error("이미지를 변환하지 못했어요.")); return; }
         blob.arrayBuffer().then(function(buf){
-          resolve({ bytes: new Uint8Array(buf), isPng: useAlpha, wPx: w, hPx: h });
-        });
+          resolve({ bytes: new Uint8Array(buf), isPng: useAlpha, raw: false });
+        }).catch(reject);
       }, mime, useAlpha ? undefined : quality);
     });
   }
 
-  function drawItemOnNewPage(pdfDoc, embedded, wPx, hPx){
-    var size = pageSizeFor(wPx, hPx);
-    var page = pdfDoc.addPage([size.w, size.h]);
-    page.drawImage(embedded, { x: 0, y: 0, width: size.w, height: size.h });
+  // 고화질 + 회전 안 함 + 안전한 JPG일 때는 원본 파일 바이트를 그대로 넣는다(화질 손실 0, 더 빠름).
+  // 조건에 하나라도 어긋나면 rasterize()로 지금까지와 똑같이 처리한다.
+  function bytesForItem(item, quality, layout){
+    var name = (item.file.name || "").toLowerCase();
+    var srcType = (item.file.type || "").toLowerCase();
+    var isJpeg = srcType.indexOf("jpeg") !== -1 || srcType.indexOf("jpg") !== -1 || /\.jpe?g$/.test(name);
+    if (quality >= 0.9 && item.rotation === 0 && isJpeg){
+      return item.file.arrayBuffer().then(function(buf){
+        var bytes = new Uint8Array(buf);
+        var info = jpegPassthroughInfo(bytes);
+        if (info && info.width === item.natW && info.height === item.natH){
+          return { bytes: bytes, isPng: false, raw: true };
+        }
+        return rasterize(item, quality, layout);
+      }).catch(function(){
+        return rasterize(item, quality, layout);
+      });
+    }
+    return rasterize(item, quality, layout);
   }
 
-  function buildPdfForItems(list, quality){
+  function buildPdfForItems(list, quality, onProgress){
     return PDFLib.PDFDocument.create().then(function(pdfDoc){
       var chain = Promise.resolve();
-      list.forEach(function(item){
+      list.forEach(function(item, idx){
         chain = chain.then(function(){
-          return rasterize(item, quality).then(function(r){
-            var embedPromise = r.isPng ? pdfDoc.embedPng(r.bytes) : pdfDoc.embedJpg(r.bytes);
-            return embedPromise.then(function(embedded){
-              drawItemOnNewPage(pdfDoc, embedded, r.wPx, r.hPx);
+          if (onProgress) onProgress(idx / list.length);
+          var layout = layoutFor(item);
+          return bytesForItem(item, quality, layout).then(function(r){
+            function embed(bytes, isPng){
+              return isPng ? pdfDoc.embedPng(bytes) : pdfDoc.embedJpg(bytes);
+            }
+            return embed(r.bytes, r.isPng).catch(function(err){
+              // 원본 바이트를 그대로 넣으려다 pdf-lib이 거부하면(드문 변형 JPG) 다시 그려서 넣는다.
+              if (!r.raw) throw err;
+              console.warn("원본 JPG를 그대로 넣지 못해 다시 그려서 넣어요", err);
+              return rasterize(item, quality, layout).then(function(r2){ return embed(r2.bytes, r2.isPng); });
+            }).then(function(embedded){
+              var page = pdfDoc.addPage([layout.pageW, layout.pageH]);
+              page.drawImage(embedded, { x: layout.x, y: layout.y, width: layout.w, height: layout.h });
+              if (onProgress) onProgress((idx + 1) / list.length);
+              return nextFrame();
             });
           });
         });
@@ -1629,8 +2191,11 @@
   }
 
   // ---------- 다운로드 ----------
+  // 사용자가 "보고서.pdf"처럼 확장자까지 적어도 "보고서.pdf.pdf"가 되지 않게 끝의 .pdf/.zip을 뗀다.
   function safeFileName(name){
-    return (name || "이미지").replace(/[\\/:*?"<>|]/g, "_").trim() || "이미지";
+    var v = (name || "이미지").replace(/[\\/:*?"<>|]/g, "_").trim();
+    v = v.replace(/\.(pdf|zip)$/i, "").trim();
+    return v || "이미지";
   }
 
   function downloadBlob(blob, filename){
@@ -1641,7 +2206,7 @@
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 10000);
     if (window.incrementSseobomDownload) window.incrementSseobomDownload();
   }
 
@@ -1656,53 +2221,73 @@
   }
 
   downloadBtn.addEventListener("click", function(){
-    if (!items.length) return;
+    if (!items.length || busy) return;
     var quality = parseFloat(qualityValue) || 0.92;
     var baseName = safeFileName(filenameInput.value);
 
+    busy = true;
     downloadBtn.disabled = true;
     setStatus("");
 
+    function finish(){
+      busy = false;
+      downloadBtn.disabled = false;
+    }
+
     if (mode === "merge" || items.length === 1){
-      showLoading("PDF를 만드는 중...");
-      buildPdfForItems(items, quality).then(function(bytes){
+      // 예전에는 합치기 모드에 진행률이 아예 없어서, 사진 12장(16초)이면 멈춘 것처럼 보였다.
+      showLoading(items.length > 1 ? ("PDF를 만드는 중... (" + items.length + "장)") : "PDF를 만드는 중...");
+      setPercent(0);
+      buildPdfForItems(items, quality, function(frac){ setPercent(frac); }).then(function(bytes){
+        var blob = new Blob([bytes], { type: "application/pdf" });
+        var name = baseName + ".pdf";
         hideLoading();
-        downloadBlob(new Blob([bytes], { type: "application/pdf" }), baseName + ".pdf");
-        setStatus("PDF 다운로드가 시작됐어요.");
+        downloadBlob(blob, name);
+        setStatus('완료! "' + name + '" (' + formatSize(blob.size) + ') 다운로드를 시작했어요.');
       }).catch(function(err){
         hideLoading();
         console.error(err);
-        setStatus("PDF를 만드는 중 문제가 생겼어요. 다시 시도해 주세요.");
-      }).finally(function(){ downloadBtn.disabled = false; });
+        setStatus("");
+        showAlert("PDF를 만드는 중 문제가 생겼어요.\n이미지가 너무 크면 일부 브라우저에서 실패할 수 있어요 — '용량 최적화'로 다시 시도해보세요.");
+      }).finally(finish);
       return;
     }
 
     // separate 모드 + 이미지 2장 이상 → 파일별 PDF를 zip으로 묶어서 다운로드
     showLoading("이미지 " + items.length + "장을 PDF로 변환하는 중...");
+    setPercent(0);
     var zip = new JSZip();
     var used = {};
     var chain = Promise.resolve();
+    var total = items.length;
     items.forEach(function(item, idx){
       chain = chain.then(function(){
-        showLoading("PDF 변환 중 (" + (idx + 1) + " / " + items.length + ")");
-        return buildPdfForItems([item], quality).then(function(bytes){
+        showLoading("PDF 변환 중 (" + (idx + 1) + " / " + total + ")", true);
+        return buildPdfForItems([item], quality, function(frac){
+          setPercent((idx + frac) / (total + 1)); // 마지막 한 칸은 zip으로 묶는 단계
+        }).then(function(bytes){
           var name = uniqueName(safeFileName(item.baseName), used) + ".pdf";
           zip.file(name, bytes);
+          setPercent((idx + 1) / (total + 1));
         });
       });
     });
     chain.then(function(){
-      showLoading("zip 파일로 묶는 중...");
-      return zip.generateAsync({ type: "blob" });
+      showLoading("zip 파일로 묶는 중...", true);
+      return zip.generateAsync({ type: "blob" }, function(meta){
+        setPercent((total + meta.percent / 100) / (total + 1));
+      });
     }).then(function(zipBlob){
+      var name = baseName + ".zip";
       hideLoading();
-      downloadBlob(zipBlob, baseName + ".zip");
-      setStatus("zip 다운로드가 시작됐어요. 안에 PDF " + items.length + "개가 들어있어요.");
+      downloadBlob(zipBlob, name);
+      setStatus('완료! "' + name + '" (' + formatSize(zipBlob.size) + ', PDF ' + total + '개) 다운로드를 시작했어요.');
     }).catch(function(err){
       hideLoading();
       console.error(err);
-      setStatus("변환 중 문제가 생겼어요. 다시 시도해 주세요.");
-    }).finally(function(){ downloadBtn.disabled = false; });
+      setStatus("");
+      showAlert("변환 중 문제가 생겼어요.\n이미지가 너무 크면 일부 브라우저에서 실패할 수 있어요 — '용량 최적화'로 다시 시도해보세요.");
+    }).finally(finish);
   });
 
   // 이미지가 하나라도 올라와 있는 상태에서 창/탭을 닫거나 새로고침하면 변경사항을 잃을 수 있으니 확인창을 띄운다.
