@@ -302,6 +302,11 @@
     cursor:pointer;
     transition:border-color .15s ease, background .15s ease;
   }
+  /* 키보드로 이 영역에 왔을 때 어디에 있는지 보여준다(마우스 hover와 같은 색). */
+  .dropzone:focus-visible{
+    outline:2px solid var(--accent);
+    outline-offset:3px;
+  }
   .dropzone:hover, .dropzone.dragover{
     border-color:var(--accent);
     background:var(--accent-dim);
@@ -394,9 +399,23 @@
     display:flex; align-items:center; justify-content:center;
     padding:20px;
     opacity:0; pointer-events:none;
-    transition:opacity .12s ease;
+    /* opacity·pointer-events만으로 숨기면 안에 있는 버튼이 계속 Tab 순서에 남는다 —
+       업로드 전에 Tab을 누르면 보이지 않는 "취소·확인·‹·›·닫기" 다섯 곳으로 포커스가
+       빨려 들어갔다. visibility:hidden이면 Tab 순서에서 빠지고, display:none과 달리
+       레이아웃은 남아서 확대 보기의 크기 계산도 그대로 동작한다. */
+    visibility:hidden;
+    /* visibility를 그냥 전환하면 값이 전환 중간(60ms 뒤)에 바뀌어서, .show를 켠 직후에는
+       아직 hidden이다. visibility:hidden인 요소는 포커스를 줄 수 없어서 창을 열며 호출한
+       focus()가 조용히 실패했다(대화상자 선언만 있고 포커스는 뒤에 남는 상태). 그래서
+       보일 때는 0초로 즉시, 숨길 때는 사라지는 애니메이션이 끝난 뒤에 바뀌도록 나눈다. */
+    transition:opacity .12s ease, visibility 0s linear .12s;
   }
-  .modal-overlay.show{opacity:1; pointer-events:auto;}
+  .modal-overlay.show{
+    opacity:1;
+    pointer-events:auto;
+    visibility:visible;
+    transition:opacity .12s ease, visibility 0s linear 0s;
+  }
   .modal-box{
     background:var(--card);
     border:1px solid var(--card-border);
@@ -928,10 +947,10 @@
     </div>
   </div>
 
-  <div class="dropzone" id="dropzone">
+  <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-describedby="dropzoneHint" aria-label="이미지 파일 선택 — 여러 장 한 번에 가능">
     <div class="icon">🖼️</div>
     <div class="main-txt">이미지를 여기로 끌어다 놓거나 클릭해서 올리세요</div>
-    <div class="sub-txt">JPG · PNG · WebP · AVIF · GIF · BMP 지원 · 여러 장을 한 번에 선택할 수 있어요</div>
+    <div class="sub-txt" id="dropzoneHint">JPG · PNG · WebP · AVIF · GIF · BMP 지원 · 여러 장을 한 번에 선택할 수 있어요</div>
     <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp,image/avif,image/gif,image/bmp,image/x-ms-bmp,.jpg,.jpeg,.png,.webp,.avif,.gif,.bmp" multiple>
   </div>
 
@@ -990,7 +1009,7 @@
     <div class="loading-text" id="loadingText">처리하는 중...</div>
   </div>
 
-  <div class="modal-overlay" id="confirmModal">
+  <div class="modal-overlay" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmMessage">
     <div class="modal-box">
       <p class="modal-message" id="confirmMessage"></p>
       <div class="modal-actions">
@@ -1000,7 +1019,7 @@
     </div>
   </div>
 
-  <div class="modal-overlay" id="lightbox">
+  <div class="modal-overlay" id="lightbox" role="dialog" aria-modal="true" tabindex="-1" aria-label="이미지 확대 보기">
     <div class="modal-box lightbox-box">
       <div class="lightbox-row">
         <button class="ghost lightbox-nav" id="lightboxPrev" type="button" title="이전 이미지 (←)">‹</button>
@@ -1017,7 +1036,7 @@
   <footer class="note">
     <div>써봄 · 브라우저에서 끝나는 파일 도구</div>
     <div class="copyright"><span class="mark">ⓒ 2026</span> <span class="name">고윤태</span> · <a href="https://yuntaeko.com/" target="_blank" rel="noopener">yuntaeko.com</a> — 정성을 담아 제작한 도구입니다. 무단 도용 및 출처 표기 없는 재배포를 금지합니다.</div>
-    <div class="updated">업데이트 · 2026. 9. 12.</div>
+    <div class="updated">업데이트 · 2026. 9. 13.</div>
   </footer>
 </div>
 
@@ -1162,16 +1181,31 @@
     confirmCancelBtn.textContent = opts.cancelLabel || "취소";
     confirmModal.classList.add("show");
     openModals++;
+    confirmOpener = document.activeElement;
+    // 이 창은 스페이스바 단축키가 없어서 버튼에 포커스를 줘도 안전하다 — 확인 버튼에
+    // 주면 문구가 읽히고 곧바로 Enter로 진행할 수 있다.
+    confirmOkBtn.focus();
     return new Promise(function(resolve){ confirmResolve = resolve; });
   }
+  var confirmOpener = null;
   function closeConfirm(result){
     if (!confirmModal.classList.contains("show")) return;
     confirmModal.classList.remove("show");
     openModals = Math.max(0, openModals - 1);
+    if (confirmOpener && document.contains(confirmOpener) && confirmOpener.focus){
+      try { confirmOpener.focus(); } catch(err){}
+    }
+    confirmOpener = null;
     var r = confirmResolve;
     confirmResolve = null;
     if (r) r(result);
   }
+  // 취소 ↔ 확인 두 개 사이에서만 Tab이 돌게 한다.
+  confirmModal.addEventListener("keydown", function(e){
+    if (e.key !== "Tab") return;
+    e.preventDefault();
+    (document.activeElement === confirmOkBtn ? confirmCancelBtn : confirmOkBtn).focus();
+  });
   confirmOkBtn.addEventListener("click", function(){ closeConfirm(true); });
   confirmCancelBtn.addEventListener("click", function(){ closeConfirm(false); });
   confirmModal.addEventListener("mousedown", function(e){ if (e.target === confirmModal) closeConfirm(false); });
@@ -1185,12 +1219,19 @@
     if (text != null) e.textContent = text;
     return e;
   }
+  var alertSeq = 0;
   function showAlert(message, opts){
     opts = opts || {};
     return new Promise(function(resolve){
       var overlay = el("div", "modal-overlay");
+      overlay.setAttribute("role", "dialog");
+      overlay.setAttribute("aria-modal", "true");
       var box = el("div", "modal-box");
-      box.appendChild(el("p", "modal-message", message));
+      var msgEl = el("p", "modal-message", message);
+      // 창 이름으로 안내 문구 자체를 쓴다 — 열리는 순간 무슨 안내인지 바로 읽힌다.
+      msgEl.id = "alertMessage" + (++alertSeq);
+      overlay.setAttribute("aria-labelledby", msgEl.id);
+      box.appendChild(msgEl);
       var actions = el("div", "modal-actions");
       var okBtn = el("button", "primary", opts.okLabel || "확인");
       okBtn.type = "button";
@@ -1238,6 +1279,16 @@
   // 파일 선택 창이 두 번 열리던 문제를 막는다(다른 도구와 같은 가드).
   dropzone.addEventListener("click", function(e){
     if (e.target === fileInput) return;
+    if (busy) return;
+    fileInput.click();
+  });
+  // 숨긴 file input은 display:none이라 포커스를 받을 수 없다 — 그래서 이 영역이
+  // Tab 순서에 없으면 키보드만으로는 파일을 올릴 방법이 아예 없었다(업로드 전 Tab
+  // 순서가 "돌아가기 → 사용법 보기 → 푸터 링크" 셋뿐이었다). 이 영역을 버튼으로
+  // 알리고 Enter·Space를 직접 받아준다. Space는 기본 동작이 페이지 스크롤이라 막는다.
+  dropzone.addEventListener("keydown", function(e){
+    if (e.key !== "Enter" && e.key !== " " && e.key !== "Spacebar") return;
+    e.preventDefault();
     if (busy) return;
     fileInput.click();
   });
@@ -1944,8 +1995,19 @@
     lightboxImg.src = item.rotation ? rotatedPreviewUrl(item) : item.url;
     lightboxMeta.textContent = (i + 1) + " / " + items.length + " · " + item.file.name + " · " +
       item.natW + " × " + item.natH + "px" + (item.rotation ? " · " + item.rotation + "° 회전 적용됨" : "");
+    // 방금 누른 ‹ 나 › 가 양 끝에서 비활성되면 브라우저가 그 버튼에서 포커스를 놓아
+    // BODY로 떨어뜨린다. 그 순간엔 포커스가 창 밖이라 Tab 가두기가 걸리지 않는다(다음
+    // Tab이 어디로 갈지는 브라우저마다 다르다) — 창으로 되돌려 놓는다.
+    // 판정은 "비활성된 요소에 포커스가 있는지"로 하면 안 된다: disabled를 켜는 순간
+    // 브라우저가 이미 포커스를 옮겨버려서 activeElement가 BODY이고, BODY.disabled는
+    // undefined라 조건이 성립하지 않는다. "직전엔 창 안이었는데 지금은 밖"으로 본다.
+    var hadFocusInside = lightbox.contains(document.activeElement);
     lightboxPrev.disabled = (i <= 0);
     lightboxNext.disabled = (i >= items.length - 1);
+    if (lightbox.classList.contains("show") && hadFocusInside &&
+        !lightbox.contains(document.activeElement)){
+      lightbox.focus();
+    }
   }
   // 확대한 채로 다음·이전 이미지를 넘겨본다(‹ › 버튼과 방향키). 닫고 다시 열지 않아도 여러 장을 훑을 수 있다.
   function moveLightbox(delta){
@@ -1954,13 +2016,32 @@
     if (next < 0 || next >= items.length) return;
     renderLightbox(next);
   }
+  var lightboxOpener = null; // 닫을 때 포커스를 돌려줄 요소(키보드 사용자용)
   function openLightbox(id){
     var i = findIndex(id);
     if (i < 0) return;
+    lightboxOpener = document.activeElement;
     renderLightbox(i);
     lightbox.classList.add("show");
     openModals++;
+    // aria-modal="true"라고 선언했으면 포커스도 창 안에 있어야 한다 — 아니면 화면 읽기
+    // 프로그램이 창이 열린 걸 알리지 못하고 Tab이 창 뒤의 카드 버튼들로 계속 나간다.
+    // 버튼이 아니라 창 자체에 준다: ‹ ›는 양 끝에서 비활성이 되고, 방향키·Esc는 문서
+    // 단축키라서, 특정 버튼에 포커스를 주면 그 버튼이 키를 가로챌 수 있다.
+    lightbox.focus();
   }
+  // Tab을 창 안에서만 돌린다. ‹ ›는 양 끝에서 disabled가 되므로 그때그때 걸러낸다.
+  lightbox.addEventListener("keydown", function(e){
+    if (e.key !== "Tab") return;
+    var items = [lightboxPrev, lightboxNext, lightboxCloseBtn].filter(function(b){ return !b.disabled; });
+    if (!items.length) return;
+    var i = items.indexOf(document.activeElement);
+    e.preventDefault();
+    var next = e.shiftKey
+      ? (i <= 0 ? items.length - 1 : i - 1)
+      : (i === -1 || i === items.length - 1 ? 0 : i + 1);
+    items[next].focus();
+  });
   lightboxPrev.addEventListener("click", function(){ moveLightbox(-1); });
   lightboxNext.addEventListener("click", function(){ moveLightbox(1); });
   function closeLightbox(){
@@ -1969,6 +2050,11 @@
     lightboxImg.src = "";  // 회전 미리보기로 만든 큰 data URL을 붙잡아두지 않는다
     lightboxIndex = -1;
     openModals = Math.max(0, openModals - 1);
+    // 키보드로 열었으면 눌렀던 돋보기 버튼으로 돌려준다(안 그러면 Tab이 페이지 처음으로 튄다).
+    if (lightboxOpener && document.contains(lightboxOpener) && lightboxOpener.focus){
+      try { lightboxOpener.focus(); } catch(err){}
+    }
+    lightboxOpener = null;
   }
   lightboxCloseBtn.addEventListener("click", closeLightbox);
   lightbox.addEventListener("click", function(e){ if (e.target === lightbox) closeLightbox(); });
