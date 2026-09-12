@@ -307,8 +307,6 @@
   .help-desc b{color:var(--text); font-weight:700;}
   .help-item-wide{ grid-column:1 / -1; }
   .help-item-wide .help-key{ white-space:normal; line-height:1.5; }
-  .help-key .mini-zoom{ display:inline-flex; }
-  .help-key .mini-zoom svg{ width:11px; height:11px; flex:none; }
 
   .dropzone{
     border:1.5px dashed var(--card-border);
@@ -371,6 +369,7 @@
     color:#fff;
     border-radius:999px;
     padding:8px 14px;
+    white-space:nowrap; /* "다운 / 로드"로 쪼개지던 문제 */
   }
   a.dl-btn:hover{ opacity:.92; }
   a.dl-btn.disabled{
@@ -448,6 +447,13 @@
     background:
       linear-gradient(45deg, #0000 25%, rgba(120,120,120,.15) 25%, rgba(120,120,120,.15) 50%, #0000 50%, #0000 75%, rgba(120,120,120,.15) 75%) 0 0/16px 16px;
   }
+  .file-info .thumb-wrap.open .thumb-zoom{
+    opacity:1;
+    visibility:visible;
+    transform:translateY(0);
+    pointer-events:auto; /* 확대 창 안을 눌러도 "바깥 클릭"으로 닫히지 않게 */
+  }
+  .file-info .thumb-wrap.open .thumb{ cursor:zoom-out; }
   .file-info .thumb-wrap:hover .thumb-zoom{
     opacity:1;
     visibility:visible;
@@ -486,8 +492,8 @@
     margin-right:auto;
   }
   .original-badge b{ color:var(--text); font-weight:700; }
-  /* 출력 형식(PNG/JPEG/WEBP/AVIF) 토글 — 기본값은 업로드한 파일의 실제 형식을 그대로
-     따른다(아래 detectDefaultFormat 참고: PNG로 올리면 PNG가 기본 선택됨 — 사용자
+  /* 출력 형식(PNG/JPEG/WEBP) 토글 — 기본값은 업로드한 파일의 실제 형식을 그대로
+     따른다(아래 detectInputKind 참고: PNG로 올리면 PNG가 기본 선택됨 — 사용자
      동의 없이 다른 형식으로 바뀌지 않음). 사용자가 직접 토글을 눌러야만 형식이
      바뀐다. 처음엔 버튼의 실제 렌더링 폭을 JS(offsetWidth/offsetLeft)로 재서 슬라이드
      위치를 잡았는데, 실제 화면에서 알약이 찌그러져 보인다는 피드백을 받음 — 레이아웃이
@@ -496,7 +502,10 @@
      퍼센트 + transform 방식, JS 측정 없음)과 완전히 동일한 패턴으로 교체함 — 폭을
      항상 정확히 1/N씩 나누고 활성 상태에 따라 클래스 하나만 토글해서 위치를 옮기므로
      절대 어긋나지 않는다(세그먼트가 N개일 때 width:calc(100%/N - 6px/N), 이동은
-     translateX(k*100%)로 일반화됨 — 4택이라 PNG=0%, JPEG=100%, WEBP=200%, AVIF=300%). */
+     translateX(k*100%)로 일반화됨 — 3택이라 PNG=0%, JPEG=100%, WEBP=200%).
+     AVIF는 어느 브라우저도 캔버스 인코딩을 지원하지 않아 모든 사용자에게 항상 회색
+     버튼이었다 — 2026-09-12에 출력 형식에서 제거함(AVIF 파일을 올려서 압축하는 것은
+     그대로 된다. 저장만 다른 형식으로 나간다). */
   .format-toggle-group{
     display:inline-flex;
     align-items:center;
@@ -516,13 +525,13 @@
     border:1px solid var(--card-border);
     border-radius:999px;
     padding:3px;
-    width:304px;
+    width:228px;
   }
   .format-indicator{
     position:absolute;
     top:3px;
     left:3px;
-    width:calc(25% - 1.5px);
+    width:calc(100%/3 - 2px);
     height:calc(100% - 6px);
     background:var(--accent);
     border-radius:999px;
@@ -530,12 +539,10 @@
     transform:translateX(0%);
     transition:transform .26s cubic-bezier(.4,0,.2,1);
   }
-  /* 순서는 PNG(0%) / JPEG(100%) / WEBP(200%) / AVIF(300%) — WEBP가 PNG·JPEG 사이에
-     끼어있으면 자주 쓰는 두 형식(PNG/JPEG)이 떨어져 보인다는 피드백을 반영해 WEBP를
-     뒤로 뺐고, 가장 최근에 추가된 AVIF는 맨 끝에 둠. */
+  /* 순서는 PNG(0%) / JPEG(100%) / WEBP(200%) — WEBP가 PNG·JPEG 사이에 끼어있으면
+     자주 쓰는 두 형식(PNG/JPEG)이 떨어져 보인다는 피드백을 반영해 WEBP를 뒤로 뺐다. */
   .format-track.jpeg-active .format-indicator{ transform:translateX(100%); }
   .format-track.webp-active .format-indicator{ transform:translateX(200%); }
-  .format-track.avif-active .format-indicator{ transform:translateX(300%); }
   .format-seg{
     position:relative;
     z-index:1;
@@ -575,53 +582,81 @@
     gap:12px;
   }
   .result-card{
+    /* 카드 안에는 "최상 화질 + 38% 감소" 한 줄, "12.5 KB 품질 92%" 한 줄, 그리고
+       다운로드 + 공유 버튼이 들어간다. 140px로는 이 셋이 전부 모자라서 배지가 카드
+       밖으로 삐져나오고 버튼 글자가 "다운 / 로드"로 쪼개졌다(500px 화면에서 3열이
+       될 때 카드가 145px까지 좁아졌다). 최소 폭을 내용에 맞춰 올린다. */
     flex:0 1 176px;
-    min-width:140px;
+    min-width:164px;
     max-width:176px;
     background:var(--card);
     border:1px solid var(--card-border);
     border-radius:var(--radius);
-    padding:14px 16px;
+    /* 좌우 여백 16 → 12px: 카드 폭(176px)을 키우면 데스크톱에서 한 줄에 5장이 들어가지
+       않으므로(176×5+간격48=928이 980폭에 딱 맞는다), 폭은 두고 내용 폭을 144→152px로
+       넓혀 "최상 화질 + 38% 감소"가 한 줄에 들어가게 한다. */
+    padding:14px 12px;
     display:flex;
     flex-direction:column;
     gap:10px;
   }
-  .result-card .fmt-row{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:8px;
-  }
-  .result-card .fmt-label{
-    font-size:15px;
-    font-weight:800;
-    letter-spacing:.01em;
-  }
-  .result-card .fmt-size{
-    font-size:12.5px;
-    color:var(--text-dim);
-  }
-  .result-card .fmt-status{
-    font-size:12.5px;
-    color:var(--text-dim);
-  }
   /* ---- 압축 단계 카드 ---- */
-  .result-card.best-value{ border-color:var(--accent); }
-  /* 카드 썸네일에도 원본 썸네일과 같은 호버 확대를 붙인다. .compress-thumb-wrap 자체는
-     둥근 모서리로 체크무늬 배경을 잘라내려고 overflow:hidden을 쓰고 있어서, 그 안에
-     확대 팝업을 넣으면 같이 잘려버린다 — 그래서 overflow가 없는 별도 래퍼
-     (.compress-thumb-zoom-host)를 바깥에 하나 더 두고, 확대 팝업은 그 래퍼의 자식으로
-     둔다. 그리드에 카드가 여러 개 나란히 있어서 원본 썸네일처럼 left:0으로 고정하면
-     오른쪽 끝 카드에서 화면 밖으로 잘릴 수 있어 가운데 정렬(left:50% + translateX(-50%))로
-     둔다. */
-  .compress-thumb-zoom-host{ position:relative; }
+  /* 카드 미리보기는 "누르면 1:1 비교 창"으로 일원화했다. 예전에는 카드마다 호버 확대 팝업을
+     하나씩 달고 있었는데, 숨어 있어도 레이아웃 폭을 차지해서 화면 폭에 따라 가로 스크롤이
+     생겼고(390px·1000px에서 확인), 같은 이미지를 썸네일용·확대용으로 두 번 불러왔다.
+     360px로 줄여 보여주는 확대는 압축 흔적을 판단하는 데 도움이 되지 않기도 했다. */
   .compress-thumb-wrap{
     position:relative;
     border-radius:var(--radius-sm);
     overflow:hidden;
+    cursor:zoom-in;
     background:
       linear-gradient(45deg, #0000 25%, rgba(120,120,120,.15) 25%, rgba(120,120,120,.15) 50%, #0000 50%, #0000 75%, rgba(120,120,120,.15) 75%) 0 0/16px 16px;
   }
+  /* 미리보기는 카드가 붙은 뒤 한 장씩 채워지므로(큰 사진은 1초 가까이 걸린다) 그 사이
+     체크무늬만 남아 고장처럼 보이지 않게 한 줄 자리표시를 덮어둔다. */
+  .thumb-loading{
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:11px;
+    font-weight:600;
+    background:var(--card);
+    /* 배경까지 흐려지면 아래의 체크무늬와 깨진 이미지 표시가 비쳐 보이므로
+       투명도(opacity)가 아니라 글자 색만 깜빡이게 한다. */
+    animation:thumb-pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes thumb-pulse{ 0%,100%{ color:var(--text-dim); } 50%{ color:var(--text); } }
+  .compress-thumb-wrap:not(.loading) .thumb-loading{ display:none; }
+  /* src가 아직 없는 img는 브라우저가 깨진 이미지 아이콘과 alt 글자를 그려서 자리표시
+     위로 비친다 — 미리보기가 채워지기 전에는 아예 숨긴다(alt는 그대로 남겨 화면
+     읽기 프로그램에는 설명이 전달된다). */
+  .compress-thumb-wrap.loading .compress-thumb{ visibility:hidden; }
+  /* 카드마다 다운로드 + 공유. 공유는 브라우저 공유 기능이 있을 때만 보인다. */
+  .dl-row{
+    display:flex;
+    align-items:stretch;
+    gap:6px;
+  }
+  .dl-row a.dl-btn{ flex:1; min-width:0; }
+  .card-share-btn{
+    flex:none;
+    width:36px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:var(--card);
+    border:1px solid var(--card-border);
+    border-radius:999px;
+    color:var(--text-dim);
+    cursor:pointer;
+    padding:0;
+  }
+  .card-share-btn svg{ width:15px; height:15px; }
+  .card-share-btn:hover{ color:var(--accent); border-color:var(--accent); }
+  .card-share-btn[hidden]{ display:none; }
   .compress-thumb{
     display:block;
     width:100%;
@@ -630,78 +665,45 @@
     background:transparent;
     cursor:zoom-in;
   }
-  .compress-thumb-zoom{
-    position:absolute;
-    left:50%;
-    top:calc(100% + 10px);
-    z-index:60;
-    padding:6px;
-    background:var(--card);
-    border:1px solid var(--card-border);
-    border-radius:var(--radius-sm);
-    box-shadow:0 14px 34px rgba(0,0,0,.24);
-    opacity:0;
-    visibility:hidden;
-    transform:translate(-50%, -4px);
-    transition:opacity .14s ease, transform .14s ease, visibility .14s;
-    pointer-events:none;
-  }
-  .compress-thumb-zoom img{
-    display:block;
-    max-width:min(360px, 70vw);
-    max-height:min(360px, 60vh);
-    width:auto;
-    height:auto;
-    border-radius:calc(var(--radius-sm) - 3px);
-    background:
-      linear-gradient(45deg, #0000 25%, rgba(120,120,120,.15) 25%, rgba(120,120,120,.15) 50%, #0000 50%, #0000 75%, rgba(120,120,120,.15) 75%) 0 0/16px 16px;
-  }
-  .compress-thumb-zoom-host:hover .compress-thumb-zoom{
-    opacity:1;
-    visibility:visible;
-    transform:translate(-50%, 0);
-  }
   .compress-label-row{
     display:flex;
     align-items:center;
     justify-content:space-between;
-    gap:8px;
+    /* 두 칸이 다 nowrap이라, 폭이 모자라면 배지가 카드 밖으로 밀려 나갔다.
+       줄바꿈을 허용해서 모자랄 때는 배지가 아랫줄로 내려가게 한다. */
+    flex-wrap:wrap;
+    gap:4px 6px;
   }
   .compress-level-label{
     font-size:13.5px;
     font-weight:700;
+    white-space:nowrap; /* "최상 화질"이 "최상 화 / 질"로 쪼개지던 문제 */
   }
   .compress-reduction{
+    flex:none;
     font-size:12px;
     font-weight:700;
     color:var(--accent);
     background:var(--accent-dim);
     border-radius:999px;
-    padding:2px 9px;
+    padding:2px 8px;
     white-space:nowrap;
   }
   .compress-size-row{
     display:flex;
     align-items:baseline;
-    gap:6px;
+    flex-wrap:wrap;
+    gap:2px 6px;
   }
   .compress-size{
     font-size:16px;
     font-weight:800;
+    white-space:nowrap; /* "725.9 / KB"로 쪼개지던 문제 */
   }
   .compress-of-original{
     font-size:11.5px;
     color:var(--text-dim);
-  }
-  .spinner-sm{
-    width:14px; height:14px;
-    border-radius:50%;
-    border:2px solid var(--card-border);
-    border-top-color:var(--accent);
-    display:inline-block;
-    animation:spin .7s linear infinite;
-    vertical-align:middle;
-    margin-right:6px;
+    white-space:nowrap; /* "품질 / 92%"로 쪼개지던 문제 */
   }
   @keyframes spin{ to{ transform:rotate(360deg); } }
 
@@ -746,6 +748,142 @@
     box-shadow:0 6px 18px rgba(0,0,0,.12);
   }
 
+  /* 안내 팝업 — window.alert() 대신 쓰는 사이트 공용 모달(PDF 편집기와 같은 모양). */
+  .modal-overlay{
+    position:fixed; inset:0; z-index:10000;
+    background:rgba(0,0,0,.44);
+    display:flex; align-items:center; justify-content:center;
+    padding:20px;
+    opacity:0; pointer-events:none;
+    transition:opacity .12s ease;
+  }
+  .modal-overlay.show{opacity:1; pointer-events:auto;}
+  .modal-box{
+    background:var(--card);
+    border:1px solid var(--card-border);
+    border-radius:var(--radius);
+    box-shadow:0 16px 44px rgba(0,0,0,.28);
+    max-width:400px; width:100%;
+    padding:22px;
+    transform:translateY(6px) scale(.98);
+    transition:transform .12s ease;
+  }
+  .modal-overlay.show .modal-box{transform:translateY(0) scale(1);}
+  .modal-message{
+    font-size:14.5px;
+    line-height:1.6;
+    color:var(--text);
+    white-space:pre-line;
+    margin:0 0 18px;
+  }
+  .modal-actions{display:flex; justify-content:flex-end; gap:8px;}
+  .modal-actions button{padding:8px 16px;}
+
+  /* ---- 1:1 화질 비교 창 ----
+     압축 도구에서 정작 중요한 "압축 흔적이 눈에 보이는가"는 360px로 줄인 미리보기로는
+     알 수 없다. 원본과 압축본을 같은 위치·실제 픽셀(1:1)로 겹쳐놓고 번갈아 보여준다. */
+  .compare-overlay{
+    position:fixed; inset:0; z-index:10050;
+    background:rgba(0,0,0,.82);
+    display:none;
+    flex-direction:column;
+  }
+  .compare-overlay.show{ display:flex; }
+  .compare-topbar{
+    flex:none;
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    justify-content:center;
+    gap:10px 14px;
+    padding:12px 16px;
+    background:rgba(0,0,0,.45);
+    border-bottom:1px solid rgba(255,255,255,.12);
+  }
+  .compare-track{
+    position:relative;
+    display:grid;
+    grid-auto-flow:column;
+    grid-template-columns:repeat(2, 1fr);
+    width:max-content;
+    background:rgba(255,255,255,.14);
+    border-radius:999px;
+    padding:3px;
+  }
+  .compare-indicator{
+    position:absolute; top:3px; left:3px;
+    width:calc(50% - 3px); height:calc(100% - 6px);
+    background:#fff;
+    border-radius:999px;
+    transform:translateX(0%);
+    transition:transform .22s cubic-bezier(.4,0,.2,1);
+  }
+  .compare-track.compressed-active .compare-indicator{ transform:translateX(100%); }
+  .compare-seg{
+    position:relative; z-index:1;
+    min-width:0;
+    display:flex; align-items:center; justify-content:center;
+    background:transparent; border:0; border-radius:999px;
+    padding:7px 16px;
+    font-family:inherit; font-size:12.5px; font-weight:700;
+    color:rgba(255,255,255,.75);
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .compare-seg.active{ color:#111; cursor:default; }
+  .compare-meta{
+    font-size:12.5px;
+    color:rgba(255,255,255,.82);
+    font-variant-numeric:tabular-nums;
+  }
+  .compare-hint{
+    width:100%;
+    text-align:center;
+    font-size:12px;
+    color:rgba(255,255,255,.6);
+  }
+  .compare-stage{
+    flex:1;
+    min-height:0;
+    overflow:auto;
+    /* 이미지 끝까지 스크롤한 뒤에도 계속 굴리면 뒤에 있는 페이지가 밀려 올라간다
+       (스크롤 체이닝) — 비교 창 안에서만 움직이도록 묶는다. */
+    overscroll-behavior:contain;
+    cursor:grab;
+    -webkit-overflow-scrolling:touch;
+  }
+  .compare-stage.dragging{ cursor:grabbing; }
+  /* 이미지가 화면에 전부 들어와서 움직일 여지가 없을 때는 잡는 커서를 쓰지 않는다
+     (손으로 잡을 수 있을 것처럼 보여놓고 아무 반응이 없으면 고장으로 보인다). */
+  .compare-stage.fits{ cursor:default; }
+  .compare-inner{
+    position:relative;
+    margin:0 auto;
+  }
+  .compare-inner img{
+    -webkit-user-drag:none;
+    user-select:none;
+    position:absolute;
+    top:0; left:0;
+    display:block;
+    image-rendering:auto;
+  }
+  .compare-inner img.hidden-layer{ visibility:hidden; }
+  .compare-close{
+    position:absolute;
+    top:10px; right:12px;
+    z-index:2;
+    width:36px; height:36px;
+    border-radius:50%;
+    border:1px solid rgba(255,255,255,.3);
+    background:rgba(0,0,0,.4);
+    color:#fff;
+    font-size:15px;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+  }
+  .compare-close:hover{ background:rgba(0,0,0,.6); border-color:rgba(255,255,255,.5); }
+
   .empty-note{
     font-size:13px;
     color:var(--text-dim);
@@ -786,6 +924,22 @@
     font-size:11.5px;
     color:var(--text-dim);
   }
+
+  /* 좁은 화면 규칙(다른 도구와 같은 520px 기준). 반드시 CSS 맨 끝에 둔다 — 중간에 두면
+     뒤에 오는 같은 명시도의 규칙이 이 블록을 덮어써서 절반만 적용된다.
+     출력 형식 토글은 304px 고정 폭이라 휴대폰에서 가로 스크롤이 생겼다 → 한 줄을 통째로
+     쓰고 트랙이 화면 폭에 맞춰 늘어나게 한다(인디케이터는 25% 기준이라 그대로 맞는다). */
+  @media (max-width:520px){
+    .result-toolbar{ gap:8px; }
+    .format-toggle-group{ width:100%; flex:1 1 100%; }
+    .format-track{ width:100%; flex:1; }
+    .result-card{ flex:1 1 164px; }
+    .compress-thumb{ height:104px; }
+    .file-info{ flex-wrap:wrap; gap:12px 14px; }
+    .file-info .meta{ flex:1 1 0; }
+    .file-info .change-btn{ width:100%; }
+    .compare-seg{ padding:7px 12px; }
+  }
 </style>
 </head>
 <body>
@@ -800,10 +954,10 @@
   <header class="top">
     <div class="brand"><span class="dot"></span>써봄</div>
     <h1>이미지 용량 압축</h1>
-    <p class="sub">이미지 파일 하나를 올리면 여러 압축 단계로 한 번에 인코딩해서, 실제로 줄어드는 용량과 화질을 눈으로 비교하고 원하는 단계만 골라 받을 수 있어요. PNG·JPG·WEBP·AVIF 형식을 지원하며, 업로드한 형식 그대로 압축하거나 원하는 형식으로 바꿔서 비교할 수도 있습니다.</p>
+    <p class="sub">이미지 파일 하나를 올리면 여러 압축 단계로 한 번에 인코딩해서, 실제로 줄어드는 용량과 화질을 눈으로 비교하고 원하는 단계만 골라 받을 수 있어요. PNG·JPG·WEBP 형식을 지원하고, 업로드한 형식 그대로 압축하거나 원하는 형식으로 바꿔서 비교할 수도 있어요. 원본과 1:1로 나란히 비교하는 창도 있어요.</p>
     <div class="badge-row">
       <div class="badge-line">
-        <span class="feature-badge">여러 압축 단계 비교 · 실제 용량·감소율 확인 · 미리보기 제공 · PNG·JPG·WEBP·AVIF 지원</span>
+        <span class="feature-badge">여러 압축 단계 비교 · 실제 용량·감소율 확인 · 미리보기 제공 · PNG·JPG·WEBP로 저장 · AVIF·GIF·BMP도 올리기 가능</span>
       </div>
       <div class="badge-line">
         <span class="privacy-badge">파일은 서버에 업로드되지 않습니다 · 모든 처리는 이 브라우저 안에서 끝납니다</span>
@@ -821,23 +975,24 @@
       <div class="help-section">
         <div class="help-section-label">이미지 올리기</div>
         <div class="help-grid">
-          <div class="help-item"><span class="help-key">드롭존</span><span class="help-desc">이미지를 끌어다 놓거나 클릭해서 파일 선택 창을 엽니다. 한 번에 한 장만 올릴 수 있어요.</span></div>
-          <div class="help-item"><span class="help-key">다른 이미지 선택</span><span class="help-desc">지금 이미지와 압축 결과를 지우고, 곧바로 파일 선택 창을 열어 새 이미지를 고를 수 있습니다.</span></div>
-          <div class="help-item"><span class="help-key"><span class="mini-zoom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.35-4.35"></path></svg></span></span><span class="help-desc">원본 썸네일에 마우스를 올리면 원본을 크게 확대해서 봅니다.</span></div>
+          <div class="help-item"><span class="help-key">드롭존</span><span class="help-desc">이미지를 끌어다 놓거나 눌러서 파일 선택 창을 열어요. 한 번에 한 장만 올릴 수 있어요.</span></div>
+          <div class="help-item"><span class="help-key">다른 이미지 선택</span><span class="help-desc">파일 선택 창을 열어 새 이미지를 골라요. 새 이미지를 끝까지 읽은 뒤에 결과가 바뀌고, 선택을 취소하면 지금 결과가 그대로 남아요.</span></div>
+          <div class="help-item"><span class="help-key">원본 썸네일</span><span class="help-desc">썸네일을 누르면(마우스는 올리기만 해도) 원본을 크게 확대해서 봐요. 다시 누르거나 바깥을 누르면 닫혀요.</span></div>
         </div>
       </div>
       <div class="help-section">
         <div class="help-section-label">압축 단계 비교</div>
         <div class="help-grid">
-          <div class="help-item help-item-wide"><span class="help-key">압축 단계 카드</span><span class="help-desc">화질을 다르게 해서 실제로 인코딩한 뒤, 각 단계에서 진짜로 줄어드는 파일 용량과 감소율(%)을 계산해서 보여드려요. 추정치가 아니라 실측값입니다. (PNG는 품질 대신 색상 수를 256색부터 16색까지 줄여가며 단계별로 비교해드려요 — 형식은 그대로 PNG를 유지하면서 용량만 줄어듭니다.)</span></div>
-          <div class="help-item"><span class="help-key">미리보기</span><span class="help-desc">카드마다 작은 미리보기 이미지가 있어서, 다운받기 전에 화질이 얼마나 차이 나는지 눈으로 비교할 수 있어요. 마우스를 올리면 원본 크기로 확대해서 자세히 볼 수도 있습니다.</span></div>
-          <div class="help-item help-item-wide"><span class="help-key">PNG / JPG / WEBP / AVIF</span><span class="help-desc">업로드한 이미지와 같은 형식이 기본으로 선택돼요(PNG를 올리면 PNG, JPG를 올리면 JPG) — 처음 올렸을 때 형식이 마음대로 바뀌지 않습니다. 용량을 더 줄이고 싶으면 직접 WEBP나 AVIF로 토글해서 다시 비교해보세요 — AVIF는 최신 압축 형식이라 사진에서 특히 더 작은 용량이 나올 때가 많아요(구형 브라우저에서는 지원되지 않을 수 있어요).</span></div>
+          <div class="help-item help-item-wide"><span class="help-key">압축 단계 카드</span><span class="help-desc">화질을 다르게 해서 실제로 인코딩한 뒤, 각 단계에서 진짜로 줄어드는 파일 용량과 감소율(%)을 계산해서 보여드려요. 추정치가 아니라 실제로 인코딩해서 나온 값이에요. (PNG는 품질 대신 색상 수를 256색부터 16색까지 줄여가며 단계별로 비교해드려요 — 형식은 그대로 PNG를 유지하면서 용량만 줄어들어요.)</span></div>
+          <div class="help-item help-item-wide"><span class="help-key">미리보기</span><span class="help-desc">카드마다 작은 미리보기가 있어요 — 어떤 단계인지 알아보기 위한 것이고, 긴 변 360px로 줄인 사본이라 화질 차이는 여기서 판단할 수 없어요. 실제 차이는 <b>미리보기를 누르면 열리는 원본과 1:1(실제 픽셀) 비교 창</b>에서 보세요. 누른 단계의 압축 결과가 먼저 보이고, "원본 / 압축"을 눌러(또는 스페이스바로) 같은 자리를 번갈아 보면 압축 흔적이 바로 보여요.</span></div>
+          <div class="help-item help-item-wide"><span class="help-key">PNG / JPG / WEBP</span><span class="help-desc">업로드한 이미지와 같은 형식이 기본으로 선택돼요(PNG를 올리면 PNG, JPG를 올리면 JPG) — 처음 올렸을 때 형식이 마음대로 바뀌지 않아요. 용량을 더 줄이고 싶으면 직접 WEBP로 바꿔서 다시 비교해보세요. AVIF·GIF·BMP 파일도 올릴 수 있는데, 이 세 형식으로는 저장할 수 없어요. GIF·BMP는 화질이 손상되지 않는 PNG로, 이미 손실 압축된 AVIF는 같은 계열이면서 투명도까지 유지되는 WEBP로 맞춰 드리고, 왜 바뀌었는지 결과 아래에 알려드려요.</span></div>
         </div>
       </div>
       <div class="help-section">
-        <div class="help-section-label">다운로드</div>
+        <div class="help-section-label">다운로드 · 공유</div>
         <div class="help-grid">
-          <div class="help-item"><span class="help-key">다운로드</span><span class="help-desc">마음에 드는 압축 단계의 카드에서 버튼을 눌러 그 단계 파일 하나만 받습니다.</span></div>
+          <div class="help-item"><span class="help-key">다운로드</span><span class="help-desc">마음에 드는 압축 단계의 카드에서 버튼을 눌러 그 단계 파일 하나만 받아요.</span></div>
+          <div class="help-item help-item-wide"><span class="help-key">공유(↑ 아이콘)</span><span class="help-desc">다운로드 버튼 옆의 작은 아이콘 — 그 단계 파일을 카카오톡·메일 등으로 바로 보내요. 특히 아이폰에서는 받은 파일을 화면에 열어버리는 경우가 있어서, 그 화면에서 공유하면 파일과 함께 임시 주소까지 같이 보내지고 그 주소는 받는 쪽에서 열리지 않아요 — 이 아이콘을 쓰면 파일만 깔끔하게 가요. 공유 기능이 없는 브라우저에서는 아이콘이 나타나지 않아요.</span></div>
         </div>
       </div>
     </div>
@@ -845,10 +1000,10 @@
   </div>
 
   <div class="dropzone" id="dropzone">
-    <input type="file" id="fileInput" accept="image/*">
+    <input type="file" id="fileInput" accept="image/*,.png,.jpg,.jpeg,.webp,.avif,.gif,.bmp">
     <div class="icon">🖼️</div>
     <div class="main-txt">이미지를 여기로 끌어다 놓거나 클릭해서 올리세요</div>
-    <div class="sub-txt">사진, 스크린샷 등 대부분의 이미지 파일을 올릴 수 있어요<br>(한 번에 한 장, 크기는 그대로 두고 용량만 줄여드려요)</div>
+    <div class="sub-txt">PNG · JPG · WEBP · AVIF · GIF · BMP 등 대부분의 이미지 파일을 올릴 수 있어요<br>(한 번에 한 장, 크기는 그대로 두고 용량만 줄여드려요)</div>
   </div>
 
   <div class="file-info" id="fileInfo" hidden>
@@ -871,15 +1026,34 @@
         <span class="format-toggle-label">출력 형식</span>
         <div class="format-track" id="formatToggle" role="group" aria-label="출력 형식 선택">
           <div class="format-indicator"></div>
-          <button type="button" class="format-seg active" id="formatOptPng" data-fmt="png">PNG</button>
-          <button type="button" class="format-seg" id="formatOptJpeg" data-fmt="jpeg">JPG</button>
-          <button type="button" class="format-seg" id="formatOptWebp" data-fmt="webp">WEBP</button>
-          <button type="button" class="format-seg" id="formatOptAvif" data-fmt="avif">AVIF</button>
+          <button type="button" class="format-seg active" id="formatOptPng" data-fmt="png" aria-pressed="true">PNG</button>
+          <button type="button" class="format-seg" id="formatOptJpeg" data-fmt="jpeg" aria-pressed="false">JPG</button>
+          <button type="button" class="format-seg" id="formatOptWebp" data-fmt="webp" aria-pressed="false">WEBP</button>
         </div>
       </div>
     </div>
     <div class="result-grid" id="resultGrid"></div>
     <p class="empty-note" id="emptyNote" hidden></p>
+  </div>
+
+  <!-- 1:1 화질 비교 창 — 원본과 선택한 압축 단계를 같은 위치·실제 픽셀로 겹쳐 두고 번갈아 본다. -->
+  <div class="compare-overlay" id="compareOverlay" role="dialog" aria-modal="true" aria-label="원본과 압축 결과 1:1 비교">
+    <button class="compare-close" id="compareCloseBtn" type="button" title="닫기 (Esc)">✕</button>
+    <div class="compare-topbar">
+      <div class="compare-track" id="compareTrack" role="group" aria-label="원본 / 압축 전환">
+        <div class="compare-indicator"></div>
+        <button class="compare-seg active" id="compareSegOriginal" type="button" aria-pressed="true">원본</button>
+        <button class="compare-seg" id="compareSegCompressed" type="button" aria-pressed="false">압축</button>
+      </div>
+      <span class="compare-meta" id="compareMeta"></span>
+      <span class="compare-hint" id="compareHint"></span>
+    </div>
+    <div class="compare-stage" id="compareStage">
+      <div class="compare-inner" id="compareInner">
+        <img id="compareOriginalImg" draggable="false" alt="원본 이미지 1:1">
+        <img id="compareCompressedImg" class="hidden-layer" draggable="false" alt="압축 결과 1:1">
+      </div>
+    </div>
   </div>
 
   <div class="loading-overlay" id="loadingOverlay">
@@ -891,7 +1065,7 @@
   <footer class="note">
     <div>써봄 · 브라우저에서 끝나는 파일 도구</div>
     <div class="copyright"><span class="mark">ⓒ 2026</span> <span class="name">고윤태</span> · <a href="https://yuntaeko.com/" target="_blank" rel="noopener">yuntaeko.com</a> — 정성을 담아 제작한 도구입니다. 무단 도용 및 출처 표기 없는 재배포를 금지합니다.</div>
-    <div class="updated">업데이트 · 2026. 9. 8.</div>
+    <div class="updated">업데이트 · 2026. 9. 12.</div>
   </footer>
 </div>
 
@@ -927,10 +1101,27 @@
   var formatOptPng = document.getElementById("formatOptPng");
   var formatOptWebp = document.getElementById("formatOptWebp");
   var formatOptJpeg = document.getElementById("formatOptJpeg");
-  var formatOptAvif = document.getElementById("formatOptAvif");
   var emptyNote = document.getElementById("emptyNote");
   var loadingOverlay = document.getElementById("loadingOverlay");
   var loadingPercent = document.getElementById("loadingPercent");
+  var thumbWrap = fileThumb.parentNode;
+  var compareOverlay = document.getElementById("compareOverlay");
+  var compareStage = document.getElementById("compareStage");
+  var compareHint = document.getElementById("compareHint");
+  var compareInner = document.getElementById("compareInner");
+  var compareOriginalImg = document.getElementById("compareOriginalImg");
+  var compareCompressedImg = document.getElementById("compareCompressedImg");
+  var compareTrack = document.getElementById("compareTrack");
+  var compareSegOriginal = document.getElementById("compareSegOriginal");
+  var compareSegCompressed = document.getElementById("compareSegCompressed");
+  var compareMeta = document.getElementById("compareMeta");
+  var compareCloseBtn = document.getElementById("compareCloseBtn");
+
+  // 이미지를 읽거나 압축하는 동안은 true — 그 사이에 파일이 더 들어오거나 형식 버튼이
+  // 눌려서 작업이 겹치지 않게 막는다(다른 써봄 도구와 같은 방식).
+  var busy = false;
+  var openModals = 0;           // 팝업이 떠 있는 동안의 드롭 무시용
+  var compressRun = 0;          // 압축 실행마다 번호를 붙여, 지난 실행이 새 화면에 카드를 끼워 넣지 못하게 한다
 
   function showLoading(text){
     document.getElementById("loadingText").textContent = text || "압축하는 중...";
@@ -974,10 +1165,47 @@
   var originalSize = 0;
   var naturalCanvas = null; // 원본 픽셀 크기 그대로, 알파(투명) 보존 — WEBP 인코딩용
   var flatCanvas = null;    // 흰 배경에 합성 — 알파를 지원하지 않는 JPEG 인코딩용
-  var selectedFormat = "png"; // "png" | "webp" | "jpeg" — 업로드 직후엔 항상 원본 형식과 같은 값으로 시작(detectDefaultFormat)
+  var selectedFormat = "png"; // "png" | "webp" | "jpeg" — 업로드 직후엔 원본 형식과 같은 값으로 시작(detectInputKind — 저장할 수 없는 형식만 대체)
   var webpSupported = true;
-  var avifSupported = true;
   var currentResults = []; // 지금 화면에 떠 있는 압축 단계 결과 — beforeunload 경고 판단 + objectURL 정리용
+
+  // ---------- 안내 팝업 (window.alert 대신 사이트 공용 모달) ----------
+  function el(tag, cls, text){
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function showAlert(message, opts){
+    opts = opts || {};
+    return new Promise(function(resolve){
+      var overlay = el("div", "modal-overlay");
+      var box = el("div", "modal-box");
+      box.appendChild(el("div", "modal-message", message));
+      var actions = el("div", "modal-actions");
+      var okBtn = el("button", "primary", opts.okLabel || "확인");
+      okBtn.type = "button";
+      actions.appendChild(okBtn);
+      box.appendChild(actions);
+      overlay.appendChild(box);
+      document.body.appendChild(overlay);
+      openModals++;
+      function close(){
+        overlay.classList.remove("show");
+        setTimeout(function(){ if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 150);
+        document.removeEventListener("keydown", onKey);
+        openModals = Math.max(0, openModals - 1);
+        resolve();
+      }
+      function onKey(e){
+        if (e.key === "Escape" || e.key === "Enter"){ e.preventDefault(); close(); }
+      }
+      okBtn.addEventListener("click", close);
+      overlay.addEventListener("mousedown", function(e){ if (e.target === overlay) close(); });
+      document.addEventListener("keydown", onKey);
+      requestAnimationFrame(function(){ overlay.classList.add("show"); okBtn.focus(); });
+    });
+  }
 
   function formatBytes(n){
     if (n < 1024) return n + " B";
@@ -988,6 +1216,25 @@
   function baseNameOf(filename){
     var idx = filename.lastIndexOf(".");
     return idx > 0 ? filename.slice(0, idx) : filename;
+  }
+
+  // 썸네일·확대 미리보기는 화면에서 최대 360px로만 보이는데, 예전에는 원본 해상도 그대로
+  // PNG data URL을 만들어서 1200만 화소 사진이면 55MB짜리 문자열이 두 벌 생기고 업로드가
+  // 7.8초나 걸렸다. 화면에 보이는 크기의 두 배(긴 변 720px)면 고해상도 화면에서도 충분하다.
+  // 원본 자체를 보여주는 건 그대로다 — 저장 방식만 축소본으로 바뀐다.
+  function makePreviewDataUrl(canvas){
+    var maxSide = 720;
+    var w = canvas.width, h = canvas.height;
+    var scale = Math.min(1, maxSide / Math.max(w, h));
+    if (scale === 1) return canvas.toDataURL("image/png");
+    var c = document.createElement("canvas");
+    c.width = Math.max(1, Math.round(w * scale));
+    c.height = Math.max(1, Math.round(h * scale));
+    var ctx = c.getContext("2d");
+    if (!ctx) return canvas.toDataURL("image/png");
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(canvas, 0, 0, c.width, c.height);
+    return c.toDataURL("image/png");
   }
 
   function canvasToBlobAsync(canvas, mime, quality){
@@ -1017,14 +1264,58 @@
   // 때만 일어나는 명시적 동작이어야 함. 이 도구가 그대로 다시 인코딩할 수 없는 형식
   // (GIF=팔레트 기반, BMP=무압축 등)은 무손실인 PNG를 기본값으로 골라서, 사용자
   // 동의 없이 손실 압축(JPEG/WEBP)을 적용하지 않는다.
-  function detectDefaultFormat(file){
+  //   예외는 AVIF다. AVIF는 어느 브라우저도 저장(인코딩)을 지원하지 않아 출력 형식에
+  //   아예 없는데, 무손실 PNG를 기본으로 골라버리면 사진 한 장이 원본 AVIF보다 훨씬
+  //   커져서 다섯 단계가 전부 제외되고 "이미 최적화되어 있어요"만 뜬다(고장으로 보임).
+  //   AVIF는 이미 손실 압축된 형식이라 WEBP로 맞추는 건 없던 손실을 새로 만드는 게
+  //   아니고(JPG 원본이 JPG로 유지되는 것과 같은 논리), 투명도도 그대로 유지된다.
+  //   그리고 GIF·BMP처럼 이 도구가 저장할 수 없는 형식도 "왜 PNG로 바뀌었는지"를
+  //   반드시 말해줘야 한다. 그래서 형식 이름(label)까지 함께 돌려준다.
+
+  // 파일 이름과 MIME만 보고 판단하면, 확장자 없이 그냥 "photo"로 저장된 PNG처럼
+  // 정보가 없는 파일을 "형식을 모르는 파일"로 취급해 엉뚱한 안내가 붙는다. 그래서
+  // 파일 앞부분 몇 바이트(파일 시그니처)를 먼저 읽어 실제 형식을 확인한다.
+  // 확장자가 틀리게 붙은 파일(.jpg로 저장된 PNG 등)도 이 쪽이 정확하다.
+  async function sniffFormat(file){
+    try {
+      var buf = new Uint8Array(await file.slice(0, 32).arrayBuffer());
+      var b = function(i){ return buf[i]; };
+      var ascii = function(from, len){
+        var t = "";
+        for (var i = from; i < from + len && i < buf.length; i++) t += String.fromCharCode(buf[i]);
+        return t;
+      };
+      if (buf.length >= 8 && b(0) === 0x89 && ascii(1, 3) === "PNG") return { key:"png", label:"PNG" };
+      if (buf.length >= 3 && b(0) === 0xFF && b(1) === 0xD8 && b(2) === 0xFF) return { key:"jpeg", label:"JPG" };
+      if (buf.length >= 12 && ascii(0, 4) === "RIFF" && ascii(8, 4) === "WEBP") return { key:"webp", label:"WEBP" };
+      if (buf.length >= 6 && ascii(0, 4) === "GIF8") return { key:"gif", label:"GIF" };
+      if (buf.length >= 2 && ascii(0, 2) === "BM") return { key:"bmp", label:"BMP" };
+      // ISO-BMFF 계열: 12바이트 앞에 "ftyp" + 브랜드(avif/avis/heic/heif/mif1 등)
+      if (buf.length >= 12 && ascii(4, 4) === "ftyp"){
+        var brand = ascii(8, 4);
+        if (brand === "avif" || brand === "avis") return { key:"avif", label:"AVIF" };
+        if (brand.indexOf("hei") === 0 || brand === "mif1" || brand === "msf1") return { key:"heic", label:"HEIC" };
+      }
+      if (buf.length >= 4 && b(0) === 0x00 && b(1) === 0x00 && (b(2) === 0x01 || b(2) === 0x02) && b(3) === 0x00){
+        return { key:"ico", label:"ICO" };
+      }
+    } catch(e){
+      console.error("파일 형식 확인 실패", e);
+    }
+    return null; // 못 알아보면 이름·MIME으로 판단하게 넘긴다
+  }
+
+  function detectInputKind(file){
     var type = (file.type || "").toLowerCase();
     var name = (file.name || "").toLowerCase();
-    if (type.indexOf("png") !== -1 || /\.png$/.test(name)) return "png";
-    if (type.indexOf("webp") !== -1 || /\.webp$/.test(name)) return "webp";
-    if (type.indexOf("avif") !== -1 || /\.avif$/.test(name)) return "avif";
-    if (type.indexOf("jpeg") !== -1 || type.indexOf("jpg") !== -1 || /\.jpe?g$/.test(name)) return "jpeg";
-    return "png"; // GIF/BMP 등 이 도구가 원본 형식 그대로 재인코딩할 수 없는 경우 — 무손실 기본값
+    if (type.indexOf("png") !== -1 || /\.png$/.test(name)) return { key:"png", label:"PNG" };
+    if (type.indexOf("webp") !== -1 || /\.webp$/.test(name)) return { key:"webp", label:"WEBP" };
+    if (type.indexOf("avif") !== -1 || /\.avif$/.test(name)) return { key:"avif", label:"AVIF" };
+    if (type.indexOf("jpeg") !== -1 || type.indexOf("jpg") !== -1 || /\.jpe?g$/.test(name)) return { key:"jpeg", label:"JPG" };
+    if (type.indexOf("gif") !== -1 || /\.gif$/.test(name)) return { key:"gif", label:"GIF" };
+    if (type.indexOf("bmp") !== -1 || /\.bmp$/.test(name)) return { key:"bmp", label:"BMP" };
+    if (type.indexOf("icon") !== -1 || type.indexOf("ico") !== -1 || /\.(ico|cur)$/.test(name)) return { key:"ico", label:"ICO" };
+    return { key:"other", label:"" }; // 형식 이름을 확실히 모르는 경우
   }
 
   function notifyDownload(){
@@ -1039,14 +1330,142 @@
     formatOptPng.classList.toggle("active", selectedFormat === "png");
     formatOptWebp.classList.toggle("active", selectedFormat === "webp");
     formatOptJpeg.classList.toggle("active", selectedFormat === "jpeg");
-    formatOptAvif.classList.toggle("active", selectedFormat === "avif");
+    // 화면 읽기 프로그램에도 어느 칸이 켜져 있는지 알려준다(색만으로는 알 수 없다).
+    formatOptPng.setAttribute("aria-pressed", selectedFormat === "png" ? "true" : "false");
+    formatOptJpeg.setAttribute("aria-pressed", selectedFormat === "jpeg" ? "true" : "false");
+    formatOptWebp.setAttribute("aria-pressed", selectedFormat === "webp" ? "true" : "false");
     // .format-indicator는 순수 CSS(퍼센트 폭 + transform)로 슬라이드하므로 클래스 하나만
     // 토글하면 되고, 화면에 보이는지 여부나 폰트 로딩 타이밍과 무관하게 항상 정확하다.
-    // PNG는 기본 위치(0%)라 별도 클래스가 필요 없고, WEBP/JPEG/AVIF일 때만 각각 클래스를 켠다.
+    // PNG는 기본 위치(0%)라 별도 클래스가 필요 없고, WEBP/JPEG일 때만 각각 클래스를 켠다.
     var track = document.getElementById("formatToggle");
     track.classList.toggle("webp-active", selectedFormat === "webp");
     track.classList.toggle("jpeg-active", selectedFormat === "jpeg");
-    track.classList.toggle("avif-active", selectedFormat === "avif");
+  }
+
+  // 카드 미리보기는 화면에서 142×120px로 보이는데, 예전에는 결과 파일 주소를 그대로
+  // img src에 넣어서 4032×3024 비트맵 5장이 동시에 살아 있었다(완전 디코딩 시 최대
+  // 232MB). 메모리가 빡빡한 휴대폰에서 미리보기가 빈칸이 되거나 탭이 죽는 전형적인
+  // 원인이라, 카드용으로는 긴 변 360px 축소본을 따로 만들어 쓴다(2.5배라 고해상도
+  // 화면에서도 선명하다). 1:1 비교 창과 다운로드는 그대로 원본·결과 파일을 쓴다.
+  var CARD_PREVIEW_MAX = 360;
+  var pendingPreviews = [];   // {img, blob, useJpeg} — 카드를 먼저 붙이고 순서대로 채운다
+
+  // 결과 blob 한 장을 디코딩해 360px 캔버스에 그려서 작은 data URL로 돌려준다.
+  // createImageBitmap이 있으면 쓰고(디코딩이 메인 스레드를 덜 막는다), 없으면 Image로
+  // 대체한다. 다 쓴 비트맵·캔버스는 곧바로 놓아준다.
+  async function makeCardPreview(blob, useJpeg){
+    var w, h, drawable, bmp = null, url = null, img = null;
+    if (window.createImageBitmap){
+      bmp = await createImageBitmap(blob);
+      w = bmp.width; h = bmp.height; drawable = bmp;
+    } else {
+      url = URL.createObjectURL(blob);
+      img = new Image();
+      await new Promise(function(res, rej){
+        img.onload = res;
+        img.onerror = function(){ rej(new Error("미리보기 디코딩 실패")); };
+        img.src = url;
+      });
+      w = img.naturalWidth; h = img.naturalHeight; drawable = img;
+    }
+    try {
+      var scale = Math.min(1, CARD_PREVIEW_MAX / Math.max(w, h));
+      var cw = Math.max(1, Math.round(w * scale)), ch = Math.max(1, Math.round(h * scale));
+      var cv = document.createElement("canvas");
+      cv.width = cw; cv.height = ch;
+      var cx = cv.getContext("2d");
+      if (!cx) return null;
+      cx.drawImage(drawable, 0, 0, cw, ch);
+      // JPEG 결과는 투명도가 없으니 JPEG로(더 작다). PNG·WEBP는 투명도를 잃지 않게 PNG로.
+      var out = useJpeg ? cv.toDataURL("image/jpeg", 0.88) : cv.toDataURL("image/png");
+      cv.width = cv.height = 0; // 캔버스 픽셀 즉시 해제
+      return out;
+    } finally {
+      if (bmp && bmp.close) bmp.close();
+      if (url) URL.revokeObjectURL(url);
+      if (img) img.src = "";
+    }
+  }
+
+  // 카드를 다 붙인 뒤 한 장씩 순서대로 채운다 — 한꺼번에 디코딩하면 큰 비트맵이 다시
+  // 동시에 살아 있게 되므로, 최대 한 장만 살아 있도록 순차 처리한다.
+  async function fillCardPreviews(isStale){
+    var queue = pendingPreviews;
+    pendingPreviews = [];
+    for (var i = 0; i < queue.length; i++){
+      if (isStale && isStale()) return;
+      var task = queue[i];
+      try {
+        var src = await makeCardPreview(task.blob, task.useJpeg);
+        if (isStale && isStale()) return;
+        if (src) task.img.src = src;
+      } catch(err){
+        console.error("카드 미리보기 생성 실패", err);
+      }
+      // 성공이든 실패든 "만드는 중" 문구는 걷는다.
+      if (task.wrap) task.wrap.classList.remove("loading");
+      await nextFrame();
+    }
+  }
+
+  // ---------- 공유 (브라우저 공유 기능) ----------
+  // 아이폰 사파리는 내려받은 파일을 저장하지 않고 화면에 열어버리는 경우가 있는데, 그
+  // 화면의 주소는 blob: 임시 주소라서 거기서 아이폰 공유 버튼을 누르면 파일과 함께 그
+  // 주소까지 같이 넘어간다(받는 쪽에는 열리지 않는 링크가 하나 더 간다). 그래서 "파일만"
+  // 넘기는 길을 도구 안에 둔다. 결과가 다섯 장이라 카드마다 작은 아이콘으로 붙인다.
+  var fileShareSupported = (function(){
+    try {
+      if (!navigator.share || !navigator.canShare || typeof File === "undefined") return false;
+      var probe = new File([new Blob(["x"], { type: "image/png" })], "t.png", { type: "image/png" });
+      return navigator.canShare({ files: [probe] });
+    } catch(e){ return false; }
+  })();
+
+  function shareResult(result){
+    if (!result || busy) return;
+    var file;
+    try {
+      file = new File([result.blob], result.filename, { type: result.blob.type || "image/png" });
+    } catch(e){
+      showAlert("이 브라우저에서는 파일 공유가 안 돼요. 다운로드 버튼으로 받은 파일을 직접 공유해주세요.");
+      return;
+    }
+    if (!navigator.canShare || !navigator.canShare({ files: [file] })){
+      showAlert("이 브라우저에서는 파일 공유가 안 돼요. 다운로드 버튼으로 받은 파일을 직접 공유해주세요.");
+      return;
+    }
+    // url·text는 절대 같이 넣지 않는다 — 그게 바로 임시 주소가 따라가는 원인이다.
+    navigator.share({ files: [file] }).catch(function(err){
+      // 공유 창을 그냥 닫은 것(AbortError)은 오류가 아니라 취소다.
+      if (err && (err.name === "AbortError" || err.name === "NotAllowedError")) return;
+      console.error("공유 실패", err);
+      showAlert("공유하지 못했어요. 다운로드 버튼으로 받은 파일을 직접 공유해주세요.");
+    });
+  }
+
+  // 카드 하나를 붙인 뒤, 1:1 비교 창이 쓸 정보(라벨·용량·감소율·미리보기 URL)를 기억해둔다.
+  function attachCard(card, url, blob, label, pct, filename){
+    // 카드는 지금 바로 붙이고(빠르게 보여주고), 축소 미리보기는 뒤에서 한 장씩 채운다.
+    pendingPreviews.push({ img: card.querySelector(".compress-thumb"),
+      wrap: card.querySelector(".compress-thumb-wrap"), blob: blob,
+      useJpeg: selectedFormat === "jpeg" });
+    var link = card.querySelector(".dl-btn");
+    // 파일명에 따옴표가 있어도 속성이 잘리지 않도록 문자열로 넣지 않고 속성으로 설정한다
+    // (예전에는 my"photo".jpg 파일명이 my 로 잘렸다).
+    link.setAttribute("download", filename);
+    link.addEventListener("click", function(){ notifyDownload(); });
+    var index = currentResults.length;
+    currentResults.push({ url: url, size: blob.size, label: label, pct: pct, filename: filename, blob: blob });
+    var shareBtn = card.querySelector(".card-share-btn");
+    if (shareBtn && fileShareSupported){
+      shareBtn.hidden = false;
+      shareBtn.addEventListener("click", function(){ shareResult(currentResults[index]); });
+    }
+    var host = card.querySelector(".compress-thumb-wrap");
+    if (host){
+      host.addEventListener("click", function(){ openCompare(index); });
+    }
+    resultGrid.appendChild(card);
   }
 
   function renderLevelCard(level, blob, pct, ext){
@@ -1055,13 +1474,12 @@
     var url = URL.createObjectURL(blob);
     var filename = currentBaseName + "-q" + Math.round(level.q * 100) + "." + ext;
     card.innerHTML =
-      '<div class="compress-thumb-zoom-host"><div class="compress-thumb-wrap"><img class="compress-thumb" src="' + url + '" alt="' + level.label + ' 미리보기"></div><div class="compress-thumb-zoom"><img src="' + url + '" alt="' + level.label + ' 확대 미리보기"></div></div>' +
+      '<div class="compress-thumb-wrap loading" title="눌러서 원본과 1:1로 비교하기"><img class="compress-thumb" alt="' + level.label + ' 미리보기"><span class="thumb-loading">미리보기 만드는 중</span></div>' +
       '<div class="compress-label-row"><span class="compress-level-label">' + level.label + '</span><span class="compress-reduction">' + pct + '% 감소</span></div>' +
       '<div class="compress-size-row"><span class="compress-size">' + formatBytes(blob.size) + '</span><span class="compress-of-original">품질 ' + Math.round(level.q * 100) + '%</span></div>' +
-      '<a class="dl-btn" href="' + url + '" download="' + filename + '">다운로드</a>';
-    card.querySelector(".dl-btn").addEventListener("click", function(){ notifyDownload(); });
-    resultGrid.appendChild(card);
-    currentResults.push({ url: url });
+      '<div class="dl-row"><a class="dl-btn" href="' + url + '">다운로드</a>' +
+      '<button type="button" class="card-share-btn" hidden title="이 단계 파일을 공유하기" aria-label="' + level.label + ' 파일 공유"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"></path><path d="M8 7l4-4 4 4"></path><path d="M5 13v6a2 2 0 002 2h10a2 2 0 002-2v-6"></path></svg></button></div>';
+    attachCard(card, url, blob, level.label, pct, filename);
   }
 
   // PNG 팔레트 양자화 카드 — JPEG/WEBP의 renderLevelCard와 구조는 같지만, "품질 92%"
@@ -1073,13 +1491,12 @@
     var url = URL.createObjectURL(blob);
     var filename = currentBaseName + "-c" + level.colors + ".png";
     card.innerHTML =
-      '<div class="compress-thumb-zoom-host"><div class="compress-thumb-wrap"><img class="compress-thumb" src="' + url + '" alt="' + level.label + ' 미리보기"></div><div class="compress-thumb-zoom"><img src="' + url + '" alt="' + level.label + ' 확대 미리보기"></div></div>' +
+      '<div class="compress-thumb-wrap loading" title="눌러서 원본과 1:1로 비교하기"><img class="compress-thumb" alt="' + level.label + ' 미리보기"><span class="thumb-loading">미리보기 만드는 중</span></div>' +
       '<div class="compress-label-row"><span class="compress-level-label">' + level.label + '</span><span class="compress-reduction">' + pct + '% 감소</span></div>' +
       '<div class="compress-size-row"><span class="compress-size">' + formatBytes(blob.size) + '</span><span class="compress-of-original">' + level.colors + '색</span></div>' +
-      '<a class="dl-btn" href="' + url + '" download="' + filename + '">다운로드</a>';
-    card.querySelector(".dl-btn").addEventListener("click", function(){ notifyDownload(); });
-    resultGrid.appendChild(card);
-    currentResults.push({ url: url });
+      '<div class="dl-row"><a class="dl-btn" href="' + url + '">다운로드</a>' +
+      '<button type="button" class="card-share-btn" hidden title="이 단계 파일을 공유하기" aria-label="' + level.label + ' 파일 공유"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"></path><path d="M8 7l4-4 4 4"></path><path d="M5 13v6a2 2 0 002 2h10a2 2 0 002-2v-6"></path></svg></button></div>';
+    attachCard(card, url, blob, level.label, pct, filename);
   }
 
   // UPNG.js로 팔레트 양자화 PNG를 인코딩한다. getImageData로 원본 캔버스의 RGBA
@@ -1093,42 +1510,191 @@
     return new Blob([arr], { type: "image/png" });
   }
 
+  // ---------- 1:1 화질 비교 창 ----------
+  // 카드 미리보기를 누르면 열린다. 원본과 그 단계의 압축 결과를 같은 자리에 겹쳐 놓고
+  // 실제 픽셀 크기(1:1)로 보여주며, "원본/압축" 토글(또는 스페이스바)로 번갈아 본다 —
+  // 360px로 줄인 미리보기로는 압축 흔적이 보이지 않기 때문에 만든 화면이다.
+  var compareIndex = -1;
+  var compareShowingCompressed = false;
+  function openCompare(index){
+    var r = currentResults[index];
+    if (!r || !originalUrl || !naturalCanvas) return;
+    compareIndex = index;
+    compareOriginalImg.src = originalUrl;
+    compareCompressedImg.src = r.url;
+    compareInner.style.width = naturalCanvas.width + "px";
+    compareInner.style.height = naturalCanvas.height + "px";
+    compareOriginalImg.style.width = compareCompressedImg.style.width = naturalCanvas.width + "px";
+    compareOriginalImg.style.height = compareCompressedImg.style.height = naturalCanvas.height + "px";
+    compareMeta.textContent = naturalCanvas.width + "×" + naturalCanvas.height + "px · 원본 " +
+      formatBytes(originalSize) + " · " + r.label + " " + formatBytes(r.size) + " (" + r.pct + "% 감소)";
+    // 처음에는 "누른 그 단계의 압축 결과"를 보여준다 — 사용자가 특정 단계 카드의
+    // 미리보기를 눌러서 온 것이므로, 원본이 먼저 나오면 그걸 압축 결과로 착각해
+    // "하나도 안 깨졌네"라고 잘못 판단할 수 있다. 원본은 비교용 기준이므로 토글로 본다.
+    setCompareLayer(true);
+    compareOverlay.classList.add("show");
+    openModals++;
+    // 이미지 가운데를 먼저 보여준다(왼쪽 위 모서리는 보통 볼 게 없다).
+    requestAnimationFrame(function(){
+      compareStage.scrollLeft = Math.max(0, (compareInner.offsetWidth - compareStage.clientWidth) / 2);
+      compareStage.scrollTop = Math.max(0, (compareInner.offsetHeight - compareStage.clientHeight) / 2);
+      updateCompareHint();
+    });
+  }
+  // 작은 이미지는 1:1로 놓아도 화면에 전부 들어와서 드래그·스크롤할 여지가 없다.
+  // 그때도 "드래그하거나 스크롤해서 다른 부분을 볼 수 있어요"라고 적어두면 도구가
+  // 고장 난 것처럼 보이므로, 실제 남은 여백을 재서 문구를 바꾼다.
+  function updateCompareHint(){
+    var movable = (compareStage.scrollWidth - compareStage.clientWidth > 1) ||
+                  (compareStage.scrollHeight - compareStage.clientHeight > 1);
+    compareStage.classList.toggle("fits", !movable);
+    compareHint.textContent = movable
+      ? "실제 픽셀 크기(1:1)로 보여줘요 · 드래그하거나 스크롤해서 다른 부분을 볼 수 있어요 · 스페이스바로 원본↔압축 전환"
+      : "실제 픽셀 크기(1:1)로 전체가 다 보여요 · 스페이스바로 원본↔압축 전환";
+  }
+  window.addEventListener("resize", function(){
+    if (compareOverlay.classList.contains("show")) updateCompareHint();
+  });
+  function setCompareLayer(showCompressed){
+    compareShowingCompressed = !!showCompressed;
+    // 두 장을 정확히 겹쳐 두고 한 장만 보이게 한다. 안 보이는 쪽도 같이 숨겨야 하는데,
+    // 투명한 PNG는 위에 놓인 압축본의 투명 부분으로 아래 원본이 비쳐 보일 수 있어서다.
+    compareCompressedImg.classList.toggle("hidden-layer", !compareShowingCompressed);
+    compareOriginalImg.classList.toggle("hidden-layer", compareShowingCompressed);
+    compareTrack.classList.toggle("compressed-active", compareShowingCompressed);
+    compareSegOriginal.classList.toggle("active", !compareShowingCompressed);
+    compareSegCompressed.classList.toggle("active", compareShowingCompressed);
+    compareSegOriginal.setAttribute("aria-pressed", compareShowingCompressed ? "false" : "true");
+    compareSegCompressed.setAttribute("aria-pressed", compareShowingCompressed ? "true" : "false");
+  }
+  function closeCompare(){
+    if (!compareOverlay.classList.contains("show")) return;
+    compareOverlay.classList.remove("show");
+    compareOriginalImg.removeAttribute("src");
+    compareCompressedImg.removeAttribute("src");
+    compareIndex = -1;
+    openModals = Math.max(0, openModals - 1);
+  }
+  compareSegOriginal.addEventListener("click", function(){ setCompareLayer(false); });
+  compareSegCompressed.addEventListener("click", function(){ setCompareLayer(true); });
+  compareCloseBtn.addEventListener("click", closeCompare);
+  // 드래그로 이미지 이동 — 마우스·펜만 직접 처리한다. 터치는 브라우저의 기본
+  // 스크롤(overflow:auto)이 이미 잘 동작하는데, 거기에 우리 코드까지 scrollLeft를
+  // 건드리면 손가락 이동량이 두 번 적용돼 두 배로 튄다.
+  var panState = null;
+  compareStage.addEventListener("pointerdown", function(e){
+    if (e.pointerType === "touch") return;
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    // 움직일 여지가 없으면(이미지가 전부 보이면) 잡는 커서도 켜지 않는다.
+    if (compareStage.scrollWidth - compareStage.clientWidth <= 1 &&
+        compareStage.scrollHeight - compareStage.clientHeight <= 1) return;
+    panState = { id: e.pointerId, x: e.clientX, y: e.clientY, left: compareStage.scrollLeft, top: compareStage.scrollTop };
+    compareStage.classList.add("dragging");
+    // 캡처해두면 커서가 위쪽 툴바나 창 밖으로 나가도 드래그가 끊기지 않는다
+    // (예전엔 pointerleave에서 끊겨서, 조금만 크게 끌면 도중에 멈췄다).
+    if (compareStage.setPointerCapture) { try { compareStage.setPointerCapture(e.pointerId); } catch(err){} }
+    e.preventDefault();
+  });
+  compareStage.addEventListener("pointermove", function(e){
+    if (!panState || e.pointerId !== panState.id) return;
+    compareStage.scrollLeft = panState.left - (e.clientX - panState.x);
+    compareStage.scrollTop = panState.top - (e.clientY - panState.y);
+  });
+  ["pointerup","pointercancel"].forEach(function(evt){
+    compareStage.addEventListener(evt, function(e){
+      if (panState && compareStage.releasePointerCapture){
+        try { compareStage.releasePointerCapture(panState.id); } catch(err){}
+      }
+      panState = null;
+      compareStage.classList.remove("dragging");
+    });
+  });
+  document.addEventListener("keydown", function(e){
+    if (compareOverlay.classList.contains("show")){
+      if (e.key === "Escape"){ e.preventDefault(); closeCompare(); }
+      else if (e.key === " " || e.code === "Space"){ e.preventDefault(); setCompareLayer(!compareShowingCompressed); }
+      return;
+    }
+    if (e.key === "Escape" && thumbWrap.classList.contains("open")) thumbWrap.classList.remove("open");
+  });
+
+  // 안내 문구는 "결과가 어떻게 나왔는지"와 무관하게 항상 같이 붙여야 한다. 예전에는
+  // 이 안내가 일반(JPG/WEBP) 경로 끝에만 있어서, PNG를 올리면(= 기본 선택이 PNG라서)
+  // 형식 안내가 아예 뜨지 않았다.
+  // 업로드한 형식으로 저장할 수 없어서 다른 형식으로 맞춘 경우의 설명. 사용자가 직접
+  // 형식 버튼을 누르면 더 이상 맞는 설명이 아니므로 그때 비운다.
+  var formatFallbackNote = "";
+  function formatSupportNotes(){
+    var arr = [];
+    if (formatFallbackNote) arr.push(formatFallbackNote);
+    // 대체 안내에 이미 WEBP 이야기가 들어갔으면 같은 말을 두 번 하지 않는다.
+    if (!webpSupported && formatFallbackNote.indexOf("WEBP") === -1){
+      arr.push("이 브라우저는 WEBP 저장을 지원하지 않아 고를 수 없어요.");
+    }
+    return arr;
+  }
+  function setEmptyNote(notes){
+    var all = (notes || []).concat(formatSupportNotes());
+    if (all.length){
+      emptyNote.textContent = all.join(" ");
+      emptyNote.hidden = false;
+    } else {
+      emptyNote.textContent = "";
+      emptyNote.hidden = true;
+    }
+  }
+
   // 다섯 압축 단계를 순서대로(Promise.all이 아니라 하나씩) 인코딩한다 — 무거운 인코딩
   // 작업이 한꺼번에 몰려서 화면이 멈춘 것처럼 보이는 걸 막고, 로딩 퍼센트가 실제
   // 진행 상황에 맞춰 하나씩 올라가는 걸 보여주기 위해서다(다른 써봄 도구와 동일한 패턴).
   function runCompression(){
     if (!naturalCanvas || !flatCanvas) return;
+    busy = true;
+    var myRun = ++compressRun; // 이 실행이 아직 최신인지 확인하는 번호(지난 실행이 새 화면에 카드를 끼워 넣지 못하게)
+    function stale(){ return myRun !== compressRun; }
+    function finish(){ if (!stale()) busy = false; }
 
-    var MIME_BY_FORMAT = { png: "image/png", jpeg: "image/jpeg", webp: "image/webp", avif: "image/avif" };
+    var MIME_BY_FORMAT = { png: "image/png", jpeg: "image/jpeg", webp: "image/webp" };
     var mime = MIME_BY_FORMAT[selectedFormat];
     var ext = selectedFormat === "jpeg" ? "jpg" : selectedFormat;
-    // JPEG만 알파를 지원하지 않아 흰 배경에 합성한 flatCanvas를 쓰고, 나머지(PNG/WEBP/AVIF)는
+    // JPEG만 알파를 지원하지 않아 흰 배경에 합성한 flatCanvas를 쓰고, 나머지(PNG/WEBP)는
     // 전부 알파를 지원하므로 원본 그대로인 naturalCanvas를 쓴다.
     var canvas = selectedFormat === "jpeg" ? flatCanvas : naturalCanvas;
 
     revokeCurrentResults();
     currentResults = [];
+    pendingPreviews = [];
     resultGrid.innerHTML = "";
+    // 제목도 같이 비운다 — 예전에는 결과가 0장으로 끝나는 경로(PNG 라이브러리 로드 실패
+    // 등)에서 직전 실행의 "5개 압축 단계 비교"가 그대로 남아 있었다.
+    resultCount.textContent = "";
     emptyNote.hidden = true;
     resultSection.hidden = false;
     originalBadge.innerHTML = "원본 <b>" + formatBytes(originalSize) + "</b>";
 
     // PNG 색상 양자화는 JPEG/WEBP의 canvas.toBlob보다 순수 JS 연산이라 더 느리다
     // (특히 큰 이미지) — 사용자가 멈춘 줄 알고 새로고침하지 않도록 미리 안내한다.
-    showLoading(selectedFormat === "png" ? "PNG 압축하는 중... (큰 이미지는 시간이 조금 더 걸릴 수 있어요)" : "압축하는 중...");
+    // 아주 큰 이미지는 기기에 따라 인코딩이 실패할 수 있어 미리 알려준다(막지는 않는다).
+    var megaPixels = (naturalCanvas.width * naturalCanvas.height) / 1000000;
+    // "약 48백만 화소"는 한국어로 읽히지 않는다 — 만 단위로 바꿔서 "약 4,800만 화소"로.
+    var bigNote = megaPixels > 40
+      ? " (약 " + Math.round(megaPixels * 100).toLocaleString("ko-KR") + "만 화소 — 기기에 따라 오래 걸리거나 실패할 수 있어요)"
+      : "";
+    showLoading((selectedFormat === "png" ? "PNG 압축하는 중... (큰 이미지는 시간이 조금 더 걸릴 수 있어요)" : "압축하는 중...") + bigNote);
     nextFrame().then(async function(){
       // PNG 선택 시: 팔레트 색상 수를 단계별로 줄여가며(256→16색) 실제로 인코딩해보고,
       // 원본보다 작아진 단계만 카드로 보여준다 — JPEG/WEBP의 5단계 비교와 같은 방식이다.
       if (selectedFormat === "png"){
         if (typeof UPNG === "undefined"){
           hideLoading();
+          finish();
           console.error("UPNG 라이브러리를 불러오지 못했어요.");
-          emptyNote.hidden = false;
-          emptyNote.textContent = "PNG 압축 기능을 불러오지 못했어요. 인터넷 연결을 확인하고 새로고침해주세요.";
+          setEmptyNote(["PNG 압축 기능을 불러오지 못했어요. 인터넷 연결을 확인하고 새로고침해주세요. 지금은 위에서 JPG나 WEBP로 바꿔서 압축할 수 있어요."]);
           return;
         }
-        var pngSurvivors = [];
+        var pngSurvivors = [], pngFailed = 0;
         for (var pi = 0; pi < PNG_LEVELS.length; pi++){
+          if (stale()) return; // 그 사이 새 이미지를 올렸거나 형식을 바꿨으면 이 실행은 버린다
           var pLevel = PNG_LEVELS[pi];
           try {
             var pBlob = encodePngQuantized(canvas, pLevel.colors);
@@ -1136,31 +1702,44 @@
               pngSurvivors.push({ level: pLevel, blob: pBlob });
             }
           } catch(err){
+            pngFailed++;
             console.error("PNG 압축 실패", pLevel, err);
           }
           loadingPercent.textContent = Math.round(((pi + 1) / PNG_LEVELS.length) * 100) + "%";
           await nextFrame();
         }
+        if (stale()) return;
 
         hideLoading();
+        finish();
 
         if (!pngSurvivors.length){
           resultCount.textContent = "";
-          emptyNote.hidden = false;
-          emptyNote.textContent = "이 PNG는 이미 색상 수가 적어 더 압축해도 작아지지 않아요. 용량을 더 줄이고 싶다면 위에서 WEBP나 JPG로 형식을 바꿔보세요.";
+          // "한 단계도 작아지지 않음"과 "인코딩 자체가 실패함"은 원인이 전혀 달라서 문구를 나눈다 —
+          // 예전에는 전부 실패해도 "이미 색상 수가 적어서"라고 안내해 사용자가 오해할 수 있었다.
+          setEmptyNote([pngFailed === PNG_LEVELS.length
+            ? "이 이미지가 너무 커서 이 브라우저에서는 PNG로 압축할 수 없었어요. 위에서 JPG나 WEBP로 바꿔보시거나, 더 작은 이미지로 시도해주세요."
+            : "이 PNG는 이미 색상 수가 적어 더 압축해도 작아지지 않아요. 용량을 더 줄이고 싶다면 위에서 WEBP나 JPG로 형식을 바꿔보세요."]);
           return;
         }
 
+        var pngSkipped = PNG_LEVELS.length - pngSurvivors.length;
         resultCount.textContent = pngSurvivors.length + "개 압축 단계 비교";
         pngSurvivors.forEach(function(s){
           var pct = Math.round((1 - s.blob.size / originalSize) * 100);
           renderPngLevelCard(s.level, s.blob, pct);
         });
+        fillCardPreviews(stale);
+        setEmptyNote(pngSkipped > 0
+          ? ["나머지 " + pngSkipped + "개 단계는 결과가 원본보다 커져서 빼두었어요." +
+             (pngFailed ? " (그중 " + pngFailed + "개는 이 브라우저에서 인코딩에 실패했어요.)" : "")]
+          : []);
         return;
       }
 
-      var survivors = [];
+      var survivors = [], failed = 0;
       for (var i = 0; i < QUALITY_LEVELS.length; i++){
+        if (stale()) return;
         var level = QUALITY_LEVELS[i];
         try {
           var blob = await canvasToBlobAsync(canvas, mime, level.q);
@@ -1171,30 +1750,55 @@
             survivors.push({ level: level, blob: blob });
           }
         } catch(err){
+          failed++;
           console.error("압축 실패", level, err);
         }
         loadingPercent.textContent = Math.round(((i + 1) / QUALITY_LEVELS.length) * 100) + "%";
         await nextFrame();
       }
+      if (stale()) return;
 
       hideLoading();
+      finish();
 
       if (!survivors.length){
         resultCount.textContent = "";
-        emptyNote.hidden = false;
-        emptyNote.textContent = "이 이미지는 이미 최적화되어 있어 추가로 줄이기 어려워요.";
+        setEmptyNote([failed === QUALITY_LEVELS.length
+          ? "이 이미지가 너무 커서 이 브라우저에서는 압축할 수 없었어요. 다른 형식으로 바꿔보시거나, 더 작은 이미지로 시도해주세요."
+          : "이 이미지는 이미 최적화되어 있어 추가로 줄이기 어려워요."]);
         return;
       }
 
+      var skipped = QUALITY_LEVELS.length - survivors.length;
       resultCount.textContent = survivors.length + "개 압축 단계 비교";
       survivors.forEach(function(s){
         var pct = Math.round((1 - s.blob.size / originalSize) * 100);
         renderLevelCard(s.level, s.blob, pct, ext);
       });
+      fillCardPreviews(stale);
+      var notes = [];
+      if (skipped > 0){
+        notes.push("나머지 " + skipped + "개 단계는 결과가 원본보다 커져서 빼두었어요." +
+          (failed ? " (그중 " + failed + "개는 이 브라우저에서 인코딩에 실패했어요.)" : ""));
+      }
+      setEmptyNote(notes);
+    }).catch(function(err){
+      // 알려진 실패 지점은 각각 막아뒀지만, 예상 밖 오류가 나면 로딩 화면이 그대로 덮여
+      // 있고 busy가 true로 남아 모든 버튼이 무반응이 된다. 마지막 안전장치.
+      console.error("압축 중 예상하지 못한 오류", err);
+      if (stale()) return;
+      hideLoading();
+      finish();
+      resultCount.textContent = "";
+      setEmptyNote(["압축하는 중 문제가 생겼어요. 다른 형식으로 바꿔보시거나, 페이지를 새로고침한 뒤 다시 시도해주세요."]);
     });
   }
 
+  var originalUrl = null; // 1:1 비교 창에서 "원본"을 그대로 보여주기 위해 살려두는 blob URL
+
   function resetUI(){
+    closeCompare();
+    thumbWrap.classList.remove("open");
     fileInfo.hidden = true;
     resultSection.hidden = true;
     revokeCurrentResults();
@@ -1207,72 +1811,138 @@
     flatCanvas = null;
     originalFile = null;
     originalSize = 0;
+    if (originalUrl){ try { URL.revokeObjectURL(originalUrl); } catch(e){} originalUrl = null; }
     fileInput.value = "";
     hideLoading();
   }
 
-  function handleFile(file){
-    if (!file) return;
-    if (file.type && file.type.indexOf("image/") !== 0 && !/\.(png|jpe?g|webp|bmp|gif)$/i.test(file.name || "")){
-      alert("이미지 파일만 올릴 수 있어요.");
+  function decodeErrorMessage(file){
+    var name = (file.name || "").toLowerCase(), type = (file.type || "").toLowerCase();
+    if (/\.(heic|heif)$/.test(name) || type.indexOf("heic") !== -1 || type.indexOf("heif") !== -1){
+      return "HEIC·HEIF(아이폰 사진 기본 형식)는 이 브라우저에서 열 수 없어요.\n아이폰 '설정 > 카메라 > 포맷'을 '높은 호환성'으로 바꿔 찍거나, JPG로 저장해서 올려주세요.";
+    }
+    return "이미지를 열 수 없어요. 파일이 손상됐거나 이 브라우저가 지원하지 않는 형식일 수 있어요.\n다른 파일로 시도해주세요.";
+  }
+
+  // multiOnly: 여러 장을 한꺼번에 놓았을 때 true — 첫 장만 처리한다는 걸 파일 정보에 알린다.
+  function handleFile(file, multiOnly){
+    if (!file || busy) return;
+    if (file.type && file.type.indexOf("image/") !== 0 && !/\.(png|jpe?g|webp|avif|bmp|gif)$/i.test(file.name || "")){
+      showAlert("이미지 파일만 올릴 수 있어요.\nPNG·JPG·WEBP·GIF·BMP 파일을 골라주세요.");
       return;
     }
 
-    resetUI();
-    currentBaseName = baseNameOf(file.name || "image");
-    originalFile = file;
-    originalSize = file.size;
-
+    // 새 파일을 끝까지 읽는 데 성공했을 때만 지금 결과를 바꾼다 — 예전에는 먼저 화면을 비우고
+    // 읽었기 때문에, 손상된 파일을 고르면 멀쩡했던 압축 결과까지 사라졌다.
+    busy = true;
     var url = URL.createObjectURL(file);
+    // 시그니처를 먼저 읽어둔다(몇 바이트라 즉시 끝난다). 이미지 디코딩은 그 뒤에 시작.
+    var sniffedKind = null;
+    var sniffDone = sniffFormat(file).then(function(k){ sniffedKind = k; }).catch(function(){});
     var img = new Image();
     img.onload = function(){
+      sniffDone.then(function(){ onLoaded(); });
+    };
+    function onLoaded(){
       var w = img.naturalWidth, h = img.naturalHeight;
+      if (!w || !h){ img.onerror(); return; }
 
       // 이 도구는 화질 저하를 최소화하기 위해 픽셀 크기는 그대로 두고 재인코딩만
       // 한다(리사이즈하지 않음) — 캔버스를 원본 자연 크기 그대로 만든다.
-      naturalCanvas = document.createElement("canvas");
-      naturalCanvas.width = w; naturalCanvas.height = h;
-      naturalCanvas.getContext("2d").drawImage(img, 0, 0);
+      var newNatural = document.createElement("canvas");
+      newNatural.width = w; newNatural.height = h;
+      var nctx = newNatural.getContext("2d");
+      if (!nctx){
+        busy = false;
+        URL.revokeObjectURL(url);
+        showAlert("이미지가 너무 커서 이 브라우저에서 처리할 수 없어요.\n크기를 줄인 뒤 다시 올려주세요.");
+        return;
+      }
+      nctx.drawImage(img, 0, 0);
 
-      flatCanvas = document.createElement("canvas");
-      flatCanvas.width = w; flatCanvas.height = h;
-      var fctx = flatCanvas.getContext("2d");
+      var newFlat = document.createElement("canvas");
+      newFlat.width = w; newFlat.height = h;
+      var fctx = newFlat.getContext("2d");
       fctx.fillStyle = "#ffffff";
       fctx.fillRect(0, 0, w, h);
       fctx.drawImage(img, 0, 0);
 
-      fileThumb.src = naturalCanvas.toDataURL("image/png");
+      resetUI(); // 여기서부터 교체 — 새 이미지를 읽는 데 성공한 뒤다
+      currentBaseName = baseNameOf(file.name || "image");
+      originalFile = file;
+      originalSize = file.size;
+      naturalCanvas = newNatural;
+      flatCanvas = newFlat;
+      originalUrl = url; // 1:1 비교 창에서 원본을 그대로 보여주려고 살려둔다(해제는 resetUI에서)
+
+      fileThumb.src = makePreviewDataUrl(naturalCanvas);
       fileThumbZoom.src = fileThumb.src;
       fileNameEl.textContent = file.name || "이미지";
-      fileDetailEl.textContent = w + "×" + h + " · " + formatBytes(file.size);
+      // 형식이 바뀐 안내를 읽었을 때 "원본이 뭐였는지"가 화면에 남아 있어야 한다.
+      // 이미지 형식 변환 도구와 같은 모양: "PNG · 300×200 · 9.2 KB".
+      var inputKind = sniffedKind || detectInputKind(file);
+      fileDetailEl.textContent = (inputKind.label ? inputKind.label + " · " : "") +
+        w + "×" + h + " · " + formatBytes(file.size) +
+        (multiOnly ? " · 여러 장 중 첫 번째 파일만 압축해요" : "");
       fileInfo.hidden = false;
 
-      URL.revokeObjectURL(url);
-
       webpSupported = supportsCanvasEncoding("image/webp");
-      avifSupported = supportsCanvasEncoding("image/avif");
-      selectedFormat = detectDefaultFormat(file);
-      // 원본이 WEBP/AVIF인데 이 브라우저가 그 형식 인코딩을 지원하지 않는 드문
-      // 경우에만 대체 형식이 필요하다 — 이때도 임의로 JPEG(손실+알파 손실)로 보내지
-      // 않고 무손실인 PNG로 대체해서 투명도가 깨지지 않게 한다.
-      if (selectedFormat === "webp" && !webpSupported) selectedFormat = "png";
-      if (selectedFormat === "avif" && !avifSupported) selectedFormat = "png";
+      // 시그니처로 알아낸 형식이 있으면 그걸 믿는다(이름·MIME보다 정확하다).
+      var kind = inputKind;
+      formatFallbackNote = "";
+      if (kind.key === "png" || kind.key === "jpeg"){
+        selectedFormat = kind.key;                 // 원본 형식 그대로 — 가장 흔한 경우
+      } else if (kind.key === "webp"){
+        // 원본이 WEBP인데 이 브라우저가 WEBP 인코딩을 지원하지 않으면, 임의로 JPEG
+        // (손실 + 알파 손실)로 보내지 않고 무손실인 PNG로 대체한다.
+        selectedFormat = webpSupported ? "webp" : "png";
+        if (!webpSupported){
+          formatFallbackNote = "이 브라우저는 WEBP 저장을 지원하지 않아서, 무손실인 PNG로 맞춰 압축했어요.";
+        }
+      } else if (kind.key === "avif"){
+        // AVIF는 출력 형식에 아예 없다(어느 브라우저도 저장 불가). 이미 손실 압축된
+        // 형식이라 WEBP로 맞추는 게 없던 손실을 새로 만드는 게 아니고, 투명도도 남는다.
+        selectedFormat = webpSupported ? "webp" : "png";
+        formatFallbackNote = "AVIF는 어느 브라우저도 저장(인코딩)을 지원하지 않아서, " +
+          (webpSupported ? "투명도까지 유지되는 WEBP" : "무손실인 PNG") + "로 맞춰 압축했어요.";
+      } else {
+        // GIF(팔레트 기반)·BMP(무압축)·ICO 등 — 이 도구가 그 형식으로 저장할 수 없다.
+        // 동의 없이 손실 압축을 걸지 않도록 무손실인 PNG로 맞추고, 이유를 알려준다.
+        selectedFormat = "png";
+        // 형식을 알아낸 경우와 못 알아낸 경우의 사정이 전혀 다르다. 후자에 "저장할 수
+        // 없어서"라고 쓰면(확장자 없는 PNG 등) 실제로는 PNG로 잘 저장하는데도 뭔가
+        // 잘못된 것처럼 읽힌다.
+        formatFallbackNote = kind.label
+          ? kind.label + "로는 저장할 수 없어서, 화질이 손상되지 않는 PNG로 맞춰 압축했어요." +
+            " 용량을 더 줄이고 싶으면 위에서 JPG나 WEBP로 바꿔보세요."
+          : "원본 형식을 알 수 없어서 무손실인 PNG로 압축했어요." +
+            " 용량을 더 줄이고 싶으면 위에서 JPG나 WEBP로 바꿔보세요.";
+      }
       formatOptWebp.disabled = !webpSupported;
-      formatOptAvif.disabled = !avifSupported;
       updateFormatToggleUI();
 
       runCompression();
-    };
+    }
     img.onerror = function(){
+      busy = false;
       URL.revokeObjectURL(url);
-      alert("이미지를 열 수 없어요. 다른 파일로 시도해주세요.");
-      resetUI();
+      showAlert(decodeErrorMessage(file));
     };
     img.src = url;
   }
 
-  dropzone.addEventListener("click", function(){ fileInput.click(); });
-  fileInput.addEventListener("change", function(){ handleFile(fileInput.files[0]); });
+  // fileInput이 dropzone 안에 있어서, fileInput.click()의 클릭이 다시 dropzone으로 올라와
+  // 파일 선택 창이 두 번 열리던 문제를 막는다(다른 도구와 같은 가드).
+  dropzone.addEventListener("click", function(e){
+    if (e.target === fileInput) return;
+    if (busy) return;
+    fileInput.click();
+  });
+  fileInput.addEventListener("change", function(){
+    var f = fileInput.files[0];
+    fileInput.value = ""; // 같은 파일을 다시 골라도 change가 다시 발생하도록 비워둔다
+    handleFile(f);
+  });
 
   ["dragenter","dragover"].forEach(function(evt){
     dropzone.addEventListener(evt, function(e){
@@ -1287,38 +1957,78 @@
     });
   });
   dropzone.addEventListener("drop", function(e){
-    var file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-    if (file) handleFile(file);
+    if (busy || openModals > 0) return;
+    var files = e.dataTransfer && e.dataTransfer.files;
+    var file = files && files[0];
+    if (file) handleFile(file, multiDropNote(files));
   });
 
-  // "다른 이미지 선택"은 화면을 초기 상태로 되돌리는 것에서 끝나지 않고, 곧바로 파일
-  // 선택 창을 열어서 사용자가 바로 새 이미지를 고를 수 있게 한다.
+  // 이 도구는 한 번에 한 장만 다룬다 — 여러 장을 놓으면 예전엔 말없이 첫 장만 처리됐다.
+  function multiDropNote(files){
+    return !!(files && files.length > 1);
+  }
+
+  // ---- 업로드 영역 밖 파일 드롭 방지 (다른 네 도구와 같은 방식) ----
+  // 브라우저는 페이지 아무 곳에나 파일을 떨어뜨리면 그 파일을 탭에서 바로 열어버려 지금까지의
+  // 작업(압축 결과)을 잃게 된다. 페이지 전체에서 "파일" 드롭의 기본 동작을 막고, 업로드 영역
+  // 밖에 떨어뜨린 이미지도 업로드 영역에 놓은 것과 똑같이 처리한다.
+  function isFileDrag(e){
+    var types = e.dataTransfer && e.dataTransfer.types;
+    return !!types && Array.prototype.indexOf.call(types, "Files") !== -1;
+  }
+  window.addEventListener("dragover", function(e){
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    if (!dropzone.contains(e.target)) e.dataTransfer.dropEffect = (busy || openModals > 0) ? "none" : "copy";
+  });
+  window.addEventListener("drop", function(e){
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    if (dropzone.contains(e.target)) return; // 업로드 영역 자체의 drop 핸들러가 이미 처리함
+    if (busy || openModals > 0) return;
+    var files = e.dataTransfer.files;
+    if (files && files.length) handleFile(files[0], multiDropNote(files));
+  });
+
+  // "다른 이미지 선택"은 곧바로 파일 선택 창을 연다. 지금 결과는 새 이미지를 실제로 골라서
+  // 끝까지 읽는 데 성공했을 때만 바뀐다 — 예전엔 창을 열기 전에 먼저 지워버려서, 선택을
+  // 취소하면 압축 결과가 전부 사라졌다.
   changeBtn.addEventListener("click", function(){
-    resetUI();
+    if (busy) return;
     fileInput.click();
   });
 
+  // 원본 썸네일 확대는 CSS :hover로만 열려서 휴대폰에서는 확대할 방법이 아예 없었다 —
+  // 눌러도 열리게 하고, 다시 누르거나 바깥을 누르거나 Esc를 누르면 닫는다.
+  fileThumb.addEventListener("click", function(e){
+    e.stopPropagation();
+    thumbWrap.classList.toggle("open");
+  });
+  document.addEventListener("click", function(e){
+    if (!thumbWrap.contains(e.target)) thumbWrap.classList.remove("open");
+  });
+
   formatOptPng.addEventListener("click", function(){
+    if (busy) return;
     if (selectedFormat === "png" || !naturalCanvas) return;
     selectedFormat = "png";
+    formatFallbackNote = "";
     updateFormatToggleUI();
     runCompression();
   });
   formatOptWebp.addEventListener("click", function(){
+    if (busy) return;
     if (formatOptWebp.disabled || selectedFormat === "webp" || !naturalCanvas) return;
     selectedFormat = "webp";
+    formatFallbackNote = "";
     updateFormatToggleUI();
     runCompression();
   });
   formatOptJpeg.addEventListener("click", function(){
+    if (busy) return;
     if (selectedFormat === "jpeg" || !naturalCanvas) return;
     selectedFormat = "jpeg";
-    updateFormatToggleUI();
-    runCompression();
-  });
-  formatOptAvif.addEventListener("click", function(){
-    if (formatOptAvif.disabled || selectedFormat === "avif" || !naturalCanvas) return;
-    selectedFormat = "avif";
+    formatFallbackNote = "";
     updateFormatToggleUI();
     runCompression();
   });
