@@ -1008,7 +1008,7 @@
 
   <div class="file-info" id="fileInfo" hidden>
     <div class="thumb-wrap">
-      <img class="thumb" id="fileThumb" alt="원본 이미지 미리보기">
+      <img class="thumb" id="fileThumb" alt="원본 이미지 미리보기" role="button" tabindex="0" aria-expanded="false" aria-label="원본 이미지 확대해서 보기" title="눌러서 크게 보기">
       <div class="thumb-zoom"><img id="fileThumbZoom" alt="원본 이미지 확대 미리보기"></div>
     </div>
     <div class="meta">
@@ -1615,7 +1615,7 @@
       else if (e.key === " " || e.code === "Space"){ e.preventDefault(); setCompareLayer(!compareShowingCompressed); }
       return;
     }
-    if (e.key === "Escape" && thumbWrap.classList.contains("open")) thumbWrap.classList.remove("open");
+    if (e.key === "Escape" && thumbWrap.classList.contains("open")) closeThumbZoom();
   });
 
   // 안내 문구는 "결과가 어떻게 나왔는지"와 무관하게 항상 같이 붙여야 한다. 예전에는
@@ -1798,7 +1798,7 @@
 
   function resetUI(){
     closeCompare();
-    thumbWrap.classList.remove("open");
+    closeThumbZoom();
     fileInfo.hidden = true;
     resultSection.hidden = true;
     revokeCurrentResults();
@@ -2000,12 +2000,30 @@
 
   // 원본 썸네일 확대는 CSS :hover로만 열려서 휴대폰에서는 확대할 방법이 아예 없었다 —
   // 눌러도 열리게 하고, 다시 누르거나 바깥을 누르거나 Esc를 누르면 닫는다.
+  // 열림 상태를 한 곳에서만 바꿔서 aria-expanded가 화면과 어긋나지 않게 한다.
+  function setThumbZoom(open){
+    thumbWrap.classList.toggle("open", open);
+    fileThumb.setAttribute("aria-expanded", open ? "true" : "false");
+  }
+  function closeThumbZoom(){ setThumbZoom(false); }
   fileThumb.addEventListener("click", function(e){
     e.stopPropagation();
-    thumbWrap.classList.toggle("open");
+    setThumbZoom(!thumbWrap.classList.contains("open"));
+  });
+  // <img>는 role="button" tabindex="0"을 줬어도 키보드로 눌리지 않으니 Enter·Space를
+  // 직접 받아준다. Space는 그냥 두면 페이지가 스크롤되므로 기본 동작을 막는다.
+  fileThumb.addEventListener("keydown", function(e){
+    // 1:1 비교 창이 떠 있는 동안 스페이스바는 그 창의 원본↔압축 전환이다 — 썸네일에
+    // 포커스가 남아 있어도 뒤에서 조용히 확대가 열리지 않게 비켜준다.
+    if (compareOverlay.classList.contains("show")) return;
+    if (e.key === "Enter" || e.key === " " || e.key === "Spacebar"){
+      e.preventDefault();
+      e.stopPropagation();
+      setThumbZoom(!thumbWrap.classList.contains("open"));
+    }
   });
   document.addEventListener("click", function(e){
-    if (!thumbWrap.contains(e.target)) thumbWrap.classList.remove("open");
+    if (!thumbWrap.contains(e.target)) closeThumbZoom();
   });
 
   formatOptPng.addEventListener("click", function(){
