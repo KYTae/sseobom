@@ -740,6 +740,12 @@
     box-sizing:border-box;
   }
 
+  /* 방금 만든 파일을 브라우저 공유 기능으로 바로 넘기는 버튼. 변환이 끝나기 전에는
+     넘길 파일이 없으므로 숨겨두고, 공유를 지원하지 않는 브라우저에서는 아예 만들지 않는다.
+     (PC 사파리·파이어폭스처럼 파일 공유를 못 하는 곳에서 눌러도 아무 일이 없으면
+     고장으로 보인다.) */
+  #shareBtn[hidden]{ display:none; }
+
   /* 고화질은 원본 해상도를 유지해서 결과가 커진다 — 변환 전에 미리 알려주는 줄. */
   .size-hint{
     width:100%;
@@ -864,6 +870,7 @@
     .mode-toggle-wrap{ width:100%; }
     .mode-toggle-wrap .mode-track{ flex:1; }
     #downloadBtn{ width:100%; }
+    #shareBtn{ width:100%; }
     .grid{ grid-template-columns:repeat(auto-fill, minmax(120px,1fr)); }
   }
 </style>
@@ -905,6 +912,7 @@
           <div class="help-item help-item-wide"><span class="help-key">화질 (고화질 / 용량 최적화)</span><span class="help-desc"><b>고화질</b>은 원본 해상도를 그대로 유지해요(JPG 사진은 조건이 맞으면 원본 파일을 손대지 않고 그대로 넣고, PNG·BMP처럼 무손실 이미지는 무손실로 넣어요). 사진이 여러 장이면 결과가 100MB를 넘을 수 있어 미리 알려드려요. <b>용량 최적화</b>는 페이지 크기에 맞는 해상도(150dpi)로 줄이고 JPG로 압축해서, 같은 사진 12장이 약 4분의 1 크기가 돼요. 투명한 부분이 있는 이미지는 투명을 잃지 않도록 그대로 둬요.</span></div>
           <div class="help-item help-item-wide"><span class="help-key">페이지 (이미지 크기 / A4)</span><span class="help-desc"><b>이미지 크기</b>는 이미지 비율 그대로 페이지를 만들어요(지금까지의 방식). <b>A4</b>는 모든 페이지를 A4로 통일하고 이미지를 여백 안에 가운데로 넣어서, 여러 장을 인쇄할 때 크기가 들쭉날쭉하지 않아요. A4보다 작은 이미지는 억지로 늘려 흐려지지 않게 원래 크기로 놓아요.</span></div>
           <div class="help-item help-item-wide"><span class="help-key">모드 (하나로 합치기 / 각각 PDF)</span><span class="help-desc">두 칸 중 원하는 쪽을 누르면 바뀌어요. <b>각각 PDF</b>는 이미지마다 PDF 파일이 따로 만들어져 zip 하나로 받고(zip 안의 PDF 이름은 원본 이미지 이름을 그대로 쓰고, 아래 "파일 이름" 칸은 zip 파일 이름에만 쓰여요), <b>하나로 합치기</b>는 지금 순서대로 이어붙인 PDF 한 개가 만들어져요.</span></div>
+          <div class="help-item help-item-wide"><span class="help-key">공유</span><span class="help-desc">변환이 끝나면 변환 버튼 옆에 나타나요. 방금 만든 파일을 카카오톡·메일 등으로 바로 보내요. 특히 아이폰에서는 PDF가 저장되지 않고 화면에 열리는 경우가 있어서, 그 화면에서 공유하면 파일과 함께 임시 주소(blob 주소)까지 같이 보내지고 그 주소는 받는 쪽에서 열리지 않아요 — 이 버튼을 쓰면 파일만 깔끔하게 가요. 공유 기능이 없는 브라우저에서는 버튼이 나타나지 않아요.</span></div>
         </div>
       </div>
       <div class="help-section">
@@ -969,6 +977,7 @@
           </div>
         </div>
         <button class="primary" id="downloadBtn" type="button">PDF로 변환</button>
+        <button class="ghost" id="shareBtn" type="button" hidden title="방금 만든 파일을 카카오톡·메일 등으로 바로 보냅니다.">공유</button>
       </div>
     </div>
     <p class="size-hint" id="sizeHint" hidden></p>
@@ -1097,6 +1106,7 @@
   var filenameInput = document.getElementById("filenameInput");
   var filenameSuffix = document.getElementById("filenameSuffix");
   var downloadBtn = document.getElementById("downloadBtn");
+  var shareBtn = document.getElementById("shareBtn");
   var statusLine = document.getElementById("statusLine");
   var modeTrack = document.getElementById("modeTrack");
   var modeSegMerge = document.getElementById("modeSegMerge");
@@ -1790,6 +1800,7 @@
     qualitySegHigh.classList.toggle("active", !isOptimized);
     qualitySegOptimized.classList.toggle("active", isOptimized);
     updateSizeHint();
+    clearLastResult();
   }
 
   // ---------- 페이지 크기 전환 (이미지 크기 / A4) ----------
@@ -1801,6 +1812,7 @@
     pageTrack.classList.toggle("pos-second", isA4);
     pageSegImage.classList.toggle("active", !isA4);
     pageSegA4.classList.toggle("active", isA4);
+    clearLastResult();
     updateSizeHint();
   }
   pageSegImage.addEventListener("click", function(){ setPageSizeMode("image"); });
@@ -1862,6 +1874,7 @@
   }
 
   function updateModeUI(){
+    clearLastResult();
     var multi = items.length > 1;
     modeTrack.classList.toggle("mode-separate", mode === "separate");
     modeSegSeparate.classList.toggle("active", mode === "separate");
@@ -2198,6 +2211,57 @@
     return v || "이미지";
   }
 
+  // ---------- 공유 (브라우저 공유 기능) ----------
+  // 아이폰 사파리는 PDF를 저장하지 않고 화면에 열어서 보여준다. 그 화면의 주소는
+  // blob: 주소라서, 거기서 아이폰 공유 버튼을 누르면 파일과 함께 그 blob 주소까지
+  // 같이 넘어간다 — 받는 쪽(카카오톡 등)에는 메시지가 두 개 오고, 그 주소는 원래
+  // 이 브라우저 탭 안에서만 통하는 임시 주소라 눌러도 열리지 않는다(사이트 404).
+  // 그래서 "파일만" 넘기는 길을 도구 안에 직접 둔다.
+  var lastResult = null; // { blob, name }
+
+  // 실제로 파일 공유가 되는 브라우저에서만 버튼을 보여준다. navigator.share가 있어도
+  // 파일은 못 넘기는 브라우저가 있어서, canShare에 진짜 File을 넣어 물어봐야 정확하다.
+  var fileShareSupported = (function(){
+    try {
+      if (!navigator.share || !navigator.canShare || typeof File === "undefined") return false;
+      var probe = new File([new Blob(["x"], { type: "application/pdf" })], "t.pdf", { type: "application/pdf" });
+      return navigator.canShare({ files: [probe] });
+    } catch(e){ return false; }
+  })();
+
+  function setLastResult(blob, name){
+    if (!fileShareSupported) return;
+    lastResult = { blob: blob, name: name };
+    shareBtn.hidden = false;
+  }
+  // 이미지 목록·모드·화질이 바뀌면 방금 만든 파일은 화면과 더 이상 맞지 않는다.
+  function clearLastResult(){
+    lastResult = null;
+    shareBtn.hidden = true;
+  }
+
+  shareBtn.addEventListener("click", function(){
+    if (!lastResult || busy) return;
+    var type = lastResult.blob.type || (/\.zip$/i.test(lastResult.name) ? "application/zip" : "application/pdf");
+    var file;
+    try {
+      file = new File([lastResult.blob], lastResult.name, { type: type });
+    } catch(e){
+      showAlert("이 브라우저에서는 파일 공유가 안 돼요. '변환' 버튼으로 받은 파일을 직접 공유해주세요.");
+      return;
+    }
+    if (!navigator.canShare || !navigator.canShare({ files: [file] })){
+      showAlert("이 브라우저에서는 파일 공유가 안 돼요. '변환' 버튼으로 받은 파일을 직접 공유해주세요.");
+      return;
+    }
+    navigator.share({ files: [file] }).catch(function(err){
+      // 사용자가 공유 창을 그냥 닫은 것(AbortError)은 오류가 아니라 취소다.
+      if (err && (err.name === "AbortError" || err.name === "NotAllowedError")) return;
+      console.error("공유 실패", err);
+      showAlert("공유하지 못했어요. '변환' 버튼으로 받은 파일을 직접 공유해주세요.");
+    });
+  });
+
   function downloadBlob(blob, filename){
     var a = document.createElement("a");
     var url = URL.createObjectURL(blob);
@@ -2207,6 +2271,7 @@
     a.click();
     document.body.removeChild(a);
     setTimeout(function(){ URL.revokeObjectURL(url); }, 10000);
+    setLastResult(blob, filename);
     if (window.incrementSseobomDownload) window.incrementSseobomDownload();
   }
 
