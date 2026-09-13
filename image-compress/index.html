@@ -606,7 +606,7 @@
     gap:10px;
   }
   /* ---- 압축 단계 카드 ---- */
-  /* 카드 미리보기는 "누르면 1:1 비교 창"으로 일원화했다. 예전에는 카드마다 호버 확대 팝업을
+  /* 카드 미리보기는 "누르면 비교 창"으로 일원화했다. 예전에는 카드마다 호버 확대 팝업을
      하나씩 달고 있었는데, 숨어 있어도 레이아웃 폭을 차지해서 화면 폭에 따라 가로 스크롤이
      생겼고(390px·1000px에서 확인), 같은 이미지를 썸네일용·확대용으로 두 번 불러왔다.
      360px로 줄여 보여주는 확대는 압축 흔적을 판단하는 데 도움이 되지 않기도 했다. */
@@ -788,9 +788,11 @@
   .modal-actions{display:flex; justify-content:flex-end; gap:8px;}
   .modal-actions button{padding:8px 16px;}
 
-  /* ---- 1:1 화질 비교 창 ----
+  /* ---- 화질 비교 창 ----
      압축 도구에서 정작 중요한 "압축 흔적이 눈에 보이는가"는 360px로 줄인 미리보기로는
-     알 수 없다. 원본과 압축본을 같은 위치·실제 픽셀(1:1)로 겹쳐놓고 번갈아 보여준다. */
+     알 수 없다. 원본과 압축본을 같은 위치에 겹쳐놓고 번갈아 보여준다.
+     처음에는 사진 전체가 한 화면에 들어오게 맞춰서 띄우고(100% 고정이던 예전에는 큰 사진의
+     귀퉁이만 보였다), 흔적을 따질 때는 100% 이상으로 확대해서 본다. */
   .compare-overlay{
     position:fixed; inset:0; z-index:10050;
     background:rgba(0,0,0,.82);
@@ -854,10 +856,37 @@
     font-size:12px;
     color:rgba(255,255,255,.6);
   }
+  .compare-zoom{
+    display:flex; align-items:center; gap:2px;
+    background:rgba(255,255,255,.14);
+    border-radius:999px;
+    padding:3px;
+  }
+  .compare-zoom-btn, .compare-zoom-level{
+    background:transparent; border:0; border-radius:999px;
+    font-family:inherit; font-weight:700;
+    color:rgba(255,255,255,.85);
+    cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .compare-zoom-btn{ width:28px; height:26px; font-size:16px; line-height:1; }
+  .compare-zoom-level{
+    min-width:86px; height:26px; padding:0 8px;
+    font-size:12px;
+    font-variant-numeric:tabular-nums;
+    white-space:nowrap;
+  }
+  .compare-zoom-btn:hover, .compare-zoom-level:hover{ background:rgba(255,255,255,.18); }
+  .compare-zoom-btn:disabled{ opacity:.3; cursor:default; background:transparent; }
   .compare-stage{
     flex:1;
     min-height:0;
     overflow:auto;
+    /* 이미지를 가운데에 둔다. flex 안에서 넘치는 아이템은 justify-content:center로 가운데
+       정렬하면 위·왼쪽이 잘려서 스크롤해도 못 보는 브라우저가 있어, 아이템 쪽 margin:auto로
+       가운데를 맞춘다(넘칠 때는 margin이 0이 되어 스크롤이 정상 동작한다). */
+    display:flex;
+    padding:12px;
     /* 이미지 끝까지 스크롤한 뒤에도 계속 굴리면 뒤에 있는 페이지가 밀려 올라간다
        (스크롤 체이닝) — 비교 창 안에서만 움직이도록 묶는다. */
     overscroll-behavior:contain;
@@ -870,8 +899,12 @@
   .compare-stage.fits{ cursor:default; }
   .compare-inner{
     position:relative;
-    margin:0 auto;
+    margin:auto;
+    flex:none;
   }
+  /* 100%를 넘겨 확대했을 때는 브라우저가 매끄럽게 보간해버리면 압축 흔적(블록·번짐)이
+     뭉개져서 오히려 안 보인다. 실제 픽셀을 그대로 네모로 키워서 보여준다. */
+  .compare-inner.pixel img{ image-rendering:pixelated; }
   .compare-inner img{
     -webkit-user-drag:none;
     user-select:none;
@@ -951,6 +984,10 @@
     .file-info .meta{ flex:1 1 0; }
     .file-info .change-btn{ width:100%; }
     .compare-seg{ padding:7px 12px; }
+    /* 좁은 화면에서는 위쪽 툴바가 커질수록 정작 봐야 할 사진이 작아진다 — 글자와 여백을 줄인다. */
+    .compare-topbar{ gap:8px 10px; padding:10px 12px; }
+    .compare-meta, .compare-hint{ font-size:11.5px; }
+    .compare-zoom-level{ min-width:78px; }
   }
 </style>
 </head>
@@ -966,7 +1003,7 @@
   <header class="top">
     <div class="brand"><span class="dot"></span>써봄</div>
     <h1>이미지 용량 압축</h1>
-    <p class="sub">이미지 파일 하나를 올리면 여러 압축 단계로 한 번에 인코딩해서, 실제로 줄어드는 용량과 화질을 눈으로 비교하고 원하는 단계만 골라 받을 수 있어요. PNG·JPG·WEBP 형식을 지원하고, 업로드한 형식 그대로 압축하거나 원하는 형식으로 바꿔서 비교할 수도 있어요. 원본과 1:1로 나란히 비교하는 창도 있어요.</p>
+    <p class="sub">이미지 파일 하나를 올리면 여러 압축 단계로 한 번에 인코딩해서, 실제로 줄어드는 용량과 화질을 눈으로 비교하고 원하는 단계만 골라 받을 수 있어요. PNG·JPG·WEBP 형식을 지원하고, 업로드한 형식 그대로 압축하거나 원하는 형식으로 바꿔서 비교할 수도 있어요. 미리보기를 누르면 원본과 압축본을 같은 자리에 겹쳐 번갈아 보는 창이 열려요 — 처음에는 사진 전체가 보이게 맞춰서 띄우고, 확대·축소해서 압축 흔적을 자세히 볼 수 있어요.</p>
     <div class="badge-row">
       <div class="badge-line">
         <span class="feature-badge">여러 압축 단계 비교 · 실제 용량·감소율 확인 · 미리보기 제공 · PNG·JPG·WEBP로 저장 · AVIF·GIF·BMP도 올리기 가능</span>
@@ -996,7 +1033,8 @@
         <div class="help-section-label">압축 단계 비교</div>
         <div class="help-grid">
           <div class="help-item help-item-wide"><span class="help-key">압축 단계 카드</span><span class="help-desc">화질을 다르게 해서 실제로 인코딩한 뒤, 각 단계에서 진짜로 줄어드는 파일 용량과 감소율(%)을 계산해서 보여드려요. 추정치가 아니라 실제로 인코딩해서 나온 값이에요. (PNG는 품질 대신 색상 수를 256색부터 16색까지 줄여가며 단계별로 비교해드려요 — 형식은 그대로 PNG를 유지하면서 용량만 줄어들어요.)</span></div>
-          <div class="help-item help-item-wide"><span class="help-key">미리보기</span><span class="help-desc">카드마다 작은 미리보기가 있어요 — 어떤 단계인지 알아보기 위한 것이고, 긴 변 360px로 줄인 사본이라 화질 차이는 여기서 판단할 수 없어요. 실제 차이는 <b>미리보기를 누르면 열리는 원본과 1:1(실제 픽셀) 비교 창</b>에서 보세요. 누른 단계의 압축 결과가 먼저 보이고, "원본 / 압축"을 눌러(또는 스페이스바로) 같은 자리를 번갈아 보면 압축 흔적이 바로 보여요.</span></div>
+          <div class="help-item help-item-wide"><span class="help-key">미리보기</span><span class="help-desc">카드마다 작은 미리보기가 있어요 — 어떤 단계인지 알아보기 위한 것이고, 긴 변 360px로 줄인 사본이라 화질 차이는 여기서 판단할 수 없어요. 실제 차이는 <b>미리보기를 누르면 열리는 비교 창</b>에서 보세요. 누른 단계의 압축 결과가 먼저 보이고, "원본 / 압축"을 눌러(또는 스페이스바로) 같은 자리를 번갈아 보면 압축 흔적이 바로 보여요.</span></div>
+          <div class="help-item help-item-wide"><span class="help-key">비교 창 확대·축소</span><span class="help-desc">처음에는 사진 <b>전체가 한 화면에 들어오도록 맞춰서</b> 보여드려요. 다만 줄여서 보면 브라우저가 픽셀을 섞기 때문에 압축 흔적이 실제보다 덜 보여요 — 가운데 <b>퍼센트 버튼을 누르면 100%(실제 픽셀)</b>로 바뀌고, 다시 누르면 전체 보기로 돌아와요. <b>＋ −</b> 버튼, 마우스 휠, 두 손가락 벌리기로도 조절할 수 있고, 최대 800%까지 확대돼요. 확대한 상태에서는 끌어서 다른 부분을 볼 수 있어요. 키보드는 <b>＋ −</b>, <b>0</b>(전체 보기), <b>1</b>(100%)이에요.</span></div>
           <div class="help-item help-item-wide"><span class="help-key">PNG / JPG / WEBP</span><span class="help-desc">업로드한 이미지와 같은 형식이 기본으로 선택돼요(PNG를 올리면 PNG, JPG를 올리면 JPG) — 처음 올렸을 때 형식이 마음대로 바뀌지 않아요. 용량을 더 줄이고 싶으면 직접 WEBP로 바꿔서 다시 비교해보세요. AVIF·GIF·BMP 파일도 올릴 수 있는데, 이 세 형식으로는 저장할 수 없어요. GIF·BMP는 화질이 손상되지 않는 PNG로, 이미 손실 압축된 AVIF는 같은 계열이면서 투명도까지 유지되는 WEBP로 맞춰 드리고, 왜 바뀌었는지 결과 아래에 알려드려요.</span></div>
         </div>
       </div>
@@ -1048,8 +1086,8 @@
     <p class="empty-note" id="emptyNote" hidden></p>
   </div>
 
-  <!-- 1:1 화질 비교 창 — 원본과 선택한 압축 단계를 같은 위치·실제 픽셀로 겹쳐 두고 번갈아 본다. -->
-  <div class="compare-overlay" id="compareOverlay" role="dialog" aria-modal="true" tabindex="-1" aria-label="원본과 압축 결과 1:1 비교">
+  <!-- 화질 비교 창 — 원본과 선택한 압축 단계를 같은 위치에 겹쳐 두고 번갈아 본다(맞춤/확대·축소). -->
+  <div class="compare-overlay" id="compareOverlay" role="dialog" aria-modal="true" tabindex="-1" aria-label="원본과 압축 결과 비교">
     <button class="compare-close" id="compareCloseBtn" type="button" title="닫기 (Esc)">✕</button>
     <div class="compare-topbar">
       <div class="compare-track" id="compareTrack" role="group" aria-label="원본 / 압축 전환">
@@ -1057,13 +1095,18 @@
         <button class="compare-seg active" id="compareSegOriginal" type="button" aria-pressed="true">원본</button>
         <button class="compare-seg" id="compareSegCompressed" type="button" aria-pressed="false">압축</button>
       </div>
+      <div class="compare-zoom" role="group" aria-label="확대·축소">
+        <button class="compare-zoom-btn" id="compareZoomOut" type="button" aria-label="축소" title="축소 ( − )">−</button>
+        <button class="compare-zoom-level" id="compareZoomLevel" type="button"></button>
+        <button class="compare-zoom-btn" id="compareZoomIn" type="button" aria-label="확대" title="확대 ( + )">+</button>
+      </div>
       <span class="compare-meta" id="compareMeta"></span>
       <span class="compare-hint" id="compareHint"></span>
     </div>
     <div class="compare-stage" id="compareStage">
       <div class="compare-inner" id="compareInner">
-        <img id="compareOriginalImg" draggable="false" alt="원본 이미지 1:1">
-        <img id="compareCompressedImg" class="hidden-layer" draggable="false" alt="압축 결과 1:1">
+        <img id="compareOriginalImg" draggable="false" alt="원본 이미지">
+        <img id="compareCompressedImg" class="hidden-layer" draggable="false" alt="압축 결과">
       </div>
     </div>
   </div>
@@ -1128,6 +1171,9 @@
   var compareSegCompressed = document.getElementById("compareSegCompressed");
   var compareMeta = document.getElementById("compareMeta");
   var compareCloseBtn = document.getElementById("compareCloseBtn");
+  var compareZoomOut = document.getElementById("compareZoomOut");
+  var compareZoomIn = document.getElementById("compareZoomIn");
+  var compareZoomLevel = document.getElementById("compareZoomLevel");
 
   // 이미지를 읽거나 압축하는 동안은 true — 그 사이에 파일이 더 들어오거나 형식 버튼이
   // 눌려서 작업이 겹치지 않게 막는다(다른 써봄 도구와 같은 방식).
@@ -1365,7 +1411,7 @@
   // img src에 넣어서 4032×3024 비트맵 5장이 동시에 살아 있었다(완전 디코딩 시 최대
   // 232MB). 메모리가 빡빡한 휴대폰에서 미리보기가 빈칸이 되거나 탭이 죽는 전형적인
   // 원인이라, 카드용으로는 긴 변 360px 축소본을 따로 만들어 쓴다(2.5배라 고해상도
-  // 화면에서도 선명하다). 1:1 비교 창과 다운로드는 그대로 원본·결과 파일을 쓴다.
+  // 화면에서도 선명하다). 비교 창과 다운로드는 그대로 원본·결과 파일을 쓴다.
   var CARD_PREVIEW_MAX = 360;
   var pendingPreviews = [];   // {img, blob, useJpeg} — 카드를 먼저 붙이고 순서대로 채운다
 
@@ -1462,7 +1508,7 @@
     });
   }
 
-  // 카드 하나를 붙인 뒤, 1:1 비교 창이 쓸 정보(라벨·용량·감소율·미리보기 URL)를 기억해둔다.
+  // 카드 하나를 붙인 뒤, 비교 창이 쓸 정보(라벨·용량·감소율·미리보기 URL)를 기억해둔다.
   function attachCard(card, url, blob, label, pct, filename){
     // 카드는 지금 바로 붙이고(빠르게 보여주고), 축소 미리보기는 뒤에서 한 장씩 채운다.
     pendingPreviews.push({ img: card.querySelector(".compress-thumb"),
@@ -1482,11 +1528,11 @@
     }
     var host = card.querySelector(".compress-thumb-wrap");
     if (host){
-      // 1:1 비교 창은 이 도구의 핵심 기능인데, 여는 자리가 click만 달린 <div>라
+      // 비교 창은 이 도구의 핵심 기능인데, 여는 자리가 click만 달린 <div>라
       // 키보드로는 들어갈 수 없었다. 버튼으로 알리고 Enter·Space를 받아준다.
       host.setAttribute("role", "button");
       host.setAttribute("tabindex", "0");
-      host.setAttribute("aria-label", label + " 결과를 원본과 1:1로 비교하기");
+      host.setAttribute("aria-label", label + " 결과를 원본과 비교하기");
       host.addEventListener("click", function(){ openCompare(index); });
       host.addEventListener("keydown", function(e){
         if (e.key !== "Enter" && e.key !== " " && e.key !== "Spacebar") return;
@@ -1503,7 +1549,7 @@
     var url = URL.createObjectURL(blob);
     var filename = currentBaseName + "-q" + Math.round(level.q * 100) + "." + ext;
     card.innerHTML =
-      '<div class="compress-thumb-wrap loading" title="눌러서 원본과 1:1로 비교하기"><img class="compress-thumb" alt="' + level.label + ' 미리보기"><span class="thumb-loading">미리보기 만드는 중</span></div>' +
+      '<div class="compress-thumb-wrap loading" title="눌러서 원본과 비교하기"><img class="compress-thumb" alt="' + level.label + ' 미리보기"><span class="thumb-loading">미리보기 만드는 중</span></div>' +
       '<div class="compress-label-row"><span class="compress-level-label">' + level.label + '</span><span class="compress-reduction">' + pct + '% 감소</span></div>' +
       '<div class="compress-size-row"><span class="compress-size">' + formatBytes(blob.size) + '</span><span class="compress-of-original">품질 ' + Math.round(level.q * 100) + '%</span></div>' +
       '<div class="dl-row"><a class="dl-btn" href="' + url + '">다운로드</a>' +
@@ -1520,7 +1566,7 @@
     var url = URL.createObjectURL(blob);
     var filename = currentBaseName + "-c" + level.colors + ".png";
     card.innerHTML =
-      '<div class="compress-thumb-wrap loading" title="눌러서 원본과 1:1로 비교하기"><img class="compress-thumb" alt="' + level.label + ' 미리보기"><span class="thumb-loading">미리보기 만드는 중</span></div>' +
+      '<div class="compress-thumb-wrap loading" title="눌러서 원본과 비교하기"><img class="compress-thumb" alt="' + level.label + ' 미리보기"><span class="thumb-loading">미리보기 만드는 중</span></div>' +
       '<div class="compress-label-row"><span class="compress-level-label">' + level.label + '</span><span class="compress-reduction">' + pct + '% 감소</span></div>' +
       '<div class="compress-size-row"><span class="compress-size">' + formatBytes(blob.size) + '</span><span class="compress-of-original">' + level.colors + '색</span></div>' +
       '<div class="dl-row"><a class="dl-btn" href="' + url + '">다운로드</a>' +
@@ -1539,13 +1585,103 @@
     return new Blob([arr], { type: "image/png" });
   }
 
-  // ---------- 1:1 화질 비교 창 ----------
+  // ---------- 화질 비교 창 ----------
   // 카드 미리보기를 누르면 열린다. 원본과 그 단계의 압축 결과를 같은 자리에 겹쳐 놓고
-  // 실제 픽셀 크기(1:1)로 보여주며, "원본/압축" 토글(또는 스페이스바)로 번갈아 본다 —
-  // 360px로 줄인 미리보기로는 압축 흔적이 보이지 않기 때문에 만든 화면이다.
+  // "원본/압축" 토글(또는 스페이스바)로 번갈아 본다 — 360px로 줄인 미리보기로는 압축
+  // 흔적이 보이지 않기 때문에 만든 화면이다.
+  // 처음에는 사진 전체가 한 화면에 들어오도록 줄여서 보여주고(예전에는 무조건 100%라
+  // 큰 사진은 한쪽 귀퉁이만 보였다), 압축 흔적을 따질 때는 100% 이상으로 확대한다.
   var compareIndex = -1;
   var compareShowingCompressed = false;
   var compareOpener = null; // 창을 닫을 때 포커스를 돌려줄 카드(키보드 사용자용)
+  var compareScale = 1;         // 현재 배율 (1 = 실제 픽셀 100%)
+  var compareFollowFit = true;  // "맞춤" 상태인가 — 창 크기가 바뀌면 따라서 다시 맞춘다
+  var compareNaturalW = 0, compareNaturalH = 0;
+  var COMPARE_ZOOM_MAX = 8;
+  var COMPARE_STAGE_PAD = 24; // .compare-stage 의 padding 12px × 2
+
+  // 사진 전체가 들어오는 배율. 화면보다 작은 사진을 억지로 키우지는 않는다(최대 100%).
+  function compareFitScale(){
+    if (!compareNaturalW || !compareNaturalH) return 1;
+    var sw = compareStage.clientWidth - COMPARE_STAGE_PAD;
+    var sh = compareStage.clientHeight - COMPARE_STAGE_PAD;
+    if (sw <= 0 || sh <= 0) return 1;
+    return Math.min(1, sw / compareNaturalW, sh / compareNaturalH);
+  }
+
+  // anchor: 스테이지 기준 좌표 {x,y}. 그 지점이 가리키던 사진의 같은 부분이 배율을 바꾼 뒤에도
+  // 같은 자리에 남도록 스크롤을 보정한다(없으면 화면 한가운데를 기준으로).
+  function applyCompareZoom(scale, anchor){
+    if (!compareNaturalW) return;
+    var fit = compareFitScale();
+    var min = Math.min(fit, 1);
+    scale = Math.max(min, Math.min(COMPARE_ZOOM_MAX, scale));
+    var prev = compareScale || scale;
+    var stageRect = compareStage.getBoundingClientRect();
+    var ax = anchor ? anchor.x : compareStage.clientWidth / 2;
+    var ay = anchor ? anchor.y : compareStage.clientHeight / 2;
+    var innerRect = compareInner.getBoundingClientRect();
+    var imgX = (ax + stageRect.left - innerRect.left) / prev;
+    var imgY = (ay + stageRect.top - innerRect.top) / prev;
+
+    compareScale = scale;
+    var w = Math.max(1, Math.round(compareNaturalW * scale));
+    var h = Math.max(1, Math.round(compareNaturalH * scale));
+    compareInner.style.width = w + "px";
+    compareInner.style.height = h + "px";
+    compareOriginalImg.style.width = compareCompressedImg.style.width = w + "px";
+    compareOriginalImg.style.height = compareCompressedImg.style.height = h + "px";
+    compareInner.classList.toggle("pixel", scale > 1.01);
+
+    // 크기를 바꾼 뒤의 실제 위치를 다시 재서, 기준점이 제자리에 오도록 스크롤을 민다.
+    // (사진이 화면 안에 다 들어올 때는 margin:auto로 가운데 고정이라 스크롤이 0에 머문다.)
+    var newInner = compareInner.getBoundingClientRect();
+    var newStage = compareStage.getBoundingClientRect();
+    compareStage.scrollLeft += (newInner.left - newStage.left + imgX * scale) - ax;
+    compareStage.scrollTop += (newInner.top - newStage.top + imgY * scale) - ay;
+
+    compareFollowFit = Math.abs(scale - fit) < 0.005;
+    updateCompareZoomUI();
+  }
+
+  // 화면에 맞추기. 배율에 따라 안내 문구의 줄 수가 달라져 위쪽 툴바 높이가 바뀌고, 그러면
+  // 스테이지 높이도 같이 바뀌어 방금 계산한 맞춤 배율이 어긋난다(사진 아래가 잘렸다).
+  // 한 번 더 재서 맞추면 수렴한다.
+  function compareFitToScreen(){
+    applyCompareZoom(compareFitScale());
+    var again = compareFitScale();
+    if (Math.abs(again - compareScale) > 0.002) applyCompareZoom(again);
+  }
+
+  function compareZoomBy(factor, anchor){
+    var next = compareScale * factor;
+    // 100%는 이 창에서 제일 중요한 배율이라, 지나칠 때 한 번은 정확히 멈춘다.
+    if ((compareScale < 0.999 && next > 1) || (compareScale > 1.001 && next < 1)) next = 1;
+    applyCompareZoom(next, anchor);
+  }
+
+  // 맞춤 ↔ 100% 왕복. 사진이 화면보다 작아서 맞춤이 곧 100%면 200%와 왕복한다.
+  function compareToggleFit(anchor){
+    var fit = compareFitScale();
+    var atActual = Math.abs(compareScale - 1) < 0.005;
+    if (atActual && fit < 0.995) compareFitToScreen();
+    else applyCompareZoom(atActual ? 2 : 1, atActual ? null : anchor);
+  }
+
+  function updateCompareZoomUI(){
+    var fit = compareFitScale();
+    var pct = Math.round(compareScale * 100);
+    var atFit = Math.abs(compareScale - fit) < 0.005;
+    var atActual = Math.abs(compareScale - 1) < 0.005;
+    compareZoomLevel.textContent = (atFit && !atActual) ? "맞춤 " + pct + "%" : pct + "%";
+    compareZoomLevel.title = atActual ? "화면에 맞추기 (숫자 0)" : "실제 크기 100%로 보기 (숫자 1)";
+    compareZoomLevel.setAttribute("aria-label",
+      "현재 " + pct + "% — 눌러서 " + (atActual ? "화면에 맞추기" : "실제 크기 100%로 보기"));
+    compareZoomOut.disabled = compareScale <= Math.min(fit, 1) + 0.001;
+    compareZoomIn.disabled = compareScale >= COMPARE_ZOOM_MAX - 0.001;
+    updateCompareHint();
+  }
+
   function openCompare(index){
     var r = currentResults[index];
     if (!r || !originalUrl || !naturalCanvas) return;
@@ -1553,10 +1689,8 @@
     compareIndex = index;
     compareOriginalImg.src = originalUrl;
     compareCompressedImg.src = r.url;
-    compareInner.style.width = naturalCanvas.width + "px";
-    compareInner.style.height = naturalCanvas.height + "px";
-    compareOriginalImg.style.width = compareCompressedImg.style.width = naturalCanvas.width + "px";
-    compareOriginalImg.style.height = compareCompressedImg.style.height = naturalCanvas.height + "px";
+    compareNaturalW = naturalCanvas.width;
+    compareNaturalH = naturalCanvas.height;
     compareMeta.textContent = naturalCanvas.width + "×" + naturalCanvas.height + "px · 원본 " +
       formatBytes(originalSize) + " · " + r.label + " " + formatBytes(r.size) + " (" + r.pct + "% 감소)";
     // 처음에는 "누른 그 단계의 압축 결과"를 보여준다 — 사용자가 특정 단계 카드의
@@ -1565,18 +1699,23 @@
     setCompareLayer(true);
     compareOverlay.classList.add("show");
     openModals++;
-    // 이미지 가운데를 먼저 보여준다(왼쪽 위 모서리는 보통 볼 게 없다).
+    // 창을 띄운 뒤에야 스테이지의 실제 크기를 알 수 있으므로, 그때 맞춤 배율을 계산한다.
+    compareScale = 1;
+    compareFollowFit = true;
     requestAnimationFrame(function(){
+      if (!compareOverlay.classList.contains("show")) return;
+      compareFitToScreen();
+      // 맞춤이 100%라 스크롤 여지가 남는 경우(세로로 아주 긴 사진 등)에는 가운데부터 본다.
       compareStage.scrollLeft = Math.max(0, (compareInner.offsetWidth - compareStage.clientWidth) / 2);
       compareStage.scrollTop = Math.max(0, (compareInner.offsetHeight - compareStage.clientHeight) / 2);
-      updateCompareHint();
+      updateCompareZoomUI();
     });
     // role="dialog" aria-modal="true"라고 선언해두고 포커스를 창 밖에 남겨두면 선언과
     // 실제가 어긋난다 — 화면 읽기 프로그램이 창이 열린 것을 알리지 못하고, Tab이 창
     // 뒤의 페이지를 계속 돌아다닌다. 그래서 포커스를 창 안으로 옮기는데, 버튼이 아니라
     // 창 자체(tabindex="-1")에 준다. 닫기 버튼에 주면 그 버튼이 스페이스바를 먹어서
     // "스페이스바로 원본↔압축 전환"이 창 닫기로 바뀌어 버린다(마우스로 열어도 똑같다).
-    // 창을 포커스하면 aria-label("원본과 압축 결과 1:1 비교")이 읽히고 Tab은 창 안에서
+    // 창을 포커스하면 aria-label("원본과 압축 결과 비교")이 읽히고 Tab은 창 안에서
     // 시작하며, 스페이스바는 아래 문서 단축키가 그대로 받는다.
     compareOverlay.focus();
   }
@@ -1585,7 +1724,8 @@
   // 세 개뿐이라 목록을 그때그때 만들어 앞뒤로 순환시키면 충분하다.
   compareOverlay.addEventListener("keydown", function(e){
     if (e.key !== "Tab") return;
-    var items = [compareCloseBtn, compareSegOriginal, compareSegCompressed];
+    var items = [compareCloseBtn, compareSegOriginal, compareSegCompressed,
+                 compareZoomOut, compareZoomLevel, compareZoomIn].filter(function(el){ return !el.disabled; });
     var i = items.indexOf(document.activeElement);
     e.preventDefault();
     var next = e.shiftKey
@@ -1593,19 +1733,37 @@
       : (i === -1 || i === items.length - 1 ? 0 : i + 1);
     items[next].focus();
   });
-  // 작은 이미지는 1:1로 놓아도 화면에 전부 들어와서 드래그·스크롤할 여지가 없다.
-  // 그때도 "드래그하거나 스크롤해서 다른 부분을 볼 수 있어요"라고 적어두면 도구가
-  // 고장 난 것처럼 보이므로, 실제 남은 여백을 재서 문구를 바꾼다.
+  // 화면에 전부 들어와서 움직일 여지가 없을 때 "드래그해서 다른 부분을 볼 수 있어요"라고
+  // 적어두면 도구가 고장 난 것처럼 보이므로, 실제 남은 여백을 재서 문구를 바꾼다.
   function updateCompareHint(){
     var movable = (compareStage.scrollWidth - compareStage.clientWidth > 1) ||
                   (compareStage.scrollHeight - compareStage.clientHeight > 1);
     compareStage.classList.toggle("fits", !movable);
-    compareHint.textContent = movable
-      ? "실제 픽셀 크기(1:1)로 보여줘요 · 드래그하거나 스크롤해서 다른 부분을 볼 수 있어요 · 스페이스바로 원본↔압축 전환"
-      : "실제 픽셀 크기(1:1)로 전체가 다 보여요 · 스페이스바로 원본↔압축 전환";
+    var pct = Math.round(compareScale * 100);
+    var atFit = Math.abs(compareScale - compareFitScale()) < 0.005;
+    var parts = [];
+    if (compareScale < 0.995){
+      // 줄여서 보면 브라우저가 픽셀을 섞어버려 압축 흔적이 실제보다 덜 보인다 — 꼭 알려준다.
+      parts.push((atFit ? "전체가 보이도록 " : "") + pct + "%로 줄여서 보고 있어요 — 압축 흔적은 100%에서 보세요");
+    } else if (compareScale < 1.005){
+      parts.push("실제 픽셀 크기(100%)예요");
+    } else {
+      parts.push(pct + "%로 확대해서 보고 있어요");
+    }
+    // 좁은 화면에서는 안내가 세 줄까지 늘어나 툴바가 화면의 20%를 먹는다 — 그 기기에서
+    // 쓸 수 없는 조작(휠·스페이스바)은 빼고, 쓸 수 있는 것만 적는다.
+    var narrow = window.innerWidth < 560;
+    if (movable) parts.push("드래그로 이동");
+    parts.push(narrow ? "두 손가락으로 확대·축소" : "휠로 확대·축소");
+    if (!narrow) parts.push("스페이스바로 원본↔압축");
+    compareHint.textContent = parts.join(" · ");
   }
   window.addEventListener("resize", function(){
-    if (compareOverlay.classList.contains("show")) updateCompareHint();
+    if (!compareOverlay.classList.contains("show")) return;
+    // "맞춤"으로 보고 있었으면 바뀐 창 크기에 다시 맞춘다. 사용자가 직접 배율을 정했으면
+    // 그 배율을 존중하고 안내 문구만 갱신한다.
+    if (compareFollowFit) compareFitToScreen();
+    else updateCompareZoomUI();
   });
   function setCompareLayer(showCompressed){
     compareShowingCompressed = !!showCompressed;
@@ -1636,6 +1794,56 @@
   compareSegOriginal.addEventListener("click", function(){ setCompareLayer(false); });
   compareSegCompressed.addEventListener("click", function(){ setCompareLayer(true); });
   compareCloseBtn.addEventListener("click", closeCompare);
+
+  // ---- 확대·축소 ----
+  compareZoomIn.addEventListener("click", function(){ compareZoomBy(1.5); });
+  compareZoomOut.addEventListener("click", function(){ compareZoomBy(1 / 1.5); });
+  compareZoomLevel.addEventListener("click", function(){ compareToggleFit(); });
+
+  function compareAnchorFrom(clientX, clientY){
+    var r = compareStage.getBoundingClientRect();
+    return { x: clientX - r.left, y: clientY - r.top };
+  }
+  // 사진 보는 창이라 휠은 스크롤이 아니라 확대·축소로 쓴다(움직이는 건 드래그).
+  // 커서가 가리키던 지점을 중심으로 확대돼서, 보고 싶은 부분을 놓치지 않는다.
+  compareStage.addEventListener("wheel", function(e){
+    if (!compareOverlay.classList.contains("show")) return;
+    e.preventDefault();
+    var step = e.deltaMode === 1 ? 1.28 : 1.12; // 줄 단위로 오는 휠은 한 칸이 더 크다
+    compareZoomBy(e.deltaY < 0 ? step : 1 / step, compareAnchorFrom(e.clientX, e.clientY));
+  }, { passive: false });
+
+  // 더블클릭으로 맞춤 ↔ 100% 왕복 — 누른 지점을 중심으로 확대한다.
+  compareStage.addEventListener("dblclick", function(e){
+    e.preventDefault();
+    compareToggleFit(compareAnchorFrom(e.clientX, e.clientY));
+  });
+
+  // 두 손가락으로 벌리고 좁히기. 손가락 한 개일 때는 브라우저의 기본 스크롤을 그대로 쓰고,
+  // 두 개가 닿았을 때만 우리가 가로채서 배율을 바꾼다(그래야 한 손가락 이동이 안 뻑뻑하다).
+  var comparePinch = null;
+  function pinchDistance(touches){
+    var dx = touches[0].clientX - touches[1].clientX;
+    var dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+  compareStage.addEventListener("touchstart", function(e){
+    if (e.touches.length !== 2) return;
+    var mx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+    var my = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+    comparePinch = { d: pinchDistance(e.touches), scale: compareScale, anchor: compareAnchorFrom(mx, my) };
+  }, { passive: true });
+  compareStage.addEventListener("touchmove", function(e){
+    if (!comparePinch || e.touches.length !== 2) return;
+    e.preventDefault(); // 두 손가락 스크롤(또는 페이지 확대)로 새지 않게
+    var d = pinchDistance(e.touches);
+    if (comparePinch.d > 0) applyCompareZoom(comparePinch.scale * (d / comparePinch.d), comparePinch.anchor);
+  }, { passive: false });
+  ["touchend", "touchcancel"].forEach(function(ev){
+    compareStage.addEventListener(ev, function(e){
+      if (e.touches.length < 2) comparePinch = null;
+    }, { passive: true });
+  });
   // 드래그로 이미지 이동 — 마우스·펜만 직접 처리한다. 터치는 브라우저의 기본
   // 스크롤(overflow:auto)이 이미 잘 동작하는데, 거기에 우리 코드까지 scrollLeft를
   // 건드리면 손가락 이동량이 두 번 적용돼 두 배로 튄다.
@@ -1671,6 +1879,10 @@
     if (compareOverlay.classList.contains("show")){
       if (e.key === "Escape"){ e.preventDefault(); closeCompare(); }
       else if (e.key === " " || e.code === "Space"){ e.preventDefault(); setCompareLayer(!compareShowingCompressed); }
+      else if (e.key === "+" || e.key === "=" ){ e.preventDefault(); compareZoomBy(1.5); }
+      else if (e.key === "-" || e.key === "_" ){ e.preventDefault(); compareZoomBy(1 / 1.5); }
+      else if (e.key === "0"){ e.preventDefault(); compareFitToScreen(); }
+      else if (e.key === "1"){ e.preventDefault(); applyCompareZoom(1); }
       return;
     }
     if (e.key === "Escape" && thumbWrap.classList.contains("open")) closeThumbZoom();
@@ -1852,7 +2064,7 @@
     });
   }
 
-  var originalUrl = null; // 1:1 비교 창에서 "원본"을 그대로 보여주기 위해 살려두는 blob URL
+  var originalUrl = null; // 비교 창에서 "원본"을 그대로 보여주기 위해 살려두는 blob URL
 
   function resetUI(){
     closeCompare();
@@ -1931,7 +2143,7 @@
       originalSize = file.size;
       naturalCanvas = newNatural;
       flatCanvas = newFlat;
-      originalUrl = url; // 1:1 비교 창에서 원본을 그대로 보여주려고 살려둔다(해제는 resetUI에서)
+      originalUrl = url; // 비교 창에서 원본을 그대로 보여주려고 살려둔다(해제는 resetUI에서)
 
       fileThumb.src = makePreviewDataUrl(naturalCanvas);
       fileThumbZoom.src = fileThumb.src;
@@ -2081,7 +2293,7 @@
   // <img>는 role="button" tabindex="0"을 줬어도 키보드로 눌리지 않으니 Enter·Space를
   // 직접 받아준다. Space는 그냥 두면 페이지가 스크롤되므로 기본 동작을 막는다.
   fileThumb.addEventListener("keydown", function(e){
-    // 1:1 비교 창이 떠 있는 동안 스페이스바는 그 창의 원본↔압축 전환이다 — 썸네일에
+    // 비교 창이 떠 있는 동안 스페이스바는 그 창의 원본↔압축 전환이다 — 썸네일에
     // 포커스가 남아 있어도 뒤에서 조용히 확대가 열리지 않게 비켜준다.
     if (compareOverlay.classList.contains("show")) return;
     if (e.key === "Enter" || e.key === " " || e.key === "Spacebar"){
