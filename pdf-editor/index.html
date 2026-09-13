@@ -303,6 +303,11 @@
     cursor:pointer;
     transition:border-color .15s ease, background .15s ease;
   }
+  /* 키보드로 이 영역에 왔을 때 어디에 있는지 보여준다. */
+  .dropzone:focus-visible{
+    outline:2px solid var(--accent);
+    outline-offset:3px;
+  }
   .dropzone:hover, .dropzone.dragover{
     border-color:var(--accent);
     background:var(--accent-dim);
@@ -686,6 +691,9 @@
     color:var(--text-dim);
   }
   .download-bar .spacer{margin-left:auto;}
+  /* 방금 만든 파일을 브라우저 공유 기능으로 바로 넘기는 버튼. 만들기 전에는 넘길 파일이
+     없으므로 숨겨두고, 공유를 지원하지 않는 브라우저에서는 아예 보여주지 않는다. */
+  #shareBtn[hidden]{ display:none; }
   .download-buttons{
     display:flex;
     align-items:center;
@@ -921,6 +929,9 @@
     background:rgba(0,0,0,.78);
   }
   .lightbox.show{display:flex;}
+  /* 창 자체에 포커스를 주는 방식이라 화면 전체를 두르는 테두리는 그리지 않는다
+     (안쪽 버튼은 각자 포커스 표시를 가진다). */
+  .lightbox:focus{outline:none;}
   /* A4비율 토글이 뜨는 자리를 처음부터 레이아웃에 확보해두는 상단 바 — 예전에는 이 토글을
      position:fixed로 이미지 위에 그냥 띄웠더니 큰 페이지의 위쪽 내용과 겹쳐 보이는 문제가 있었다.
      이제는 일반 흐름 안에 넣어서, 아래 .lightbox-body가 남는 높이만큼만 차지하게 만든다. */
@@ -1174,10 +1185,10 @@
     </div>
   </div>
 
-  <div class="dropzone" id="dropzone">
+  <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-describedby="dropzoneHint" aria-label="PDF 파일 선택 — 여러 개 한 번에 가능">
     <div class="icon">📄</div>
     <div class="main-txt">여기로 PDF를 끌어다 놓거나 클릭해서 선택하세요</div>
-    <div class="sub-txt">여러 파일을 한 번에 선택할 수 있어요</div>
+    <div class="sub-txt" id="dropzoneHint">여러 파일을 한 번에 선택할 수 있어요</div>
     <input type="file" id="fileInput" accept="application/pdf" multiple>
   </div>
 
@@ -1202,12 +1213,13 @@
       </div>
       <div class="spacer"></div>
       <div class="download-buttons">
-        <label class="compress-toggle" id="compressToggle" title="용량이 큰 사진/스캔 이미지만 화질을 낮춰 다시 압축합니다. 텍스트·벡터는 그대로 유지되어 형식은 바뀌지 않아요.">
+        <label class="compress-toggle" id="compressToggle" title="용량이 큰 사진/스캔 이미지만 화질을 낮춰 다시 압축해요. 텍스트·벡터는 그대로 유지되어 형식은 바뀌지 않아요.">
           <input type="checkbox" id="compressCheckbox">
           <span>용량 압축</span>
         </label>
-        <button class="ghost" id="splitToggleBtn" title="원하는 페이지 범위별로 나눠서 zip으로 저장합니다.">✂ 분할 저장</button>
-        <button class="primary" id="downloadToggleBtn" title="지금 화면에 보이는 순서·회전·A4비율·삭제 상태 그대로 PDF로 바로 다운로드합니다. 왼쪽의 '용량 압축' 체크박스를 켜면 압축해서 받아요.">편집한 PDF 다운로드</button>
+        <button class="ghost" id="splitToggleBtn" title="원하는 페이지 범위별로 나눠서 zip으로 저장해요.">✂ 분할 저장</button>
+        <button class="ghost" id="shareBtn" type="button" hidden title="방금 만든 파일을 카카오톡·메일 등으로 바로 보내요.">공유</button>
+        <button class="primary" id="downloadToggleBtn" title="지금 화면에 보이는 순서·회전·A4비율·삭제 상태 그대로 PDF로 바로 다운로드해요. 왼쪽의 '용량 압축' 체크박스를 켜면 압축해서 받아요.">편집한 PDF 다운로드</button>
       </div>
     </div>
     <div class="compress-hint" id="compressHint">✓ 압축 다운로드는 사진·스캔 이미지가 많을수록 효과가 크고, 텍스트·표 위주 문서는 원래 용량이 작아 효과가 적을 수 있어요.</div>
@@ -1226,7 +1238,7 @@
   <footer class="note">
     <div>써봄 · 브라우저에서 끝나는 파일 도구</div>
     <div class="copyright"><span class="mark">ⓒ 2026</span> <span class="name">고윤태</span> · <a href="https://yuntaeko.com/" target="_blank" rel="noopener">yuntaeko.com</a> — 정성을 담아 제작한 도구입니다. 무단 도용 및 출처 표기 없는 재배포를 금지합니다.</div>
-    <div class="updated">업데이트 · 2026. 9. 12.</div>
+    <div class="updated">업데이트 · 2026. 9. 13.</div>
   </footer>
 </div>
 
@@ -1236,7 +1248,7 @@
   <div class="loading-text" id="loadingText">PDF를 불러오는 중...</div>
 </div>
 
-<div class="lightbox" id="lightbox">
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" tabindex="-1" aria-label="페이지 확대 보기">
   <div class="lightbox-topbar" id="lightboxTopbar">
     <div class="lightbox-a4-toggle" id="lightboxA4Toggle" style="display:none;">
       <span class="lightbox-a4-toggle-label">지금 보는 비율</span>
@@ -1248,13 +1260,13 @@
     </div>
   </div>
   <div class="lightbox-body" id="lightboxBody">
-    <button class="lightbox-nav prev" id="lightboxPrev" title="이전 페이지">‹</button>
+    <button class="lightbox-nav prev" id="lightboxPrev" title="이전 페이지" aria-label="이전 페이지">‹</button>
     <div class="lightbox-stage" id="lightboxStage">
       <img id="lightboxImg" src="" alt="페이지 확대 미리보기">
     </div>
-    <button class="lightbox-nav next" id="lightboxNext" title="다음 페이지">›</button>
+    <button class="lightbox-nav next" id="lightboxNext" title="다음 페이지" aria-label="다음 페이지">›</button>
   </div>
-  <button class="lightbox-close" id="lightboxClose" title="닫기">✕</button>
+  <button class="lightbox-close" id="lightboxClose" title="닫기" aria-label="확대 보기 닫기">✕</button>
   <div class="lightbox-caption" id="lightboxCaption"></div>
 </div>
 
@@ -1394,6 +1406,7 @@
   const lightboxBody = document.getElementById("lightboxBody");
   const lightboxStage = document.getElementById("lightboxStage");
   const lightboxImg = document.getElementById("lightboxImg");
+  const shareBtn = document.getElementById("shareBtn");
   const lightboxPrev = document.getElementById("lightboxPrev");
   const lightboxNext = document.getElementById("lightboxNext");
   const lightboxClose = document.getElementById("lightboxClose");
@@ -1497,7 +1510,7 @@
         sortByNameBtn.style.display = "inline-flex";
         sortByNameBtn.disabled = busy;
         sortByNameBtn.textContent = "파일명순 정렬 " + (fileSortAsc ? "▲" : "▼");
-        sortByNameBtn.title = fileSortAsc ? "파일명 오름차순(가나다·숫자순)으로 정렬합니다" : "파일명 내림차순으로 정렬합니다";
+        sortByNameBtn.title = fileSortAsc ? "파일명 오름차순(가나다·숫자순)으로 정렬해요" : "파일명 내림차순으로 정렬해요";
       } else {
         viewToggleBtn.textContent = "← 파일 목록으로";
         viewHint.textContent = "업로드한 모든 파일의 페이지가 한 그리드에 모여 있어요. 카드를 드래그하거나 ↑↓ 버튼으로 파일 경계와 상관없이 자유롭게 순서를 바꾸거나 삭제하세요.";
@@ -1518,6 +1531,11 @@
   }
 
   async function handleFiles(fileList){
+    // 파일이 들어오는 길이 넷(드롭존 클릭·"+ 파일 추가"·끌어다 놓기·키보드)이라 경로마다
+    // 가드를 두면 하나씩 빠진다 — 실제로 클릭과 "+ 파일 추가"에 빠져 있어서, 합치기·분할
+    // 처럼 오래 걸리는 작업 중에 파일 창이 열리면 이 함수가 겹쳐 돌 수 있었다. 입구에서
+    // 한 번만 막는다(이 함수가 자기 안에서 setBusy(true)를 부르므로 진입 시점엔 항상 false).
+    if (busy) return;
     const picked = Array.from(fileList);
     const files = picked.filter(f => f.type === "application/pdf" || /\.pdf$/i.test(f.name));
     // 예전엔 PDF가 아닌 파일을 조용히 걸러내고 그냥 끝내서, 이미지를 올린 사용자는 아무 반응도 보지 못했다.
@@ -1676,7 +1694,12 @@
   // Top-level render dispatcher: shows the file-level list when there are
   // 2+ active files and the user hasn't drilled into page view, otherwise
   // shows the flat page grid (the original, full-featured view).
-  function renderGrid(){
+  // opts.keepResult: 보기 방식만 바뀌는 경우(파일 목록 ↔ 페이지 단위)는 같은 페이지를
+  // 다르게 나열할 뿐 결과물이 그대로라 공유 버튼을 남긴다. 그 외에는(이동·삭제·회전·
+  // 복제·A4·정렬·파일 추가) 방금 만든 파일이 화면과 더 이상 맞지 않으므로 지운다.
+  // 참고: "파일명순 정렬"은 합쳐질 순서가 실제로 바뀌므로 지우는 쪽이 맞다.
+  function renderGrid(opts){
+    if (!opts || !opts.keepResult) clearLastResult();
     if (viewMode === "file" && activeFileCount() >= 2){
       renderFileView();
     } else {
@@ -1700,24 +1723,24 @@
           <span class="order-badge">${idx + 1}</span>
           ${p.fitA4 ? '<span class="a4-badge">A4</span>' : ""}
           <img src="${p.thumbUrl}" alt="${idx+1}번째 페이지 미리보기" draggable="false" class="${rotated90 ? "rotated-90" : ""}" style="transform:rotate(${p.rotation}deg);">
-          <button class="zoom-badge" data-act="zoom" title="크게 보기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.35-4.35"></path></svg></button>
+          <button class="zoom-badge" data-act="zoom" title="크게 보기" aria-label="${idx+1}번째 페이지 크게 보기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.35-4.35"></path></svg></button>
         </div>
         <div class="meta" title="${p.fileName}">${p.fileName}</div>
         <div class="card-actions">
           <div class="actions-row">
-            <button class="icon-btn" data-act="up" title="앞으로 이동">↑</button>
-            <button class="icon-btn" data-act="down" title="뒤로 이동">↓</button>
-            <button class="icon-btn" data-act="rotate" title="90도 회전">↻</button>
+            <button class="icon-btn" data-act="up" title="앞으로 이동" aria-label="${idx+1}번째 페이지 앞으로 옮기기">↑</button>
+            <button class="icon-btn" data-act="down" title="뒤로 이동" aria-label="${idx+1}번째 페이지 뒤로 옮기기">↓</button>
+            <button class="icon-btn" data-act="rotate" title="90도 회전" aria-label="${idx+1}번째 페이지 90도 회전">↻</button>
           </div>
           <div class="actions-row">
-            <button class="icon-btn full" data-act="dup" title="이 페이지를 복제해서 바로 뒤에 추가합니다">페이지 복제</button>
+            <button class="icon-btn full" data-act="dup" title="이 페이지를 복제해서 바로 뒤에 추가해요" aria-label="${idx+1}번째 페이지 복제">페이지 복제</button>
           </div>
           <div class="actions-row">
-            <button class="icon-btn${p.fitA4 ? " active" : ""}" data-act="a4"${nearA4 ? " disabled" : ""} title="${nearA4 ? "이미 A4 비율이라 맞출 필요가 없어요" : "여백 없이 페이지를 A4 비율로 늘립니다. 원본과 비율이 다르면 살짝 눌리거나 늘어나 보일 수 있어요 — 확대 화면에서 원본과 비교해볼 수 있어요."}">📐 A4비율</button>
-            <button class="icon-btn" data-act="img" title="이 페이지를 이미지로 저장">📥 이미지</button>
+            <button class="icon-btn${p.fitA4 ? " active" : ""}" data-act="a4"${nearA4 ? " disabled" : ""} aria-pressed="${p.fitA4 ? "true" : "false"}" aria-label="${idx+1}번째 페이지 A4 비율로 맞추기" title="${nearA4 ? "이미 A4 비율이라 맞출 필요가 없어요" : "여백 없이 페이지를 A4 비율로 늘려요. 원본과 비율이 다르면 살짝 눌리거나 늘어나 보일 수 있어요 — 확대 화면에서 원본과 비교해볼 수 있어요."}">📐 A4비율</button>
+            <button class="icon-btn" data-act="img" title="이 페이지를 이미지로 저장" aria-label="${idx+1}번째 페이지 이미지로 저장">📥 이미지</button>
           </div>
           <div class="actions-row">
-            <button class="icon-btn delete full" data-act="delete" title="이 페이지 삭제">✕ 삭제</button>
+            <button class="icon-btn delete full" data-act="delete" title="이 페이지 삭제" aria-label="${idx+1}번째 페이지 삭제">✕ 삭제</button>
           </div>
         </div>
       `;
@@ -1774,16 +1797,16 @@
           <span class="order-badge">${idx + 1}</span>
           <span class="page-badge">${run.ids.length}페이지</span>
           <img src="${firstPage.thumbUrl}" alt="${src.name} 미리보기" draggable="false" class="${firstRotated90 ? "rotated-90" : ""}" style="transform:rotate(${firstPage.rotation}deg);">
-          <button class="zoom-badge" data-act="zoom" title="크게 보기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.35-4.35"></path></svg></button>
+          <button class="zoom-badge" data-act="zoom" title="크게 보기" aria-label="${src.name} 크게 보기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.35-4.35"></path></svg></button>
         </div>
         <div class="meta" title="${src.name}">${src.name}</div>
         <div class="card-actions">
           <div class="actions-row">
-            <button class="icon-btn" data-act="up" title="앞으로 이동">↑</button>
-            <button class="icon-btn" data-act="down" title="뒤로 이동">↓</button>
+            <button class="icon-btn" data-act="up" title="앞으로 이동" aria-label="${src.name} 앞으로 옮기기">↑</button>
+            <button class="icon-btn" data-act="down" title="뒤로 이동" aria-label="${src.name} 뒤로 옮기기">↓</button>
           </div>
           <div class="actions-row">
-            <button class="icon-btn delete" data-act="delete" title="이 파일 삭제" style="flex:1 1 100%;">✕ 파일 삭제</button>
+            <button class="icon-btn delete" data-act="delete" title="이 파일 삭제" aria-label="${src.name} 파일 삭제" style="flex:1 1 100%;">✕ 파일 삭제</button>
           </div>
         </div>
       `;
@@ -2293,6 +2316,7 @@
           const a = document.createElement("a");
           a.href = url;
           a.download = asA4 ? `${baseName}_p${p.pageIndex + 1}_A4.png` : `${baseName}_p${p.pageIndex + 1}.png`;
+          setLastResult(blob, a.download);
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
@@ -2573,6 +2597,7 @@
       const a = document.createElement("a");
       a.href = url;
       a.download = name + ".pdf";
+      setLastResult(blob, a.download, (base) => base + ".pdf");
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -2697,6 +2722,7 @@
       const a = document.createElement("a");
       a.href = url;
       a.download = `${baseName}_분할.zip`;
+      setLastResult(zipBlob, a.download, (base) => `${base}_분할.zip`);
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -2767,8 +2793,11 @@
     }
   }
 
+  let lightboxOpener = null; // 닫을 때 포커스를 돌려줄 요소(키보드 사용자용)
   async function openLightbox(idx){
     if (idx < 0 || idx >= pages.length) return;
+    // ‹ › 로 페이지를 넘길 때도 이 함수를 다시 부르므로, 창 밖에 있을 때만 기억한다.
+    if (!lightbox.contains(document.activeElement)) lightboxOpener = document.activeElement;
     lightboxIdx = idx;
     const p = pages[idx];
     lightboxA4Compare = !!p.fitA4;
@@ -2791,8 +2820,28 @@
     // A4비율이 켜진 페이지를 열 때는 기본으로 "실제로 다운로드될 모습"(여백 없이 A4로 늘어난 모습)을
     // 보여주고, 토글로 원본과 비교할 수 있게 한다. A4가 꺼진 페이지에서는 토글 자체를 숨긴다.
     updateLightboxA4UI(p);
+    // role="dialog" aria-modal="true"로 선언했으면 포커스도 창 안에 있어야 한다 —
+    // 아니면 화면 읽기 프로그램이 창이 열린 걸 알리지 못하고, Tab이 창 뒤의 하단
+    // 다운로드 바로 계속 빠져나간다. 버튼이 아니라 창 자체에 준다: ‹ › 방향키와 Esc가
+    // 문서 단축키라서 특정 버튼에 포커스를 주면 그 버튼이 키를 가로챌 수 있다.
+    if (!lightbox.contains(document.activeElement)) lightbox.focus();
     await refreshLightboxImage(p);
   }
+
+  // aria-modal 선언에 맞게 Tab을 창 안에서만 돌린다. A4 토글은 A4비율 페이지에서만
+  // 나타나므로 그때그때 보이는 것만 모은다.
+  lightbox.addEventListener("keydown", (e) => {
+    if (e.key !== "Tab") return;
+    const items = [lightboxA4SegA4, lightboxA4SegOriginal, lightboxPrev, lightboxNext, lightboxClose]
+      .filter(b => b && !b.disabled && b.getClientRects().length > 0);
+    if (!items.length) return;
+    const i = items.indexOf(document.activeElement);
+    e.preventDefault();
+    const next = e.shiftKey
+      ? (i <= 0 ? items.length - 1 : i - 1)
+      : (i === -1 || i === items.length - 1 ? 0 : i + 1);
+    items[next].focus();
+  });
 
   function updateLightboxA4UI(p){
     if (p && p.fitA4){
@@ -2801,6 +2850,8 @@
       // 색만 봐도 "지금 A4를 보는지 원본을 보는지"가 바로 보이게 한다.
       lightboxA4SegA4.classList.toggle("active", lightboxA4Compare);
       lightboxA4SegOriginal.classList.toggle("active", !lightboxA4Compare);
+      lightboxA4SegA4.setAttribute("aria-pressed", lightboxA4Compare ? "true" : "false");
+      lightboxA4SegOriginal.setAttribute("aria-pressed", lightboxA4Compare ? "false" : "true");
       lightboxA4Track.classList.toggle("mode-original", !lightboxA4Compare);
       lightboxStage.classList.toggle("a4-compare", lightboxA4Compare);
       lightboxStage.classList.toggle("landscape", lightboxA4Compare && isPageLandscape(p));
@@ -2826,6 +2877,11 @@
   function closeLightbox(){
     lightbox.classList.remove("show");
     lightboxIdx = -1;
+    // 키보드로 열었으면 눌렀던 돋보기 버튼으로 돌려준다(안 그러면 Tab이 페이지 처음으로 튄다).
+    if (lightboxOpener && document.contains(lightboxOpener) && lightboxOpener.focus){
+      try { lightboxOpener.focus(); } catch(err){}
+    }
+    lightboxOpener = null;
   }
 
   function lightboxStep(delta){
@@ -2844,6 +2900,94 @@
 
   // 되돌릴 수 없는 동작 전에 확인을 받는 팝업. window.confirm() 대신 사이트 디자인에 맞춘 모달을 쓰고,
   // Promise<boolean>을 반환한다 (확인=true, 취소/Esc/배경 클릭=false).
+  // ---------- 공유 (브라우저 공유 기능) ----------
+  // 아이폰 사파리는 내려받은 PDF를 저장하지 않고 화면에 열어버리는 경우가 있는데, 그
+  // 화면의 주소는 blob: 임시 주소라서 거기서 아이폰 공유 버튼을 누르면 파일과 함께 그
+  // 주소까지 같이 넘어간다(받는 쪽에 열리지 않는 링크가 하나 더 간다). "파일만" 넘기는
+  // 길을 도구 안에 둔다. 이 도구는 결과가 나오는 자리가 셋(편집 PDF·분할 zip·페이지
+  // 이미지)이라, 카드마다 버튼을 늘리는 대신 하단 바에 하나만 두고 "방금 만든 파일"을
+  // 공유한다. PDF·zip·PNG는 모두 브라우저 공유 허용 목록 안이라 형식별 분기가 필요 없다.
+  const fileShareSupported = (() => {
+    try {
+      if (!navigator.share || !navigator.canShare || typeof File === "undefined") return false;
+      const probe = new File([new Blob(["x"], { type: "application/pdf" })], "t.pdf", { type: "application/pdf" });
+      return navigator.canShare({ files: [probe] });
+    } catch(e){ return false; }
+  })();
+
+  // 저장 파일명 칸에서 이름이 나오는 결과(편집 PDF·분할 zip)는, 만든 뒤에 칸만 고쳐도
+  // 공유할 때는 그때의 칸 값으로 이름을 다시 만든다 — 다운로드 버튼도 누를 때마다 칸을
+  // 읽으므로 둘이 항상 같은 이름이 된다. 페이지 이미지(PNG)는 원본 파일 이름에서 나오므로
+  // 그대로 둔다(rename 없음).
+  function currentBaseName(){
+    let base = (filenameInput.value || "합친문서").trim();
+    if (!base) base = "합친문서";
+    return base.replace(/\.pdf$/i, "");
+  }
+  let lastResult = null; // { blob, name, rename }
+  function setLastResult(blob, name, rename){
+    if (!fileShareSupported) return;
+    lastResult = { blob, name, rename: rename || null };
+    shareBtn.hidden = false;
+  }
+  // 페이지 구성이 바뀌면 방금 만든 파일은 화면과 더 이상 맞지 않는다.
+  function clearLastResult(){
+    lastResult = null;
+    shareBtn.hidden = true;
+  }
+
+  shareBtn.addEventListener("click", () => {
+    if (!lastResult || busy) return;
+    const name = lastResult.rename ? lastResult.rename(currentBaseName()) : lastResult.name;
+    let file;
+    try {
+      file = new File([lastResult.blob], name, { type: lastResult.blob.type || "application/octet-stream" });
+    } catch(e){
+      showAlert("이 브라우저에서는 파일 공유가 안 돼요. 다운로드 버튼으로 받은 파일을 직접 공유해주세요.");
+      return;
+    }
+    if (!navigator.canShare || !navigator.canShare({ files: [file] })){
+      showAlert("이 브라우저에서는 파일 공유가 안 돼요. 다운로드 버튼으로 받은 파일을 직접 공유해주세요.");
+      return;
+    }
+    // url·text는 절대 같이 넣지 않는다 — 그게 바로 임시 주소가 따라가는 원인이다.
+    navigator.share({ files: [file] }).catch((err) => {
+      // 공유 창을 그냥 닫은 것(AbortError)은 오류가 아니라 취소다.
+      if (err && (err.name === "AbortError" || err.name === "NotAllowedError")) return;
+      console.error("공유 실패", err);
+      showAlert("공유하지 못했어요. 다운로드 버튼으로 받은 파일을 직접 공유해주세요.");
+    });
+  });
+
+  // 모달 공통: 대화상자로 선언하고(문구 자체를 창 이름으로), Tab을 창 안에서만 돌리고,
+  // 닫을 때 열기 전 자리로 포커스를 돌려준다. 세 팝업(확인·안내·비율 선택)이 같이 쓴다.
+  let modalSeq = 0;
+  function setupModalA11y(overlay, msgEl, buttons){
+    overlay.setAttribute("role", "dialog");
+    overlay.setAttribute("aria-modal", "true");
+    if (msgEl){
+      msgEl.id = "modalMessage" + (++modalSeq);
+      overlay.setAttribute("aria-labelledby", msgEl.id);
+    }
+    overlay.addEventListener("keydown", (e) => {
+      if (e.key !== "Tab") return;
+      const items = buttons.filter(b => b && !b.disabled);
+      if (!items.length) return;
+      const i = items.indexOf(document.activeElement);
+      e.preventDefault();
+      const next = e.shiftKey
+        ? (i <= 0 ? items.length - 1 : i - 1)
+        : (i === -1 || i === items.length - 1 ? 0 : i + 1);
+      items[next].focus();
+    });
+    const opener = document.activeElement;
+    return function restoreFocus(){
+      if (opener && document.contains(opener) && opener.focus){
+        try { opener.focus(); } catch(err){}
+      }
+    };
+  }
+
   function showConfirm(message, opts = {}){
     return new Promise((resolve) => {
       const overlay = el("div", "modal-overlay");
@@ -2862,11 +3006,13 @@
       box.appendChild(actions);
       overlay.appendChild(box);
       document.body.appendChild(overlay);
+      const restoreFocus = setupModalA11y(overlay, msg, [cancelBtn, okBtn]);
 
       function close(result){
         overlay.classList.remove("show");
         setTimeout(() => { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 150);
         document.removeEventListener("keydown", onKey);
+        restoreFocus();
         resolve(result);
       }
       function onKey(e){
@@ -2903,11 +3049,13 @@
       box.appendChild(actions);
       overlay.appendChild(box);
       document.body.appendChild(overlay);
+      const restoreFocus = setupModalA11y(overlay, msg, [okBtn]);
 
       function close(){
         overlay.classList.remove("show");
         setTimeout(() => { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 150);
         document.removeEventListener("keydown", onKey);
+        restoreFocus();
         resolve();
       }
       function onKey(e){
@@ -2948,11 +3096,13 @@
       box.appendChild(actions);
       overlay.appendChild(box);
       document.body.appendChild(overlay);
+      const restoreFocus = setupModalA11y(overlay, msg, [cancelBtn, originalBtn, a4Btn]);
 
       function close(result){
         overlay.classList.remove("show");
         setTimeout(() => { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 150);
         document.removeEventListener("keydown", onKey);
+        restoreFocus();
         resolve(result);
       }
       function onKey(e){
@@ -2997,6 +3147,15 @@
   dropzone.addEventListener("click", (e) => {
     // fileInput은 dropzone 안에 있어서 fileInput.click()의 클릭이 다시 올라와 한 번 더 실행되는 걸 막는다.
     if (e.target === fileInput) return;
+    fileInput.click();
+  });
+  // 숨긴 file input은 display:none이라 포커스를 받을 수 없다 — 이 영역이 Tab 순서에
+  // 없으면 키보드만으로는 첫 파일을 올릴 방법이 아예 없다("+ 파일 추가" 버튼은 파일이
+  // 올라간 뒤에만 나타난다). 버튼으로 알리고 Enter·Space를 직접 받아준다.
+  dropzone.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" && e.key !== " " && e.key !== "Spacebar") return;
+    e.preventDefault();
+    if (busy) return;
     fileInput.click();
   });
   addMoreBtn.addEventListener("click", () => fileInput.click());
@@ -3072,7 +3231,7 @@
   viewToggleBtn.addEventListener("click", () => {
     if (busy) return;
     viewMode = (viewMode === "file") ? "page" : "file";
-    renderGrid();
+    renderGrid({ keepResult: true }); // 나열 방식만 바뀔 뿐 결과물은 그대로다
   });
 
   sortByNameBtn.addEventListener("click", () => {
