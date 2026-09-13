@@ -303,6 +303,16 @@
     cursor:pointer;
     transition:border-color .15s ease, background .15s ease;
   }
+  /* 키보드로 이 영역에 왔을 때 어디에 있는지 보여준다. */
+  .dropzone:focus-visible, .upload-drop:focus-visible{
+    outline:2px solid var(--accent);
+    outline-offset:3px;
+  }
+  /* 배치한 서명도 Tab으로 갈 수 있으므로 어디에 있는지 보여준다. */
+  .stamp:focus-visible{
+    outline:2px solid var(--accent);
+    outline-offset:2px;
+  }
   .dropzone:hover, .dropzone.dragover{
     border-color:var(--accent);
     background:var(--accent-dim);
@@ -442,6 +452,10 @@
       삐져나간다 (image-to-pdf.html의 세그먼트 토글에서 겪은 것과 같은 종류의 버그). */
     touch-action:none;
   }
+  /* 마지막 서명을 지웠을 때 포커스를 잠시 받아둘 자리 — 이게 없으면 focus()가 아무 일도 하지
+     않고 포커스가 BODY로 떨어져, 이어서 Tab을 누르면 페이지 맨 처음으로 튄다.
+     스스로 탭 순서에 끼어들진 않고(-1), 받았을 때 테두리도 그리지 않는다. */
+  .page-frame:focus{ outline:none; }
   .page-frame canvas{ display:block; width:100%; height:100%; }
 
   .stamp{
@@ -465,25 +479,54 @@
     font-weight:700;
     line-height:1;
     touch-action:none;
+    appearance:none;
+    padding:0;
   }
-  .stamp-del{
-    top:-11px; right:-11px; width:22px; height:22px;
-    background:var(--danger); border:2px solid var(--card);
-  }
-  /* X 표시는 글자("×")로 두면 폰트마다 획 두께·중심이 살짝 어긋나 찌그러져 보이기 쉬워서,
-     정확히 원 중앙에서 교차하고 가로·세로 길이가 완전히 같은 두 개의 막대(의사 요소)로
-     직접 그린다. */
-  .stamp-del::before, .stamp-del::after{
+  /* 보이는 크기는 그대로 두고 손가락이 닿는 범위만 넓힌다 — 390px 화면에서 손잡이가
+     14~22px이라 서로 붙어 있어 정확히 누르기 어렵다. 상자를 키우면 네 개가 겹쳐 보이므로
+     투명한 히트존만 넓힌다(보이는 모습은 그대로).
+     사방으로 똑같이 넓히면 짧은 상자(세로 20px 안팎 — 가로로 긴 서명을 휴대폰 기본 크기로
+     놓으면 흔하다)에서 위아래 손잡이의 히트존이 서로를 통째로 덮어버린다. 그래서 상자
+     바깥쪽으로만 크게, 상자 안쪽으로는 조금만 넓힌다. 손가락도 보통 상자 바깥에서 들어오니
+     실제 사용감도 이쪽이 낫다. (inset: 위 오른쪽 아래 왼쪽) */
+  .stamp-del::after, .stamp-resize::after, .stamp-resize-h::after,
+  .stamp-resize-v::after, .stamp-rotate::after{
     content:"";
     position:absolute;
-    top:50%; left:50%;
-    width:10px; height:2px;
-    background:#fff;
-    border-radius:1px;
+    border-radius:50%;
   }
-  .stamp-del::before{ transform:translate(-50%,-50%) rotate(45deg); }
-  .stamp-del::after{ transform:translate(-50%,-50%) rotate(-45deg); }
+  .stamp-del::after{      inset:-12px -12px  -3px  -3px; } /* 오른쪽 위 모서리 */
+  .stamp-resize::after{   inset: -3px -12px -12px  -3px; } /* 오른쪽 아래 모서리 */
+  .stamp-resize-h::after{ inset: -6px -12px  -6px  -3px; } /* 오른쪽 가운데 */
+  .stamp-resize-v::after{ inset: -3px  -6px -12px  -6px; } /* 아래쪽 가운데 */
+  .stamp-rotate::after{   inset:-12px  -6px  -6px  -6px; } /* 위쪽 가운데 */
+  /* 그래도 아주 납작한 상자에서는 위아래가 겹친다. 폭 101px 기준 실측(잡히는 손잡이):
+       세로 26px 이상 — 다섯 개 전부
+       세로 15~25px  — 가로 손잡이가 ✕·모서리에 덮인다
+       세로 14px 이하 — 모서리까지 ✕에 덮인다 (✕ 히트존이 상자 안쪽으로 14px 내려오므로)
+     ✕·세로 손잡이·회전은 어느 크기에서도 살아 있다 — 세로 손잡이는 아래쪽 '가운데'라
+     오른쪽 끝에 몰려 있는 ✕·모서리와 가로로 멀리 떨어져 있기 때문.
+     그래서 납작해진 상자를 되살리는 길은 아래 가운데 세로 손잡이(또는 Shift+방향키)로
+     높이를 키우는 것이고, 모서리는 15px부터 다시 잡힌다. */
+  /* X 표시는 글자("×")로 두면 폰트마다 획 두께·중심이 살짝 어긋나 찌그러져 보이기 쉬워서
+     가운데서 정확히 교차하는 두 막대로 직접 그린다. 예전에는 ::before/::after 두 개를 썼는데,
+     손가락 히트존을 넓히려면 ::after가 필요해서 X를 배경 SVG 한 겹으로 옮겼다
+     (보이는 모습은 그대로 — 획 길이 10px·두께 2px·흰색). */
+  /* 손잡이들이 겹칠 때 누가 이기는지 — 히트존을 9px씩 넓히면서 짧은 상자(세로 28px 미만)에서는
+     오른쪽 가장자리의 가로 손잡이 중심이 ✕ 중심과 14px 안으로 붙는다. DOM 순서상 뒤에 있는
+     가로 손잡이가 위에 쌓여 ✕를 완전히 덮어버려서 터치로는 그 서명을 지울 수 없었다.
+     되돌릴 수 없는 ✕를 제일 위에, 그다음 회전, 비율을 지키는 모서리, 가로·세로 순으로 쌓는다.
+     (짧은 상자에서 가로 손잡이가 가려지는 건 감수한다 — 되살리는 길은 위 주석 참고.) */
+  .stamp-del{
+    z-index:4;
+    top:-11px; right:-11px; width:22px; height:22px;
+    background:var(--danger)
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cg stroke='%23fff' stroke-width='2' stroke-linecap='round'%3E%3Cline x1='1.6' y1='1.6' x2='8.4' y2='8.4'/%3E%3Cline x1='8.4' y1='1.6' x2='1.6' y2='8.4'/%3E%3C/g%3E%3C/svg%3E")
+      center / 10px 10px no-repeat;
+    border:2px solid var(--card);
+  }
   .stamp-resize{
+    z-index:2;
     right:-8px; bottom:-8px; width:17px; height:17px;
     background:var(--accent); border:2px solid var(--card);
     cursor:nwse-resize;
@@ -515,6 +558,7 @@
     pointer-events:none;
   }
   .stamp-rotate{
+    z-index:3;
     top:-34px; left:50%; margin-left:-8px;
     width:16px; height:16px;
     background:var(--accent); border:2px solid var(--card);
@@ -547,6 +591,10 @@
   .thumb-item{
     position:relative;
     flex:none;
+    /* <button>으로 바꿨으므로 브라우저 기본 버튼 모양을 지운다(보이는 모습은 그대로). */
+    appearance:none;
+    padding:0;
+    font:inherit;
     width:52px;
     border-radius:6px;
     border:2px solid var(--card-border);
@@ -771,6 +819,11 @@
   @media (max-width:520px){
     .filename-row input[type=text]{ width:110px; }
     .download-bar{ width:calc(100% - 20px); bottom:10px; padding:12px; }
+    /* 좁은 화면에서는 공유·다운로드를 한 줄씩 전체 폭으로 — 다른 도구와 같은 모양.
+       (예전엔 spacer 때문에 공유가 파일명 줄 오른쪽에 붙고 다운로드만 아랫줄이었다) */
+    .download-bar-row{ flex-wrap:wrap; }
+    .download-bar-row .spacer{ display:none; }
+    #shareBtn, #downloadBtn{ width:100%; flex:1 1 100%; }
   }
 </style>
 </head>
@@ -818,6 +871,7 @@
           <div class="help-item"><span class="help-key">크기 조절</span><span class="help-desc">오른쪽 아래 모서리 점을 끌면 원래 비율을 유지하면서 크기가 바뀌고, 오른쪽·아래쪽 가장자리의 점을 끌면 가로/세로를 각각 따로 늘리거나 줄일 수 있어요.</span></div>
           <div class="help-item"><span class="help-key">회전</span><span class="help-desc">상자 위쪽 선 끝의 파란 점을 끌면 서명이 그 방향으로 회전해요.</span></div>
           <div class="help-item"><span class="help-key">✕ 삭제</span><span class="help-desc">이 서명 하나만 지워요.</span></div>
+          <div class="help-item"><span class="help-key">키보드</span><span class="help-desc">서명 상자를 한 번 누르거나 Tab으로 선택한 뒤, 방향키로 옮기고 Alt+방향키로 아주 조금씩 미세하게 옮겨요. Shift+방향키는 크기, R은 회전(Shift+R은 반대 방향), Delete는 삭제예요. 마우스보다 정확하게 맞출 때 좋아요.</span></div>
         </div>
       </div>
       <div class="help-section">
@@ -834,10 +888,10 @@
     </div>
   </div>
 
-  <div class="dropzone" id="dropzone">
+  <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-describedby="dropzoneHint" aria-label="서명할 PDF 파일 선택">
     <div class="icon">✍️</div>
     <div class="main-txt">여기로 PDF를 끌어다 놓거나 클릭해서 선택하세요</div>
-    <div class="sub-txt">서명할 PDF 파일 한 개를 올려주세요</div>
+    <div class="sub-txt" id="dropzoneHint">서명할 PDF 파일 한 개를 올려주세요</div>
     <input type="file" id="fileInput" accept="application/pdf">
   </div>
 
@@ -852,12 +906,12 @@
   <div class="sign-layout" id="signLayout" style="display:none;">
     <div class="stage-card">
       <div class="page-nav-row">
-        <button class="ghost" id="prevPageBtn" title="이전 페이지">‹</button>
+        <button class="ghost" id="prevPageBtn" title="이전 페이지" aria-label="이전 페이지">‹</button>
         <span id="pageIndicator">1 / 1</span>
-        <button class="ghost" id="nextPageBtn" title="다음 페이지">›</button>
+        <button class="ghost" id="nextPageBtn" title="다음 페이지" aria-label="다음 페이지">›</button>
       </div>
       <div class="page-frame-wrap">
-        <div class="page-frame" id="pageFrame">
+        <div class="page-frame" id="pageFrame" tabindex="-1">
           <canvas id="pageCanvas"></canvas>
         </div>
       </div>
@@ -867,41 +921,41 @@
 
     <div class="sig-card">
       <div class="sig-title">서명 만들기</div>
-      <div class="sig-tabs" id="sigTabs" data-active="upload">
+      <div class="sig-tabs" id="sigTabs" data-active="upload" role="group" aria-label="서명 만드는 방법 선택">
         <span class="sig-tab-indicator"></span>
-        <button class="sig-tab-btn active" data-tab="upload" type="button">업로드</button>
-        <button class="sig-tab-btn" data-tab="type" type="button">입력</button>
-        <button class="sig-tab-btn" data-tab="draw" type="button">그리기</button>
+        <button class="sig-tab-btn active" data-tab="upload" type="button" aria-pressed="true">업로드</button>
+        <button class="sig-tab-btn" data-tab="type" type="button" aria-pressed="false">입력</button>
+        <button class="sig-tab-btn" data-tab="draw" type="button" aria-pressed="false">그리기</button>
       </div>
 
       <div class="sig-pane" id="paneDraw">
         <canvas id="drawPad"></canvas>
-        <div class="color-row">
+        <div class="color-row" role="group" aria-label="그리기 색상 선택">
           <span>색상</span>
-          <button class="color-dot active" data-color="#111111" style="background:#111111;"></button>
-          <button class="color-dot" data-color="#1a4fd6" style="background:#1a4fd6;"></button>
-          <button class="color-dot" data-color="#c22323" style="background:#c22323;"></button>
+          <button class="color-dot active" data-color="#111111" style="background:#111111;" type="button" title="검정" aria-label="검정" aria-pressed="true"></button>
+          <button class="color-dot" data-color="#1a4fd6" style="background:#1a4fd6;" type="button" title="파랑" aria-label="파랑" aria-pressed="false"></button>
+          <button class="color-dot" data-color="#c22323" style="background:#c22323;" type="button" title="빨강" aria-label="빨강" aria-pressed="false"></button>
           <button class="ghost" id="clearDrawBtn" style="margin-left:auto;padding:6px 12px;font-size:12px;">지우기</button>
         </div>
       </div>
 
       <div class="sig-pane" id="paneType">
         <input type="text" class="type-name-input" id="typeNameInput" placeholder="이름을 입력하세요" maxlength="20">
-        <div class="font-chip-row" id="fontChipRow"></div>
+        <div class="font-chip-row" id="fontChipRow" role="group" aria-label="글씨체 선택"></div>
         <!-- 입력 탭에도 색상 선택을 둔다. 그리기 탭과 같은 색 상태(drawColor)를 공유하므로,
              어느 탭에서 고르든 두 탭의 색 점이 함께 바뀐다(예전엔 입력 탭에 색 선택이 없는데
              그리기 탭에서 고른 색이 입력 서명에 몰래 적용됐다). -->
-        <div class="color-row">
+        <div class="color-row" role="group" aria-label="입력 서명 색상 선택">
           <span>색상</span>
-          <button class="color-dot active" data-color="#111111" style="background:#111111;" type="button" title="검정"></button>
-          <button class="color-dot" data-color="#1a4fd6" style="background:#1a4fd6;" type="button" title="파랑"></button>
-          <button class="color-dot" data-color="#c22323" style="background:#c22323;" type="button" title="빨강"></button>
+          <button class="color-dot active" data-color="#111111" style="background:#111111;" type="button" title="검정" aria-label="검정" aria-pressed="true"></button>
+          <button class="color-dot" data-color="#1a4fd6" style="background:#1a4fd6;" type="button" title="파랑" aria-label="파랑" aria-pressed="false"></button>
+          <button class="color-dot" data-color="#c22323" style="background:#c22323;" type="button" title="빨강" aria-label="빨강" aria-pressed="false"></button>
         </div>
         <div class="type-preview" id="typePreview">이름을 입력하세요</div>
       </div>
 
       <div class="sig-pane show" id="paneUpload">
-        <label class="upload-drop" id="uploadDrop">
+        <label class="upload-drop" id="uploadDrop" role="button" tabindex="0" aria-label="서명 이미지 파일 선택">
           <div><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:5px;"><rect x="3" y="3" width="18" height="18" rx="2.5"/><circle cx="8.5" cy="8.5" r="1.6"/><path d="M21 15.5l-5.2-5.2a1.5 1.5 0 0 0-2.1 0L5 19"/></svg>서명 이미지를 여기로 끌어다 놓거나<br>클릭해서 올리세요</div>
           <div style="margin-top:4px;font-size:11.5px;">배경이 투명한 PNG파일 권장</div>
           <input type="file" id="uploadInput" accept="image/*">
@@ -922,6 +976,7 @@
         <span>.pdf</span>
       </div>
       <div class="spacer"></div>
+      <button class="ghost" id="shareBtn" type="button" hidden title="방금 만든 파일을 카카오톡·메일 등으로 바로 보내요.">공유</button>
       <button class="primary" id="downloadBtn">서명 완료 PDF 다운로드</button>
     </div>
     <div class="status-line" id="statusLine"></div>
@@ -930,7 +985,7 @@
   <footer class="note">
     <div>써봄 · 브라우저에서 끝나는 파일 도구</div>
     <div class="copyright"><span class="mark">ⓒ 2026</span> <span class="name">고윤태</span> · <a href="https://yuntaeko.com/" target="_blank" rel="noopener">yuntaeko.com</a> — 정성을 담아 제작한 도구입니다. 무단 도용 및 출처 표기 없는 재배포를 금지합니다.</div>
-    <div class="updated">업데이트 · 2026. 9. 12.</div>
+    <div class="updated">업데이트 · 2026. 9. 13.</div>
   </footer>
 </div>
 
@@ -1050,6 +1105,7 @@
   const pageCanvas = document.getElementById("pageCanvas");
   const thumbStrip = document.getElementById("thumbStrip");
   const fileNameCaption = document.getElementById("fileNameCaption");
+  const shareBtn = document.getElementById("shareBtn");
   const dragMagnifier = document.getElementById("dragMagnifier");
   const magnifierCanvas = document.getElementById("magnifierCanvas");
   const sigTabs = document.getElementById("sigTabs");
@@ -1183,6 +1239,14 @@
       currentPageIndex = 0;
       fileNameCaption.textContent = file.name;
       fileNameCaption.title = file.name;
+      // 저장 파일명 기본값을 원본 이름에서 만든다 — 고정값("서명완료")으로 두면 문서를
+      // 여러 개 연속으로 서명할 때 받는 파일 이름이 전부 같아서 뒤섞인다.
+      // 파일을 새로 올린 것이므로 사용자가 앞서 입력한 이름은 어차피 그 문서 것이다.
+      // ("" + "_서명")은 항상 truthy라 예전의 `... + "_서명" || "서명완료"`는 뒤쪽이 쓰이지 않았다.
+      // 이름이 ".pdf"처럼 본체가 없는 파일이면 "_서명.pdf"로 받게 돼서, base를 따로 뽑아 판단한다.
+      const baseName = (file.name || "").replace(/\.pdf$/i, "").trim();
+      filenameInput.value = baseName ? baseName + "_서명" : "서명완료";
+      clearLastResult();
       if (oldJsDoc && oldJsDoc !== newJsDoc){ try{ oldJsDoc.destroy(); }catch(e){} }
 
       loadingOverlay.classList.remove("show");
@@ -1224,12 +1288,16 @@
   function renderThumbStrip(){
     thumbStrip.innerHTML = "";
     pages.forEach((p, idx) => {
-      const item = document.createElement("div");
+      // <div>는 Tab으로 갈 수도, 이름이 읽히지도 않는다 — 실제 버튼으로 만든다.
+      const item = document.createElement("button");
+      item.type = "button";
       item.className = "thumb-item" + (idx === currentPageIndex ? " active" : "");
       const img = document.createElement("img");
       img.src = p.thumbUrl;
       item.appendChild(img);
       const count = stamps.filter(s => s.pageIndex === idx).length;
+      item.setAttribute("aria-label", (idx + 1) + "페이지로 이동" + (count > 0 ? " (서명 " + count + "개)" : ""));
+      if (idx === currentPageIndex) item.setAttribute("aria-current", "true");
       if (count > 0){
         const badge = document.createElement("span");
         badge.className = "thumb-badge";
@@ -1331,6 +1399,12 @@
 
     const el = document.createElement("div");
     el.className = "stamp";
+    // 예전에는 이 상자 안에 포커스를 받을 수 있는 요소가 하나도 없어서, 잘못 놓은 서명을
+    // 키보드로 지울 방법이 "전체 지우기"밖에 없었다. 상자 자체를 Tab 순서에 넣고 방향키·
+    // 크기·회전·삭제를 직접 받는다(마우스 조작은 그대로다).
+    el.tabIndex = 0;
+    el.setAttribute("role", "group");
+    el.setAttribute("aria-label", "배치한 서명 — 방향키로 이동, Shift+방향키로 크기, R로 회전, Delete로 삭제");
     el.style.left = (stamp.x * 100) + "%";
     el.style.top = (stamp.y * 100) + "%";
     el.style.width = (stamp.w * 100) + "%";
@@ -1343,9 +1417,14 @@
     el.appendChild(img);
     stamp._imgEl = img; // 작은 서명을 옮길 때 돋보기에 같이 그려 넣기 위해 참조해둔다.
 
-    const del = document.createElement("div");
+    // 삭제만 실제 버튼으로 만든다(키보드로 누를 수 있어야 하므로). 나머지 손잡이는
+    // 끌어서 쓰는 것이라 Tab으로 가봐야 할 일이 없어 화면 읽기 프로그램에서 숨기고,
+    // 같은 기능을 위의 단축키로 제공한다.
+    const del = document.createElement("button");
+    del.type = "button";
     del.className = "stamp-del";
     del.title = "삭제";
+    del.setAttribute("aria-label", "이 서명 삭제");
     // 삭제 버튼은 상자(el)와 함께 회전하면 X 모양이 비스듬히 찌그러져 보이므로,
     // 상자 회전을 반대로 걸어 항상 똑바로 서 있게 한다(위치는 그대로 모서리에 붙어 따라간다).
     del.style.transform = "rotate(" + (-stamp.rotation) + "deg)";
@@ -1354,40 +1433,93 @@
     const resize = document.createElement("div");
     resize.className = "stamp-resize";
     resize.title = "크기 조절 (비율 유지)";
+    resize.setAttribute("aria-hidden", "true");
     el.appendChild(resize);
 
     const resizeH = document.createElement("div");
     resizeH.className = "stamp-resize-h";
     resizeH.title = "가로 크기만 조절";
+    resizeH.setAttribute("aria-hidden", "true");
     el.appendChild(resizeH);
 
     const resizeV = document.createElement("div");
     resizeV.className = "stamp-resize-v";
     resizeV.title = "세로 크기만 조절";
+    resizeV.setAttribute("aria-hidden", "true");
     el.appendChild(resizeV);
 
     const rotateLine = document.createElement("div");
     rotateLine.className = "stamp-rotate-line";
+    rotateLine.setAttribute("aria-hidden", "true");
     el.appendChild(rotateLine);
 
     const rotate = document.createElement("div");
     rotate.className = "stamp-rotate";
     rotate.title = "회전";
+    rotate.setAttribute("aria-hidden", "true");
     el.appendChild(rotate);
 
-    del.addEventListener("pointerdown", (e) => e.stopPropagation());
-    del.addEventListener("click", (e) => {
-      e.stopPropagation();
+    function removeThisStamp(){
+      clearLastResult();
       stamps = stamps.filter(s => s.id !== stamp.id);
       renderStampsForCurrentPage();
       renderThumbStrip();
       refreshToolbar();
+      // 지운 뒤 포커스가 사라지면 Tab이 페이지 맨 처음으로 튄다 — 남은 서명이 있으면
+      // 그중 첫 번째로, 없으면 페이지 영역으로 옮겨준다.
+      const next = pageFrame.querySelector(".stamp");
+      if (next) next.focus();
+      else if (pageFrame.getClientRects().length) pageFrame.focus();
+    }
+    del.addEventListener("pointerdown", (e) => e.stopPropagation());
+    del.addEventListener("click", (e) => {
+      e.stopPropagation();
+      removeThisStamp();
+    });
+
+    // 키보드 조작 — 방향키 이동(Shift면 크기), R 회전, Delete 삭제.
+    // 한 번에 움직이는 양은 페이지 폭 대비 비율이라 어느 화면에서나 같은 느낌이다.
+    el.addEventListener("keydown", (e) => {
+      const STEP = e.altKey ? 0.002 : 0.01;   // Alt를 누르면 더 잘게
+      let handled = true;
+      if (e.key === "Delete" || e.key === "Backspace"){
+        removeThisStamp();
+      } else if (e.key === "ArrowLeft" || e.key === "ArrowRight" || e.key === "ArrowUp" || e.key === "ArrowDown"){
+        const dx = (e.key === "ArrowRight" ? STEP : e.key === "ArrowLeft" ? -STEP : 0);
+        const dy = (e.key === "ArrowDown" ? STEP : e.key === "ArrowUp" ? -STEP : 0);
+        if (e.shiftKey){
+          // 크기 조절 — 가로·세로 각각, 최소 2%는 남긴다
+          stamp.w = clamp(stamp.w + dx, 0.02, 1 - stamp.x);
+          stamp.h = clamp(stamp.h + dy, 0.02, 1 - stamp.y);
+          el.style.width = (stamp.w * 100) + "%";
+          el.style.height = (stamp.h * 100) + "%";
+        } else {
+          stamp.x = clamp(stamp.x + dx, 0, 1 - stamp.w);
+          stamp.y = clamp(stamp.y + dy, 0, 1 - stamp.h);
+          el.style.left = (stamp.x * 100) + "%";
+          el.style.top = (stamp.y * 100) + "%";
+        }
+      } else if (e.key === "r" || e.key === "R"){
+        stamp.rotation = (stamp.rotation + (e.shiftKey ? -15 : 15)) % 360;
+        el.style.transform = "rotate(" + stamp.rotation + "deg)";
+        del.style.transform = "rotate(" + (-stamp.rotation) + "deg)";
+      } else {
+        handled = false;
+      }
+      if (handled){
+        // 서명을 실제로 건드렸을 때만 — 방금 만든 파일이 화면과 맞지 않게 된다.
+        // (예전에는 맨 위에서 불러서 Tab·Shift·Esc처럼 처리하지 않는 키에도 공유 버튼이 사라졌다.)
+        clearLastResult();
+        e.preventDefault();
+        e.stopPropagation();
+      }
     });
 
     // 이동(드래그) — 회전과 무관하게 화면 이동량을 그대로 비율 이동량으로 쓴다.
     el.addEventListener("pointerdown", (e) => {
       if (e.target === del || e.target === resize || e.target === resizeH || e.target === resizeV || e.target === rotate) return;
       e.preventDefault();
+      clearLastResult();
       el.setPointerCapture(e.pointerId);
       const frameRect = pageFrame.getBoundingClientRect();
       const startX = e.clientX, startY = e.clientY;
@@ -1415,6 +1547,7 @@
     // 바꿔준 다음 폭에 반영한다.
     resize.addEventListener("pointerdown", (e) => {
       e.preventDefault();
+      clearLastResult();
       e.stopPropagation();
       resize.setPointerCapture(e.pointerId);
       const frameRect = pageFrame.getBoundingClientRect();
@@ -1449,6 +1582,7 @@
     // 손잡이와 같은 방식으로 화면 이동량을 상자 자신의 회전만큼 거꾸로 돌려 투영한다.
     resizeH.addEventListener("pointerdown", (e) => {
       e.preventDefault();
+      clearLastResult();
       e.stopPropagation();
       resizeH.setPointerCapture(e.pointerId);
       const frameRect = pageFrame.getBoundingClientRect();
@@ -1478,6 +1612,7 @@
     // 상자의 "세로 방향" 성분만 뽑아서 높이에만 반영한다.
     resizeV.addEventListener("pointerdown", (e) => {
       e.preventDefault();
+      clearLastResult();
       e.stopPropagation();
       resizeV.setPointerCapture(e.pointerId);
       const frameRect = pageFrame.getBoundingClientRect();
@@ -1504,6 +1639,7 @@
     // 45도 단위 근처에서는 살짝 스냅되어 반듯하게 맞추기 쉽다.
     rotate.addEventListener("pointerdown", (e) => {
       e.preventDefault();
+      clearLastResult();
       e.stopPropagation();
       rotate.setPointerCapture(e.pointerId);
       function onMove(ev){
@@ -1663,7 +1799,11 @@
   document.querySelectorAll(".color-dot").forEach(dot => {
     dot.addEventListener("click", () => {
       drawColor = dot.getAttribute("data-color");
-      document.querySelectorAll(".color-dot").forEach(d => d.classList.toggle("active", d.getAttribute("data-color") === drawColor));
+      document.querySelectorAll(".color-dot").forEach(d => {
+        const on = d.getAttribute("data-color") === drawColor;
+        d.classList.toggle("active", on);
+        d.setAttribute("aria-pressed", on ? "true" : "false");
+      });
       if (drawPad._ctx) drawPad._ctx.strokeStyle = drawColor;
       updateTypePreview();
     });
@@ -1746,12 +1886,17 @@
     const chip = document.createElement("button");
     chip.type = "button";
     chip.className = "font-chip" + (idx === 0 ? " active" : "");
+    chip.setAttribute("aria-pressed", idx === 0 ? "true" : "false");
     chip.style.fontFamily = f.family;
     chip.style.fontWeight = CHIP_FONT_WEIGHT;
     chip.textContent = f.label;
     chip.addEventListener("click", () => {
-      document.querySelectorAll(".font-chip").forEach(c => c.classList.remove("active"));
+      document.querySelectorAll(".font-chip").forEach(c => {
+        c.classList.remove("active");
+        c.setAttribute("aria-pressed", "false");
+      });
       chip.classList.add("active");
+      chip.setAttribute("aria-pressed", "true");
       activeFontKey = f.key;
       updateTypePreview();
     });
@@ -1908,7 +2053,10 @@
     btn.addEventListener("click", () => {
       activeTab = btn.getAttribute("data-tab");
       sigTabs.setAttribute("data-active", activeTab);
-      sigTabs.querySelectorAll(".sig-tab-btn").forEach(b => b.classList.toggle("active", b === btn));
+      sigTabs.querySelectorAll(".sig-tab-btn").forEach(b => {
+        b.classList.toggle("active", b === btn);
+        b.setAttribute("aria-pressed", b === btn ? "true" : "false");
+      });
       paneDraw.classList.toggle("show", activeTab === "draw");
       paneType.classList.toggle("show", activeTab === "type");
       paneUpload.classList.toggle("show", activeTab === "upload");
@@ -1927,10 +2075,16 @@
     if (!sig) return;
 
     const frameRect = pageFrame.getBoundingClientRect();
-    const targetW = 0.32;
-    let targetH = targetW * sig.aspect * (frameRect.width / frameRect.height);
-    if (targetH > 0.4){
-      targetH = 0.4;
+    // 세로로 긴 서명(사진으로 찍은 서명 등)도 원본 비율 그대로 놓여야 한다.
+    // 예전에는 높이만 0.4로 잘라내고 폭은 그대로 둬서, 세로로 긴 이미지가 납작하게 눌렸다.
+    const MAX_H = 0.4;
+    const aspect = (sig.aspect > 0 && isFinite(sig.aspect)) ? sig.aspect : 1;
+    const frameAspect = frameRect.width / frameRect.height; // 페이지 비율(가로/세로)
+    let targetW = 0.32;
+    let targetH = targetW * aspect * frameAspect;
+    if (targetH > MAX_H){
+      targetH = MAX_H;
+      targetW = targetH / (aspect * frameAspect); // 폭도 같이 줄여서 비율을 지킨다
     }
     const x = clamp(0.5 - targetW / 2, 0, 1 - targetW);
     const y = clamp(0.5 - targetH / 2, 0, 1 - targetH);
@@ -1943,6 +2097,7 @@
       dataUrl: sig.dataUrl,
       aspect: sig.aspect
     });
+    clearLastResult();
     renderStampsForCurrentPage();
     renderThumbStrip();
     refreshToolbar();
@@ -1968,6 +2123,22 @@
 
   /* ===================== 파일 업로드 UI ===================== */
 
+  // 숨긴 file input은 display:none이라 포커스를 받을 수 없다 — 이 영역이 Tab 순서에
+  // 없으면 키보드만으로는 파일을 올릴 방법이 아예 없었다(업로드 전 Tab 순서가
+  // "돌아가기 → 사용법 보기 → 푸터 링크" 셋뿐이었다).
+  dropzone.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" && e.key !== " " && e.key !== "Spacebar") return;
+    e.preventDefault();
+    if (busy) return;
+    fileInput.click();
+  });
+  // 서명 이미지 업로드 영역(<label>)도 마찬가지 — label은 포커스를 받지 못한다.
+  uploadDrop.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" && e.key !== " " && e.key !== "Spacebar") return;
+    e.preventDefault();
+    if (busy) return;
+    uploadInput.click();
+  });
   dropzone.addEventListener("click", (e) => {
     // fileInput은 dropzone 안에 있어서, fileInput.click()의 클릭 이벤트가 다시 dropzone으로
     // 올라와 이 핸들러가 한 번 더 실행되는 걸 막는다.
@@ -2041,6 +2212,36 @@
 
   // 되돌릴 수 없는 동작 전에 확인을 받는 팝업. window.confirm() 대신 사이트 디자인에 맞춘
   // 모달을 쓰고, Promise<boolean>을 반환한다 (확인=true, 취소/Esc/배경 클릭=false).
+  // 모달 공통: 대화상자로 선언하고(문구 자체를 창 이름으로), Tab을 창 안에서만 돌리고,
+  // 닫을 때 열기 전 자리로 포커스를 돌려준다. 두 팝업(확인·안내)이 같이 쓴다.
+  // (PDF 편집기에 넣은 것과 같은 헬퍼)
+  let modalSeq = 0;
+  function setupModalA11y(overlay, msgEl, buttons){
+    overlay.setAttribute("role", "dialog");
+    overlay.setAttribute("aria-modal", "true");
+    if (msgEl){
+      msgEl.id = "modalMessage" + (++modalSeq);
+      overlay.setAttribute("aria-labelledby", msgEl.id);
+    }
+    overlay.addEventListener("keydown", (e) => {
+      if (e.key !== "Tab") return;
+      const items = buttons.filter(b => b && !b.disabled);
+      if (!items.length) return;
+      const i = items.indexOf(document.activeElement);
+      e.preventDefault();
+      const next = e.shiftKey
+        ? (i <= 0 ? items.length - 1 : i - 1)
+        : (i === -1 || i === items.length - 1 ? 0 : i + 1);
+      items[next].focus();
+    });
+    const opener = document.activeElement;
+    return function restoreFocus(){
+      if (opener && document.contains(opener) && opener.focus){
+        try { opener.focus(); } catch(err){}
+      }
+    };
+  }
+
   function showConfirm(message, opts = {}){
     return new Promise((resolve) => {
       const overlay = el("div", "modal-overlay");
@@ -2059,11 +2260,13 @@
       box.appendChild(actions);
       overlay.appendChild(box);
       document.body.appendChild(overlay);
+      const restoreFocus = setupModalA11y(overlay, msg, [cancelBtn, okBtn]);
 
       function close(result){
         overlay.classList.remove("show");
         setTimeout(() => { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 150);
         document.removeEventListener("keydown", onKey);
+        restoreFocus();
         resolve(result);
       }
       function onKey(e){
@@ -2099,11 +2302,13 @@
       box.appendChild(actions);
       overlay.appendChild(box);
       document.body.appendChild(overlay);
+      const restoreFocus = setupModalA11y(overlay, msg, [okBtn]);
 
       function close(){
         overlay.classList.remove("show");
         setTimeout(() => { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 150);
         document.removeEventListener("keydown", onKey);
+        restoreFocus();
         resolve();
       }
       function onKey(e){
@@ -2120,6 +2325,61 @@
     });
   }
 
+  /* ===================== 공유 (브라우저 공유 기능) ===================== */
+  // 아이폰 사파리는 내려받은 PDF를 저장하지 않고 화면에 열어버리는 경우가 있는데, 그
+  // 화면의 주소는 blob: 임시 주소라서 거기서 아이폰 공유 버튼을 누르면 파일과 함께 그
+  // 주소까지 같이 넘어간다(받는 쪽에 열리지 않는 링크가 하나 더 간다). "파일만" 넘기는
+  // 길을 도구 안에 둔다. 이 도구는 결과가 서명 완료 PDF 하나뿐이라 가장 단순하다.
+
+  // 파일명 칸에서 이름을 만드는 규칙 — 다운로드와 공유가 항상 같은 이름을 쓰게 한 곳에 둔다.
+  function exportFileName(){
+    return (filenameInput.value || "").trim().replace(/\.pdf$/i, "").trim() || "서명완료";
+  }
+
+  const fileShareSupported = (() => {
+    try {
+      if (!navigator.share || !navigator.canShare || typeof File === "undefined") return false;
+      const probe = new File([new Blob(["x"], { type: "application/pdf" })], "t.pdf", { type: "application/pdf" });
+      return navigator.canShare({ files: [probe] });
+    } catch(e){ return false; }
+  })();
+
+  let lastResult = null; // 방금 만든 PDF(Blob)
+  function setLastResult(blob){
+    if (!fileShareSupported) return;
+    lastResult = blob;
+    shareBtn.hidden = false;
+  }
+  // 서명을 옮기거나 지우거나 새 PDF를 올리면 방금 만든 파일은 화면과 더 이상 맞지 않는다.
+  function clearLastResult(){
+    lastResult = null;
+    shareBtn.hidden = true;
+  }
+
+  shareBtn.addEventListener("click", () => {
+    if (!lastResult || busy) return;
+    // 만든 뒤에 파일명 칸만 고쳐도 공유할 때는 그때의 칸 값으로 이름을 다시 만든다 —
+    // 다운로드 버튼도 누를 때마다 칸을 읽으므로 둘이 항상 같은 이름이 된다.
+    const name = exportFileName() + ".pdf";
+    let file;
+    try {
+      file = new File([lastResult], name, { type: "application/pdf" });
+    } catch(e){
+      showAlert("이 브라우저에서는 파일 공유가 안 돼요. 다운로드 버튼으로 받은 파일을 직접 공유해주세요.");
+      return;
+    }
+    if (!navigator.canShare || !navigator.canShare({ files: [file] })){
+      showAlert("이 브라우저에서는 파일 공유가 안 돼요. 다운로드 버튼으로 받은 파일을 직접 공유해주세요.");
+      return;
+    }
+    // url·text는 절대 같이 넣지 않는다 — 그게 바로 임시 주소가 따라가는 원인이다.
+    navigator.share({ files: [file] }).catch((err) => {
+      if (err && (err.name === "AbortError" || err.name === "NotAllowedError")) return;
+      console.error("공유 실패", err);
+      showAlert("공유하지 못했어요. 다운로드 버튼으로 받은 파일을 직접 공유해주세요.");
+    });
+  });
+
   clearStampsBtn.addEventListener("click", async () => {
     if (stamps.length === 0) return;
     const ok = await showConfirm(
@@ -2127,6 +2387,7 @@
       { okLabel: "전체 지우기", cancelLabel: "취소" }
     );
     if (!ok) return;
+    clearLastResult();
     stamps = [];
     renderStampsForCurrentPage();
     renderThumbStrip();
@@ -2226,8 +2487,9 @@
 
       const bytes = await exportDoc.save();
       // 파일명 칸에 "계약서.pdf"처럼 확장자까지 적어도 "계약서.pdf.pdf"가 되지 않게 끝의 .pdf를 뗀다.
-      const name = (filenameInput.value || "").trim().replace(/\.pdf$/i, "").trim() || "서명완료";
+      const name = exportFileName();
       const blob = new Blob([bytes], { type: "application/pdf" });
+      setLastResult(blob);
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
