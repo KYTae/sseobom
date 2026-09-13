@@ -382,6 +382,54 @@
     background:var(--card-border);
     color:var(--text-dim);
   }
+  /* 다운로드 링크 + 공유 아이콘을 한 줄에 둔다. */
+  .dl-row{ display:flex; align-items:stretch; gap:6px; }
+  .dl-row a.dl-btn{ flex:1; min-width:0; justify-content:center; white-space:nowrap; }
+  .card-share-btn{
+    flex:none;
+    width:36px;
+    display:flex; align-items:center; justify-content:center;
+    background:var(--card);
+    border:1px solid var(--card-border);
+    border-radius:999px;
+    color:var(--text-dim);
+    cursor:pointer;
+    padding:0;
+  }
+  .card-share-btn svg{ width:15px; height:15px; }
+  .card-share-btn:hover{ color:var(--accent); border-color:var(--accent); }
+  .card-share-btn[hidden]{ display:none; }
+
+  /* 안내 팝업 — window.alert() 대신 쓰는 사이트 공용 모달(다른 도구들과 같은 모양). */
+  .modal-overlay{
+    position:fixed; inset:0; z-index:10000;
+    background:rgba(0,0,0,.44);
+    display:flex; align-items:center; justify-content:center;
+    padding:20px;
+    opacity:0; pointer-events:none;
+    transition:opacity .12s ease;
+  }
+  .modal-overlay.show{ opacity:1; pointer-events:auto; }
+  .modal-box{
+    background:var(--card);
+    border:1px solid var(--card-border);
+    border-radius:var(--radius);
+    box-shadow:0 16px 44px rgba(0,0,0,.28);
+    max-width:400px; width:100%;
+    padding:22px;
+    transform:translateY(6px) scale(.98);
+    transition:transform .12s ease;
+  }
+  .modal-overlay.show .modal-box{ transform:translateY(0) scale(1); }
+  .modal-message{
+    font-size:14.5px;
+    line-height:1.6;
+    color:var(--text);
+    white-space:pre-line;
+    margin:0 0 18px;
+  }
+  .modal-actions{ display:flex; justify-content:flex-end; gap:8px; }
+  .modal-actions button{ padding:8px 16px; }
 
   /* ---- 원본 파일 정보 패널 ---- */
   .file-info{
@@ -508,28 +556,21 @@
     font-weight:800;
     letter-spacing:.01em;
   }
-  .result-card .fmt-size{
-    font-size:12.5px;
-    color:var(--text-dim);
-  }
   .result-card .fmt-status{
     font-size:12.5px;
     color:var(--text-dim);
+  }
+  /* 실패한 형식의 카드 — 무엇이 잘못됐는지 한 줄로 알려준다. */
+  .result-card .fmt-error{
+    font-size:12.5px;
+    line-height:1.55;
+    color:var(--text-dim);
+    margin:0;
   }
   .result-card audio{
     display:block;
     width:100%;
     height:40px;
-  }
-  .spinner-sm{
-    width:14px; height:14px;
-    border-radius:50%;
-    border:2px solid var(--card-border);
-    border-top-color:var(--accent);
-    display:inline-block;
-    animation:spin .7s linear infinite;
-    vertical-align:middle;
-    margin-right:6px;
   }
   @keyframes spin{ to{ transform:rotate(360deg); } }
 
@@ -614,6 +655,22 @@
     font-size:11.5px;
     color:var(--text-dim);
   }
+
+  /* 키보드로 왔을 때 어디에 있는지 보이게 — 드롭존은 <div>라 기본 표시가 없다. */
+  .dropzone:focus-visible{
+    outline:2px solid var(--accent);
+    outline-offset:3px;
+  }
+
+  /* 좁은 화면 규칙은 항상 스타일 블록 맨 끝에 모아 둔다(뒤에 오는 규칙이 이기기 때문). */
+  @media (max-width:520px){
+    .result-toolbar{ flex-wrap:wrap; gap:8px; }
+    .result-toolbar .dl-btn{ width:100%; justify-content:center; }
+    .file-info-head{ flex-wrap:wrap; gap:10px 14px; }
+    .file-info-head .change-btn{ width:100%; }
+    .result-card .fmt-row{ gap:8px; }
+    .dl-row{ flex:1 1 100%; }
+  }
 </style>
 </head>
 <body>
@@ -628,7 +685,7 @@
   <header class="top">
     <div class="brand"><span class="dot"></span>써봄</div>
     <h1>사운드 형식 변환</h1>
-    <p class="sub">오디오 파일 하나를 올리면, 원래 형식만 빼고 WAV·MP3로 바로 바꿔드려요. OGG·FLAC까지 필요하면 버튼 한 번으로 추가 변환할 수 있습니다.</p>
+    <p class="sub">오디오 파일 하나를 올리면 원래 형식만 빼고 WAV·MP3로 바로 바꿔드려요. OGG·FLAC까지 필요하면 버튼 한 번으로 추가 변환할 수 있어요. M4A처럼 휴대폰으로 녹음한 형식도 올릴 수 있고, 받는 형식은 WAV·MP3·OGG·FLAC 네 가지예요.</p>
     <div class="badge-row">
       <div class="badge-line">
         <span class="feature-badge">WAV · MP3 · OGG · FLAC 상호 변환</span>
@@ -649,28 +706,28 @@
       <div class="help-section">
         <div class="help-section-label">오디오 올리기</div>
         <div class="help-grid">
-          <div class="help-item"><span class="help-key">드롭존</span><span class="help-desc">오디오 파일을 끌어다 놓거나 클릭해서 파일 선택 창을 엽니다. 한 번에 한 개만 올릴 수 있어요.</span></div>
-          <div class="help-item"><span class="help-key">다른 파일 선택</span><span class="help-desc">지금 오디오와 변환 결과를 지우고, 곧바로 파일 선택 창을 열어 새 오디오를 고를 수 있습니다.</span></div>
-          <div class="help-item"><span class="help-key">▶ 재생 컨트롤</span><span class="help-desc">올린 오디오를 변환하기 전에 브라우저에서 바로 미리 들어볼 수 있습니다.</span></div>
+          <div class="help-item"><span class="help-key">드롭존</span><span class="help-desc">오디오 파일을 끌어다 놓거나 눌러서 파일 선택 창을 열어요. 키보드로는 Tab으로 옮긴 뒤 Enter나 스페이스바를 눌러도 열려요. 한 번에 한 개만 올릴 수 있어요.</span></div>
+          <div class="help-item"><span class="help-key">다른 파일 선택</span><span class="help-desc">파일 선택 창을 열어 새 오디오를 골라요. 새 오디오를 끝까지 읽은 뒤에 결과가 바뀌고, 선택을 취소하면 지금 결과가 그대로 남아요.</span></div>
+          <div class="help-item"><span class="help-key">▶ 재생 컨트롤</span><span class="help-desc">올린 오디오를 변환하기 전에 브라우저에서 바로 미리 들어볼 수 있어요.</span></div>
         </div>
       </div>
       <div class="help-section">
         <div class="help-section-label">변환 결과</div>
         <div class="help-grid">
-          <div class="help-item help-item-wide"><span class="help-key">+더 변환하기</span><span class="help-desc">대기 시간을 줄이려고 가장 많이 쓰는 WAV·MP3부터 바로 변환합니다. OGG·FLAC은 이 버튼을 눌러야 추가로 변환됩니다.</span></div>
-          <div class="help-item"><span class="help-key">다운로드</span><span class="help-desc">카드에 있는 해당 형식 파일 하나만 받습니다. 카드 안 재생 버튼으로 바로 들어볼 수도 있어요.</span></div>
-          <div class="help-item"><span class="help-key">전체 zip으로 받기</span><span class="help-desc">지금까지 변환 완료된 모든 형식을 zip 파일 하나로 한 번에 받습니다.</span></div>
+          <div class="help-item help-item-wide"><span class="help-key">+더 변환하기</span><span class="help-desc">기다리는 시간을 줄이려고 가장 많이 쓰는 WAV·MP3부터 먼저 변환해요. OGG·FLAC은 이 버튼을 눌러야 추가로 변환돼요 — 두 형식의 인코더는 버튼을 누른 뒤에 내려받기 때문에 인터넷 연결이 필요해요.</span></div>
+          <div class="help-item"><span class="help-key">다운로드</span><span class="help-desc">카드에 있는 해당 형식 파일 하나만 받아요. 카드 안 재생 버튼으로 바로 들어볼 수도 있고, 옆의 공유 아이콘으로 파일을 바로 보낼 수도 있어요.</span></div>
+          <div class="help-item"><span class="help-key">전체 zip으로 받기</span><span class="help-desc">지금까지 변환된 모든 형식을 zip 파일 하나로 한 번에 받아요.</span></div>
         </div>
       </div>
     </div>
     </div>
   </div>
 
-  <div class="dropzone" id="dropzone">
-    <input type="file" id="fileInput" accept="audio/*">
+  <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-describedby="dropzoneHint" aria-label="변환할 오디오 파일 선택">
+    <input type="file" id="fileInput" accept="audio/*,.wav,.mp3,.ogg,.oga,.opus,.flac,.m4a,.aac,.webm,.wma,.aif,.aiff">
     <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg></div>
     <div class="main-txt">오디오 파일을 여기에 끌어다 놓거나 클릭해서 올리세요</div>
-    <div class="sub-txt">WAV, MP3, OGG, FLAC, M4A 등 대부분의 오디오 형식을 올릴 수 있어요 (한 번에 한 개)</div>
+    <div class="sub-txt" id="dropzoneHint">WAV, MP3, OGG, FLAC, M4A 등 대부분의 오디오 형식을 올릴 수 있어요 (한 번에 한 개)</div>
   </div>
 
   <div class="file-info" id="fileInfo" hidden>
@@ -678,6 +735,7 @@
       <div class="meta">
         <div class="name" id="fileName"></div>
         <div class="detail" id="fileDetail"></div>
+        <div class="detail" id="fileNote" hidden></div>
       </div>
       <button class="change-btn" id="changeBtn" type="button">다른 파일 선택</button>
     </div>
@@ -694,7 +752,7 @@
   <div class="result-section" id="resultSection" hidden>
     <div class="result-toolbar">
       <span class="count" id="resultCount"></span>
-      <a class="dl-btn disabled" id="downloadAllBtn" href="#" download>전체 zip으로 받기</a>
+      <a class="dl-btn disabled" id="downloadAllBtn" href="#" download aria-disabled="true" tabindex="-1">전체 zip으로 받기</a>
     </div>
     <div class="result-grid" id="resultGrid"></div>
     <button class="primary more-formats-btn" id="moreFormatsBtn" type="button" hidden></button>
@@ -710,7 +768,7 @@
   <footer class="note">
     <div>써봄 · 브라우저에서 끝나는 파일 도구</div>
     <div class="copyright"><span class="mark">ⓒ 2026</span> <span class="name">고윤태</span> · <a href="https://yuntaeko.com/" target="_blank" rel="noopener">yuntaeko.com</a> — 정성을 담아 제작한 도구입니다. 무단 도용 및 출처 표기 없는 재배포를 금지합니다.</div>
-    <div class="updated">업데이트 · 2026. 9. 9.</div>
+    <div class="updated">업데이트 · 2026. 9. 13.</div>
   </footer>
 </div>
 
@@ -739,6 +797,7 @@
   var metaSampleRateEl = document.getElementById("metaSampleRate");
   var metaChannelsEl = document.getElementById("metaChannels");
   var metaSizeEl = document.getElementById("metaSize");
+  var fileNote = document.getElementById("fileNote");
   var changeBtn = document.getElementById("changeBtn");
   var resultSection = document.getElementById("resultSection");
   var resultGrid = document.getElementById("resultGrid");
@@ -749,8 +808,10 @@
   var loadingOverlay = document.getElementById("loadingOverlay");
   var loadingPercent = document.getElementById("loadingPercent");
 
+  var loadingText = document.getElementById("loadingText");
+  function setLoadingText(text){ loadingText.textContent = text || "변환하는 중..."; }
   function showLoading(text){
-    document.getElementById("loadingText").textContent = text || "변환하는 중...";
+    setLoadingText(text);
     loadingPercent.textContent = "0%";
     loadingOverlay.classList.add("show");
   }
@@ -780,11 +841,14 @@
   var currentAudioBuffer = null; // decodeAudioData 결과 — WAV/MP3/OGG 인코더가 공통으로 재사용한다.
   var currentPreviewUrl = null;
   var pendingMoreTargets = [];
+  var failedTargets = [];   // 이번 변환에서 실패한 형식 — "다시 시도하기" 버튼이 이걸 본다
 
   function formatBytes(n){
     if (n < 1024) return n + " B";
     if (n < 1024*1024) return (n/1024).toFixed(1) + " KB";
-    return (n/1024/1024).toFixed(2) + " MB";
+    if (n < 1024*1024*1024) return (n/1024/1024).toFixed(2) + " MB";
+    // 긴 오디오는 디코딩하면 GB 단위로 올라간다 — "3993.60 MB"보다 "3.90 GB"가 크기를 실감하기 쉽다.
+    return (n/1024/1024/1024).toFixed(2) + " GB";
   }
 
   function baseNameOf(filename){
@@ -827,18 +891,28 @@
     return s < 0 ? s * 0x8000 : s * 0x7FFF;
   }
 
-  function floatChannelToInt16Array(channelData){
-    var out = new Int16Array(channelData.length);
-    for (var i = 0; i < channelData.length; i++) out[i] = floatSampleToInt16(channelData[i]);
-    return out;
-  }
+  // 이 기기의 바이트 순서. WAV는 리틀엔디언으로 저장해야 하는데, 리틀엔디언 기기에서는
+  // Int16Array에 그냥 쓰는 것만으로 올바른 바이트가 나오고 DataView.setInt16보다 훨씬 빠르다
+  // (호출마다 하던 경계 검사·바이트 뒤집기가 사라진다). 요즘 브라우저가 도는 기기는 사실상
+  // 전부 리틀엔디언이지만, 아니면 원래대로 DataView 경로로 안전하게 떨어진다.
+  var IS_LITTLE_ENDIAN = (function(){
+    var probe = new ArrayBuffer(2);
+    new DataView(probe).setInt16(0, 256, true);
+    return new Int16Array(probe)[0] === 256;
+  })();
+
+  // 인코딩 도중 화면에 양보하는 간격(프레임 수). 너무 촘촘하면 전체가 느려지고, 너무 성기면
+  // 그 사이 동안 화면이 멈춘다. 44.1kHz 기준 262,144프레임은 약 6초 분량이다.
+  var ENCODE_YIELD_FRAMES = 262144;
 
   // ---- WAV 인코더 (16비트 PCM) ----
   // 브라우저에는 WAV 인코더가 내장돼 있지 않아서 44바이트짜리 표준 RIFF/WAVE 헤더를
   // 손으로 채워 넣은 뒤, 각 채널의 Float32 PCM 샘플을 16비트 정수로 변환해 인터리빙
-  // (프레임 단위로 채널을 번갈아) 저장한다. 단일 동기 호출로 사실상 즉시 끝나므로
-  // onProgress는 완료 시점에 1회만 1(100%)을 보고한다.
-  function encodeWav(audioBuffer, onProgress){
+  // (프레임 단위로 채널을 번갈아) 저장한다.
+  // 예전에는 샘플마다 view.setInt16을 부르는 단일 동기 루프여서, 5분짜리 파일이면 탭이
+  // 3초 넘게 통째로 멈추고 진행률도 0%에서 100%로 한 번에 뛰었다. 지금은 Int16Array에
+  // 직접 쓰고 ENCODE_YIELD_FRAMES마다 화면에 양보하면서 진행률을 올린다.
+  async function encodeWav(audioBuffer, onProgress){
     var numChannels = audioBuffer.numberOfChannels;
     var sampleRate = audioBuffer.sampleRate;
     var numFrames = audioBuffer.length;
@@ -869,12 +943,28 @@
     var channelData = [];
     for (var c = 0; c < numChannels; c++) channelData.push(audioBuffer.getChannelData(c));
 
-    var offset = 44;
-    for (var i = 0; i < numFrames; i++){
-      for (var c = 0; c < numChannels; c++){
-        view.setInt16(offset, floatSampleToInt16(channelData[c][i]), true);
-        offset += 2;
+    // 헤더가 44바이트(짝수)라 그 뒤를 Int16Array로 그대로 덮어쓸 수 있다.
+    var pcm = IS_LITTLE_ENDIAN ? new Int16Array(buffer, 44, numFrames * numChannels) : null;
+    var frame = 0;
+    while (frame < numFrames){
+      var end = Math.min(frame + ENCODE_YIELD_FRAMES, numFrames);
+      if (pcm){
+        var idx = frame * numChannels;
+        for (var i = frame; i < end; i++){
+          for (var c = 0; c < numChannels; c++) pcm[idx++] = floatSampleToInt16(channelData[c][i]);
+        }
+      } else {
+        var offset = 44 + frame * blockAlign;
+        for (var i2 = frame; i2 < end; i2++){
+          for (var c2 = 0; c2 < numChannels; c2++){
+            view.setInt16(offset, floatSampleToInt16(channelData[c2][i2]), true);
+            offset += 2;
+          }
+        }
       }
+      frame = end;
+      if (onProgress) onProgress(frame / numFrames);
+      if (frame < numFrames) await nextFrame();
     }
     if (onProgress) onProgress(1);
     return new Blob([buffer], { type: "audio/wav" });
@@ -895,23 +985,29 @@
     // (사용자가 직접 비트레이트를 고를 UI는 이번 범위에 없음).
     var kbps = channels === 2 ? 192 : 128;
 
-    var left16 = floatChannelToInt16Array(audioBuffer.getChannelData(0));
-    var right16 = channels === 2 ? floatChannelToInt16Array(audioBuffer.getChannelData(1)) : null;
+    // 예전에는 채널 전체를 Int16Array로 미리 복사해 두 벌을 들고 있었다(5분 스테레오면 52MB).
+    // 어차피 1152샘플씩 잘라 넘기므로, 그 블록 크기의 작은 배열 하나만 재사용하면서 채운다.
+    var left = audioBuffer.getChannelData(0);
+    var right = channels === 2 ? audioBuffer.getChannelData(1) : null;
 
     var mp3encoder = new lamejs.Mp3Encoder(channels, sampleRate, kbps);
     var chunks = [];
     var sampleBlockSize = 1152; // lamejs가 기대하는 MPEG 프레임 단위 샘플 수
-    var totalSamples = left16.length;
+    var totalSamples = left.length;
     var totalBlocks = Math.ceil(totalSamples / sampleBlockSize) || 1;
     var yieldEveryBlocks = Math.max(1, Math.round(totalBlocks / 100));
     var blockIndex = 0;
+    var leftBlock = new Int16Array(sampleBlockSize);
+    var rightBlock = channels === 2 ? new Int16Array(sampleBlockSize) : null;
 
     for (var i = 0; i < totalSamples; i += sampleBlockSize){
-      var leftChunk = left16.subarray(i, i + sampleBlockSize);
+      var n = Math.min(sampleBlockSize, totalSamples - i);
+      for (var j = 0; j < n; j++) leftBlock[j] = floatSampleToInt16(left[i + j]);
+      var leftChunk = n === sampleBlockSize ? leftBlock : leftBlock.subarray(0, n);
       var buf;
       if (channels === 2){
-        var rightChunk = right16.subarray(i, i + sampleBlockSize);
-        buf = mp3encoder.encodeBuffer(leftChunk, rightChunk);
+        for (var k = 0; k < n; k++) rightBlock[k] = floatSampleToInt16(right[i + k]);
+        buf = mp3encoder.encodeBuffer(leftChunk, n === sampleBlockSize ? rightBlock : rightBlock.subarray(0, n));
       } else {
         buf = mp3encoder.encodeBuffer(leftChunk);
       }
@@ -935,7 +1031,7 @@
   var wasmMediaEncoderPromise = null;
   function loadWasmMediaEncoder(){
     if (wasmMediaEncoderPromise) return wasmMediaEncoderPromise;
-    wasmMediaEncoderPromise = new Promise(function(resolve, reject){
+    var promise = new Promise(function(resolve, reject){
       if (window.WasmMediaEncoder && window.WasmMediaEncoder.createOggEncoder){
         resolve(window.WasmMediaEncoder);
         return;
@@ -949,7 +1045,10 @@
       script.onerror = function(){ reject(new Error("OGG 인코더 스크립트를 불러오지 못했어요.")); };
       document.head.appendChild(script);
     });
-    return wasmMediaEncoderPromise;
+    // 실패까지 캐시해두면 "다시 시도하기"가 네트워크가 돌아와도 영원히 같은 실패를 돌려준다.
+    promise.catch(function(){ if (wasmMediaEncoderPromise === promise) wasmMediaEncoderPromise = null; });
+    wasmMediaEncoderPromise = promise;
+    return promise;
   }
 
   async function encodeOgg(audioBuffer, onProgress){
@@ -988,7 +1087,7 @@
   var flacEncoderPromise = null;
   function loadFlacEncoder(){
     if (flacEncoderPromise) return flacEncoderPromise;
-    flacEncoderPromise = new Promise(function(resolve, reject){
+    var promise = new Promise(function(resolve, reject){
       if (window.Flac && typeof window.Flac.isReady === "function"){
         if (window.Flac.isReady()) resolve(window.Flac);
         else window.Flac.onready = function(){ resolve(window.Flac); };
@@ -1005,7 +1104,9 @@
       script.onerror = function(){ reject(new Error("FLAC 인코더 스크립트를 불러오지 못했어요.")); };
       document.head.appendChild(script);
     });
-    return flacEncoderPromise;
+    promise.catch(function(){ if (flacEncoderPromise === promise) flacEncoderPromise = null; });
+    flacEncoderPromise = promise;
+    return promise;
   }
 
   // libflac.js는 스트리밍(청크 단위) 인코딩 중에는 파일 맨 앞의 STREAMINFO 메타데이터 블록을
@@ -1102,7 +1203,7 @@
   }
 
   function convertOne(f, audioBuffer, onProgress){
-    if (f.key === "wav") return Promise.resolve(encodeWav(audioBuffer, onProgress));
+    if (f.key === "wav") return encodeWav(audioBuffer, onProgress);
     if (f.key === "mp3") return encodeMp3(audioBuffer, onProgress);
     if (f.key === "ogg") return encodeOgg(audioBuffer, onProgress);
     if (f.key === "flac") return encodeFlac(audioBuffer, onProgress);
@@ -1122,48 +1223,245 @@
     if (window.incrementSseobomDownload) window.incrementSseobomDownload();
   }
 
+  // ---------- 사이트 공용 모달 (window.alert / confirm 대신) ----------
+  function el(tag, cls, text){
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  var modalSeq = 0;
+  function openModal(message, opts){
+    opts = opts || {};
+    return new Promise(function(resolve){
+      var overlay = el("div", "modal-overlay");
+      overlay.setAttribute("role", "dialog");
+      overlay.setAttribute("aria-modal", "true");
+      var box = el("div", "modal-box");
+      var msg = el("div", "modal-message", message);
+      // 창 이름으로 안내 문구 자체를 쓴다 — 열리는 순간 무슨 안내인지 바로 읽힌다.
+      msg.id = "modalMessage" + (++modalSeq);
+      overlay.setAttribute("aria-labelledby", msg.id);
+      box.appendChild(msg);
+      var actions = el("div", "modal-actions");
+      var cancelBtn = null;
+      if (opts.cancel){
+        cancelBtn = el("button", "", opts.cancelLabel || "취소");
+        cancelBtn.type = "button";
+        actions.appendChild(cancelBtn);
+      }
+      var okBtn = el("button", "primary", opts.okLabel || "확인");
+      okBtn.type = "button";
+      actions.appendChild(okBtn);
+      box.appendChild(actions);
+      overlay.appendChild(box);
+      var opener = document.activeElement;
+      document.body.appendChild(overlay);
+      function close(result){
+        overlay.classList.remove("show");
+        setTimeout(function(){ if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 150);
+        document.removeEventListener("keydown", onKey);
+        if (opener && document.contains(opener) && opener.focus){ try{ opener.focus(); }catch(err){} }
+        resolve(result);
+      }
+      function onKey(e){
+        if (e.key === "Escape"){ e.preventDefault(); close(false); return; }
+        if (e.key === "Enter"){ e.preventDefault(); close(true); return; }
+        if (e.key !== "Tab") return;
+        // aria-modal이라고 선언했으면 Tab도 창 안에서만 돌아야 한다.
+        var items = cancelBtn ? [cancelBtn, okBtn] : [okBtn];
+        var i = items.indexOf(document.activeElement);
+        e.preventDefault();
+        items[e.shiftKey ? (i <= 0 ? items.length - 1 : i - 1) : (i === -1 || i === items.length - 1 ? 0 : i + 1)].focus();
+      }
+      okBtn.addEventListener("click", function(){ close(true); });
+      if (cancelBtn) cancelBtn.addEventListener("click", function(){ close(false); });
+      overlay.addEventListener("mousedown", function(e){ if (e.target === overlay) close(false); });
+      document.addEventListener("keydown", onKey);
+      requestAnimationFrame(function(){
+        overlay.classList.add("show");
+        okBtn.focus();
+      });
+    });
+  }
+  function showAlert(message){ return openModal(message); }
+  function showConfirm(message, opts){
+    opts = opts || {};
+    return openModal(message, { cancel: true, okLabel: opts.okLabel || "계속하기", cancelLabel: opts.cancelLabel || "취소" });
+  }
+  function modalOpen(){ return !!document.querySelector(".modal-overlay"); }
+
+  // ---------- 작업 중 잠금 ----------
+  // 예전에는 busy라는 개념 자체가 없어서, 변환하는 동안 파일을 하나 더 떨어뜨리면 진행 중인
+  // 작업 한가운데서 resetUI()가 돌고 결과가 통째로 날아갔다. 오버레이가 마우스 클릭은 막지만
+  // 드롭·키보드는 막지 못한다.
+  var busy = false;
+  function setBusy(on){
+    busy = !!on;
+    dropzone.setAttribute("aria-disabled", busy ? "true" : "false");
+    changeBtn.disabled = busy;
+    moreFormatsBtn.disabled = busy;
+  }
+
+  // ---------- 파일 공유 (Web Share) ----------
+  // 다운로드한 파일을 공유하면 브라우저에 따라 blob: 임시 주소까지 같이 넘어간다(받는 쪽에
+  // 열리지 않는 링크가 하나 더 간다). 그래서 "파일만" 넘기는 길을 도구 안에 둔다.
+  var fileShareSupported = (function(){
+    try {
+      if (!navigator.share || !navigator.canShare || typeof File === "undefined") return false;
+      var probe = new File([new Blob(["x"], { type: "audio/wav" })], "t.wav", { type: "audio/wav" });
+      return navigator.canShare({ files: [probe] });
+    } catch(e){ return false; }
+  })();
+  function makeShareFile(blob, filename){
+    return new File([blob], filename, { type: blob.type || "application/octet-stream" });
+  }
+  // 브라우저마다 "공유로 넘길 수 있는 파일 형식" 목록이 따로 있다. WAV·MP3는 대부분 되지만
+  // FLAC·OGG는 목록 밖일 수 있어서, 도구 전체에 한 번 묻지 않고 카드마다 그 파일로 직접
+  // 물어보고 되는 카드에만 버튼을 보여준다.
+  function canShareBlob(blob, filename){
+    try { return !!navigator.canShare({ files: [makeShareFile(blob, filename)] }); }
+    catch(e){ return false; }
+  }
+  function shareResult(blob, filename){
+    if (busy) return;
+    var file;
+    try { file = makeShareFile(blob, filename); }
+    catch(e){
+      showAlert("이 브라우저에서는 파일 공유가 안 돼요. 다운로드 버튼으로 받은 파일을 직접 공유해주세요.");
+      return;
+    }
+    if (!navigator.canShare || !navigator.canShare({ files: [file] })){
+      showAlert("이 브라우저에서는 파일 공유가 안 돼요. 다운로드 버튼으로 받은 파일을 직접 공유해주세요.");
+      return;
+    }
+    // url·text는 절대 같이 넣지 않는다 — 그게 바로 임시 주소가 따라가는 원인이다.
+    navigator.share({ files: [file] }).catch(function(err){
+      // 공유 창을 그냥 닫은 것(AbortError)은 오류가 아니라 취소다.
+      if (err && (err.name === "AbortError" || err.name === "NotAllowedError")) return;
+      console.error("공유 실패", err);
+      showAlert("공유하지 못했어요. 다운로드 버튼으로 받은 파일을 직접 공유해주세요.");
+    });
+  }
+
+  // <a>에는 button의 disabled가 없어서 .disabled 클래스 + pointer-events:none으로 막아왔는데,
+  // pointer-events는 마우스만 막는다 — Tab으로 가서 Enter를 누르면 href="#"라 페이지 맨 위로
+  // 튄다. 클래스와 함께 속성도 같이 맞춘다.
+  function setLinkDisabled(elm, off){
+    elm.classList.toggle("disabled", off);
+    if (off){
+      elm.setAttribute("aria-disabled", "true");
+      elm.setAttribute("tabindex", "-1");
+    } else {
+      elm.removeAttribute("aria-disabled");
+      elm.removeAttribute("tabindex");
+    }
+  }
+
+  // 처음에는 받을 결과가 없다 — 클래스만이 아니라 속성까지 맞춰 둔다(안 그러면 Tab으로 가서
+  // Enter를 누를 수 있고, href="#"라 페이지 맨 위로 튄다).
+  setLinkDisabled(downloadAllBtn, true);
+
+  var SHARE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"></path><path d="M8 7l4-4 4 4"></path><path d="M5 13v6a2 2 0 002 2h10a2 2 0 002-2v-6"></path></svg>';
+
+  // 카드를 innerHTML 문자열로 조립하면 파일 이름 안의 따옴표에서 속성이 잘리고(내 노래 "데모".wav
+  // → download="내 노래 "  로 끊김) < > 가 들어가면 마크업 자체가 깨진다. 값이 들어가는 자리는
+  // 전부 DOM으로 만들고 textContent/속성으로 넣는다.
   function renderCard(f, blob){
-    var card = document.createElement("div");
-    card.className = "result-card";
+    var card = el("div", "result-card");
+    card.setAttribute("data-fmt", f.key);
     var url = URL.createObjectURL(blob);
     var filename = currentBaseName + "." + f.ext;
-    card.innerHTML =
-      '<div class="fmt-row">' +
-        '<span class="fmt-row-info"><span class="fmt-label">' + f.label + '</span>' +
-        '<span class="fmt-status">' + formatBytes(blob.size) + '</span></span>' +
-        '<a class="dl-btn" href="' + url + '" download="' + filename + '">다운로드</a>' +
-      '</div>' +
-      '<audio controls src="' + url + '"></audio>';
-    card.querySelector(".dl-btn").addEventListener("click", function(){ notifyDownload(); });
+
+    var row = el("div", "fmt-row");
+    var info = el("span", "fmt-row-info");
+    info.appendChild(el("span", "fmt-label", f.label));
+    info.appendChild(el("span", "fmt-status", formatBytes(blob.size)));
+    row.appendChild(info);
+
+    var dlRow = el("div", "dl-row");
+    var link = el("a", "dl-btn", "다운로드");
+    link.href = url;
+    link.setAttribute("download", filename);
+    link.addEventListener("click", function(){ notifyDownload(); });
+    dlRow.appendChild(link);
+
+    if (fileShareSupported && canShareBlob(blob, filename)){
+      var shareBtn = el("button", "card-share-btn");
+      shareBtn.type = "button";
+      shareBtn.title = "이 파일을 카카오톡·메일 등으로 바로 보내요.";
+      shareBtn.setAttribute("aria-label", f.label + " 파일 공유");
+      shareBtn.innerHTML = SHARE_ICON; // 값이 아니라 고정 아이콘이라 안전하다
+      shareBtn.addEventListener("click", function(){ shareResult(blob, filename); });
+      dlRow.appendChild(shareBtn);
+    }
+    row.appendChild(dlRow);
+    card.appendChild(row);
+
+    var audio = document.createElement("audio");
+    audio.controls = true;
+    audio.src = url;
+    card.appendChild(audio);
+
     resultGrid.appendChild(card);
     currentResults.push({ key: f.key, ext: f.ext, blob: blob, name: filename, url: url });
   }
 
-  function renderErrorCard(f){
-    var card = document.createElement("div");
-    card.className = "result-card";
-    card.innerHTML =
-      '<div class="fmt-row">' +
-        '<span class="fmt-row-info"><span class="fmt-label">' + f.label + '</span>' +
-        '<span class="fmt-status" style="color:var(--danger)">변환 실패</span></span>' +
-        '<a class="dl-btn disabled" href="#" download>다운로드</a>' +
-      '</div>';
+  // 실패 이유를 사람 말로 바꾼다. 실제 실패는 거의 CDN/네트워크라 그 경우를 먼저 짚는다.
+  function failureReason(err){
+    var msg = (err && err.message) || "";
+    if (/불러오지 못했|찾을 수 없|Failed to fetch|NetworkError|Load failed|fetch/i.test(msg)){
+      return "인코더를 내려받지 못했어요. 인터넷 연결을 확인하고 다시 시도해주세요.";
+    }
+    if (/allocation|out of memory|메모리|Maximum call stack/i.test(msg)){
+      return "이 오디오가 너무 커서 브라우저 메모리가 부족했어요. 더 짧은 파일로 나눠서 시도해주세요.";
+    }
+    return msg || "알 수 없는 이유로 변환하지 못했어요.";
+  }
+
+  function renderErrorCard(f, err){
+    var card = el("div", "result-card");
+    card.setAttribute("data-fmt", f.key);
+    var row = el("div", "fmt-row");
+    var info = el("span", "fmt-row-info");
+    info.appendChild(el("span", "fmt-label", f.label));
+    var status = el("span", "fmt-status", "변환 실패");
+    status.style.color = "var(--danger)";
+    info.appendChild(status);
+    row.appendChild(info);
+    card.appendChild(row);
+    card.appendChild(el("p", "fmt-error", failureReason(err)));
     resultGrid.appendChild(card);
   }
 
-  function resetUI(){
-    fileInfo.hidden = true;
+  function removeCardsFor(targets){
+    targets.forEach(function(f){
+      var card = resultGrid.querySelector('.result-card[data-fmt="' + f.key + '"]');
+      if (card && card.parentNode) card.parentNode.removeChild(card);
+    });
+  }
+
+  // 결과를 지우는 것과 파일 정보까지 지우는 것을 나눈다. 새 파일을 여는 데 실패했을 때
+  // 지금까지의 결과가 통째로 날아가면 안 되기 때문(사이트 규칙 22 — 교체는 성공한 뒤에).
+  function clearResults(){
     resultSection.hidden = true;
     resultGrid.innerHTML = "";
     resultCount.textContent = "";
-    downloadAllBtn.classList.add("disabled");
+    setLinkDisabled(downloadAllBtn, true);
     downloadAllBtn.href = "#";
     emptyNote.hidden = true;
     moreFormatsBtn.hidden = true;
     pendingMoreTargets = [];
+    failedTargets = [];
     currentAudioBuffer = null;
     currentResults.forEach(function(r){ if (r.url) URL.revokeObjectURL(r.url); });
     currentResults = [];
+  }
+
+  function resetUI(){
+    clearResults();
+    fileInfo.hidden = true;
+    fileNote.hidden = true;
     if (currentPreviewUrl){ URL.revokeObjectURL(currentPreviewUrl); currentPreviewUrl = null; }
     audioPreview.removeAttribute("src");
     audioPreview.load();
@@ -1171,15 +1469,40 @@
     hideLoading();
   }
 
+  // 지금 눌러야 할 버튼이 무엇인지 한 곳에서 정한다 — 아직 안 한 형식이 있으면 "더 변환하기",
+  // 없고 실패한 형식만 있으면 "다시 시도하기". 예전에는 버튼을 누르는 즉시 비우고 숨겨서,
+  // 실패하면 버튼이 돌아오지 않아 새로고침 말고는 방법이 없었다.
+  function refreshMoreBtn(){
+    var labels;
+    if (pendingMoreTargets.length){
+      labels = pendingMoreTargets.map(function(f){ return f.label; }).join(", ");
+      moreFormatsBtn.textContent = "+" + pendingMoreTargets.length + "개 형식 더 변환하기 (" + labels + ")";
+      moreFormatsBtn.hidden = false;
+    } else if (failedTargets.length){
+      labels = failedTargets.map(function(f){ return f.label; }).join(", ");
+      moreFormatsBtn.textContent = "실패한 " + failedTargets.length + "개 다시 시도하기 (" + labels + ")";
+      moreFormatsBtn.hidden = false;
+    } else {
+      moreFormatsBtn.hidden = true;
+    }
+  }
+
+  function updateResultCount(){
+    var okCount = currentResults.length;
+    var failCount = failedTargets.length;
+    var text = okCount + "개 형식으로 변환 완료";
+    if (failCount) text += " · " + failCount + "개 실패";
+    resultCount.textContent = text;
+    setLinkDisabled(downloadAllBtn, okCount === 0);
+  }
+
   // targets를 하나씩 순서대로 변환한다(Promise.all로 한꺼번에 돌리지 않는 이유는, MP3/OGG/FLAC
   // 인코딩처럼 무거운 작업들이 화면이 멈춘 것처럼 한 번에 몰려서 실행되는 걸 막기 위해서다).
-  // 예전에는 "형식 하나 끝날 때마다" 퍼센트를 올렸는데, WAV는 사실상 순식간에 끝나고 MP3(또는
-  // OGG/FLAC)만 진짜 시간이 걸리다 보니 0%→50%로 바로 뛴 뒤 한참 그대로 있다가 100%로
-  // 갑자기 끝나는 것처럼 보이는 문제가 있었다. 지금은 각 인코더가 자기 내부 진행 상황을
-  // onProgress(0~1)로 알려주고, 여기서 "완료된 형식 수 + 지금 형식의 진행률"을 합쳐 전체를
-  // 하나의 연속된 0~100 숫자로 계산해서, 사용자가 보는 퍼센트가 실제로 매끄럽게 올라간다.
+  // 각 인코더가 자기 내부 진행 상황을 onProgress(0~1)로 알려주고, 여기서 "완료된 형식 수 +
+  // 지금 형식의 진행률"을 합쳐 전체를 하나의 연속된 0~100 숫자로 계산한다.
   async function runConversions(targets, audioBuffer){
     var completedCount = 0;
+    var failed = [];
     function setOverallPercent(currentFraction){
       var clamped = Math.max(0, Math.min(1, currentFraction || 0));
       var overall = (completedCount + clamped) / targets.length;
@@ -1188,102 +1511,270 @@
     setOverallPercent(0);
     for (var i = 0; i < targets.length; i++){
       var f = targets[i];
+      setLoadingText(f.label + " 파일 만드는 중...");
       try {
         var blob = await convertOne(f, audioBuffer, setOverallPercent);
         renderCard(f, blob);
       } catch (err){
         console.error("변환 실패", f.key, err);
-        renderErrorCard(f);
+        renderErrorCard(f, err);
+        failed.push(f);
       }
       completedCount = i + 1;
       setOverallPercent(0);
       await nextFrame();
     }
+    return failed;
   }
 
-  function handleFile(file){
-    if (!file) return;
-    if (file.type && file.type.indexOf("audio/") !== 0 && !/\.(wav|mp3|ogg|oga|flac|m4a|aac|webm|opus|wma|aiff?)$/i.test(file.name || "")){
-      alert("오디오 파일만 올릴 수 있어요.");
-      return;
+  // ---------- 큰 파일·긴 오디오 확인 ----------
+  // 가장 큰 단일 할당은 decodeAudioData 자신이다(2시간짜리 팟캐스트면 1GB가 넘는 AudioBuffer를
+  // 한 번에 잡는다). 그래서 디코딩이 끝난 뒤에 길이를 봐서는 이미 늦고, 디코딩 전에 막아야 한다.
+  //
+  // 용량만으로는 못 맞춘다 — 압축률을 모르니 같은 50MB라도 WAV는 5분, 128kbps MP3는 한 시간이다.
+  // 처음에는 형식별 팽창 배수표를 썼는데, 한 형식 안에서도 비트레이트에 따라 배수가 크게 달라서
+  // (96kbps는 29배, 320kbps는 9배) 128kbps 팟캐스트가 그대로 빠져나갔다.
+  //
+  // 그래서 배수표를 버리고 길이를 직접 읽는다 — <audio>에 파일 주소를 물리면 헤더만 읽고
+  // loadedmetadata에서 duration을 알려준다(PCM을 펼치지 않으므로 큰 할당이 없다. 실측 4~66ms).
+  // 길이를 알면 디코딩 후 크기가 그대로 계산되므로 오차가 사실상 없다.
+
+  var DECODE_WARN_BYTES = 600 * 1024 * 1024;        // 이만큼 넘게 펼쳐질 것 같으면 디코딩 전에 물어본다
+  var UNKNOWN_DURATION_WARN_BYTES = 30 * 1024 * 1024; // 길이를 못 읽었을 때만 쓰는 최후의 용량 기준
+
+  // decodeAudioData는 파일의 샘플레이트가 아니라 기기의 출력 샘플레이트로 리샘플링해서 펼친다
+  // (8kHz 모노 WAV도 44.1kHz로 부푼다 — 용량 배수로는 절대 맞출 수 없던 부분). 한 번만 재서 둔다.
+  var cachedSampleRate = null;
+  function deviceSampleRate(){
+    if (cachedSampleRate) return cachedSampleRate;
+    try {
+      var Ctx = window.AudioContext || window.webkitAudioContext;
+      var probeCtx = new Ctx();
+      cachedSampleRate = probeCtx.sampleRate || 44100;
+      probeCtx.close().catch(function(){});
+    } catch(e){
+      cachedSampleRate = 44100;
     }
+    return cachedSampleRate;
+  }
 
-    resetUI();
-    currentBaseName = baseNameOf(file.name || "audio");
+  // 채널 수는 메타데이터로 알 수 없어 스테레오(2)로 잡는다 — 모노 파일은 실제의 두 배로 잡히지만,
+  // 경고가 한 번 더 뜨는 쪽이 탭이 꺼지는 것보다 낫다. 스테레오 파일에서는 오차가 없다(실측 1.00배).
+  function estimatedDecodedBytes(durationSec){
+    return durationSec * deviceSampleRate() * 2 * 4;
+  }
 
-    var previewUrl = URL.createObjectURL(file);
-    currentPreviewUrl = previewUrl;
-    audioPreview.src = previewUrl;
-
-    showLoading("오디오 분석하는 중...");
-    nextFrame().then(function(){
-      return file.arrayBuffer();
-    }).then(function(arrayBuffer){
-      var AudioCtx = window.AudioContext || window.webkitAudioContext;
-      var audioCtx = new AudioCtx();
-      return audioCtx.decodeAudioData(arrayBuffer).then(function(audioBuffer){
-        audioCtx.close().catch(function(){});
-        return audioBuffer;
-      });
-    }).then(function(audioBuffer){
-      currentAudioBuffer = audioBuffer;
-
-      fileNameEl.textContent = file.name || "오디오";
-      var inputKey = normalizeAudioFormatKey(file);
-      var inputLabel = INPUT_LABEL_MAP[inputKey] || "오디오";
-      fileDetailEl.textContent = inputLabel + " · " + formatDuration(audioBuffer.duration) + " · " + formatBytes(file.size);
-
-      metaFormatEl.textContent = inputLabel;
-      metaDurationEl.textContent = formatDuration(audioBuffer.duration);
-      metaSampleRateEl.textContent = audioBuffer.sampleRate + " Hz";
-      metaChannelsEl.textContent = channelsLabel(audioBuffer.numberOfChannels);
-      metaSizeEl.textContent = formatBytes(file.size);
-      fileInfo.hidden = false;
-
-      // 원래 형식과 같은 목표 형식은 굳이 다시 제안하지 않는다(이미지 변환기와 동일한 관례).
-      var quickTargets = TIER1_FORMATS.filter(function(f){ return f.key !== inputKey; });
-      var moreTargets = TIER2_FORMATS.filter(function(f){ return f.key !== inputKey; });
-
-      hideLoading();
-
-      if (!quickTargets.length && !moreTargets.length){
-        resultSection.hidden = false;
-        emptyNote.hidden = false;
-        emptyNote.textContent = "이 파일은 더 변환할 수 있는 형식이 없어요.";
-        return;
+  // 디코딩하지 않고 길이만 읽는다. 못 읽으면(헤더가 깨졌거나 미디어 요소가 다루지 못하는 형식)
+  // null을 돌려주고, 그때는 용량만 보는 최후의 기준으로 넘어간다.
+  function readDurationWithoutDecoding(file){
+    return new Promise(function(resolve){
+      var url;
+      try { url = URL.createObjectURL(file); } catch(e){ resolve(null); return; }
+      var probe = document.createElement("audio");
+      probe.preload = "metadata";
+      var settled = false;
+      function finish(value){
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        probe.removeAttribute("src");
+        try { probe.load(); } catch(e){}
+        URL.revokeObjectURL(url);
+        resolve(value);
       }
-
-      showLoading("WAV·MP3로 변환하는 중...");
-      nextFrame().then(function(){
-        return runConversions(quickTargets, audioBuffer);
-      }).then(function(){
-        hideLoading();
-        resultSection.hidden = false;
-        resultCount.textContent = currentResults.length + "개 형식으로 변환 완료";
-        if (currentResults.length > 0) downloadAllBtn.classList.remove("disabled");
-
-        if (moreTargets.length > 0){
-          pendingMoreTargets = moreTargets;
-          moreFormatsBtn.hidden = false;
-          moreFormatsBtn.textContent = "+" + moreTargets.length + "개 형식 더 변환하기 (" + moreTargets.map(function(f){ return f.label; }).join(", ") + ")";
-        } else {
-          moreFormatsBtn.hidden = true;
-        }
+      // 헤더를 못 읽고 계속 붙잡고 있으면 파일 선택이 먹통처럼 보인다 — 적당히 포기한다.
+      var timer = setTimeout(function(){ finish(null); }, 8000);
+      probe.addEventListener("loadedmetadata", function(){
+        var d = probe.duration;
+        finish((typeof d === "number" && isFinite(d) && d > 0) ? d : null);
       });
-    }).catch(function(err){
-      console.error("오디오를 열 수 없음", err);
-      hideLoading();
-      alert("오디오 파일을 열 수 없어요. 다른 파일로 시도해주세요.");
-      resetUI();
+      probe.addEventListener("error", function(){ finish(null); });
+      probe.src = url;
+      try { probe.load(); } catch(e){ finish(null); }
     });
   }
 
-  dropzone.addEventListener("click", function(){ fileInput.click(); });
-  fileInput.addEventListener("change", function(){ handleFile(fileInput.files[0]); });
+  // 디코딩 뒤에 한 번 더 보는 가드. 위에서 길이를 못 읽어 그냥 통과한 파일을 여기서 받아낸다
+  // (여기서는 정확한 채널 수·샘플레이트를 알 수 있다).
+  var LONG_AUDIO_SECONDS = 600;
+  function estimatedPeakBytes(audioBuffer){
+    var frames = audioBuffer.length;
+    var ch = audioBuffer.numberOfChannels;
+    return frames * ch * 4 /* 디코딩된 Float32 PCM */ + frames * ch * 2 /* WAV 결과 */;
+  }
+
+  async function handleFile(file){
+    if (!file) return;
+    if (busy || modalOpen()) return;
+    if (file.type && file.type.indexOf("audio/") !== 0 && !/\.(wav|mp3|ogg|oga|flac|m4a|aac|webm|opus|wma|aiff?)$/i.test(file.name || "")){
+      showAlert("오디오 파일만 올릴 수 있어요.\nWAV·MP3·OGG·FLAC·M4A 같은 오디오 파일을 선택해주세요.");
+      return;
+    }
+
+    // 디코딩하기 전에 길이를 먼저 읽어서 거른다 — 여기서 멈추지 않으면 그 큰 할당이 이미 일어난다.
+    setBusy(true);
+    showLoading("오디오 확인하는 중...");
+    var probedDuration = await readDurationWithoutDecoding(file);
+    var warnedBeforeDecode = false;
+    var preQuestion = null;
+    if (probedDuration != null){
+      var estimated = estimatedDecodedBytes(probedDuration);
+      if (estimated > DECODE_WARN_BYTES){
+        preQuestion =
+          "이 오디오는 길이가 " + formatDuration(probedDuration) + "이에요.\n" +
+          // 채널 수를 모르는 채 스테레오로 잡은 값이라 "최대"라고 적는다(모노 파일이면 절반이 된다).
+          "소리 데이터로 펼치면 최대 " + formatBytes(estimated) + "를 쓰기 때문에, 휴대폰이나 메모리가 넉넉하지 않은 기기에서는 파일을 여는 도중에 탭이 꺼질 수 있어요.\n\n그래도 열어볼까요?";
+      }
+    } else if (file.size > UNKNOWN_DURATION_WARN_BYTES){
+      // 길이를 못 읽은 경우에만 쓰는 최후의 기준. 얼마나 쓸지 모른다는 사실을 그대로 말한다.
+      preQuestion =
+        "이 파일은 " + formatBytes(file.size) + "로 큰데 길이를 미리 읽지 못했어요.\n" +
+        "이만한 오디오는 펼치면 수백 MB에서 몇 GB까지 쓸 수 있어서, 휴대폰이나 메모리가 넉넉하지 않은 기기에서는 파일을 여는 도중에 탭이 꺼질 수 있어요.\n\n그래도 열어볼까요?";
+    }
+    if (preQuestion){
+      hideLoading();
+      setBusy(false);
+      var goBig = await showConfirm(preQuestion, { okLabel: "열어보기" });
+      if (!goBig){
+        fileInput.value = "";
+        return;
+      }
+      warnedBeforeDecode = true;
+      setBusy(true);
+    }
+
+    showLoading("오디오 분석하는 중...");
+    var audioBuffer = null;
+    try {
+      await nextFrame();
+      var arrayBuffer = await file.arrayBuffer();
+      var AudioCtx = window.AudioContext || window.webkitAudioContext;
+      var audioCtx = new AudioCtx();
+      try {
+        audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+      } finally {
+        // 예전에는 성공했을 때만 닫아서, 열기에 실패할 때마다 컨텍스트가 하나씩 쌓였다.
+        // 크로미움은 탭당 개수 상한이 있어서 계속 실패하면 결국 생성 자체가 막힌다.
+        audioCtx.close().catch(function(){});
+      }
+    } catch (err){
+      console.error("오디오를 열 수 없음", err);
+      hideLoading();
+      setBusy(false);
+      // 규칙 22 — 교체는 성공한 뒤에. 지금까지의 결과와 파일 정보는 그대로 둔다.
+      await showAlert("오디오 파일을 열 수 없어요.\n손상됐거나 이 브라우저가 지원하지 않는 형식일 수 있어요. 다른 파일로 시도해주세요.");
+      fileInput.value = "";
+      return;
+    }
+
+    // 디코딩 전에 이미 물어봤으면 같은 이야기를 두 번 묻지 않는다.
+    if (!warnedBeforeDecode && audioBuffer.duration > LONG_AUDIO_SECONDS){
+      hideLoading();
+      var go = await showConfirm(
+        "이 오디오는 길이가 " + formatDuration(audioBuffer.duration) + "이에요.\n" +
+        "변환하는 동안 메모리를 " + formatBytes(estimatedPeakBytes(audioBuffer)) + " 정도 쓰기 때문에, 휴대폰이나 메모리가 넉넉하지 않은 기기에서는 탭이 꺼질 수 있어요.\n\n그래도 변환할까요?",
+        { okLabel: "변환하기" }
+      );
+      if (!go){
+        setBusy(false);
+        fileInput.value = "";
+        return;
+      }
+      showLoading("오디오 분석하는 중...");
+    }
+
+    // 여기서부터가 "성공한 뒤" — 이제 이전 결과를 치우고 새 파일로 바꾼다.
+    resetUI();
+    setBusy(true);
+    showLoading("오디오 분석하는 중...");
+    currentBaseName = baseNameOf(file.name || "audio");
+    currentAudioBuffer = audioBuffer;
+
+    currentPreviewUrl = URL.createObjectURL(file);
+    audioPreview.src = currentPreviewUrl;
+
+    fileNameEl.textContent = file.name || "오디오";
+    var inputKey = normalizeAudioFormatKey(file);
+    var inputLabel = INPUT_LABEL_MAP[inputKey] || "오디오";
+    fileDetailEl.textContent = inputLabel + " · " + formatDuration(audioBuffer.duration) + " · " + formatBytes(file.size);
+
+    metaFormatEl.textContent = inputLabel;
+    metaDurationEl.textContent = formatDuration(audioBuffer.duration);
+    metaSampleRateEl.textContent = audioBuffer.sampleRate + " Hz";
+    metaChannelsEl.textContent = channelsLabel(audioBuffer.numberOfChannels);
+    metaSizeEl.textContent = formatBytes(file.size);
+    fileInfo.hidden = false;
+    applyMultiNote();
+
+    // 원래 형식과 같은 목표 형식은 굳이 다시 제안하지 않는다(이미지 변환기와 동일한 관례).
+    var quickTargets = TIER1_FORMATS.filter(function(f){ return f.key !== inputKey; });
+    var moreTargets = TIER2_FORMATS.filter(function(f){ return f.key !== inputKey; });
+
+    if (!quickTargets.length && !moreTargets.length){
+      hideLoading();
+      setBusy(false);
+      resultSection.hidden = false;
+      emptyNote.hidden = false;
+      emptyNote.textContent = "이 파일은 더 변환할 수 있는 형식이 없어요.";
+      return;
+    }
+
+    // 로딩 문구는 실제로 지금 만드는 형식을 그대로 적는다 — WAV를 올리면 MP3만 만드는데도
+    // "WAV·MP3로 변환하는 중"이라고 떠 있었다.
+    showLoading(quickTargets.map(function(f){ return f.label; }).join("·") + " 파일 만드는 중...");
+    try {
+      await nextFrame();
+      failedTargets = await runConversions(quickTargets, audioBuffer);
+    } catch (err){
+      console.error("변환 중 오류", err);
+      failedTargets = quickTargets.filter(function(f){
+        return !currentResults.some(function(r){ return r.key === f.key; });
+      });
+    }
+    hideLoading();
+    setBusy(false);
+    resultSection.hidden = false;
+    pendingMoreTargets = moreTargets;
+    updateResultCount();
+    refreshMoreBtn();
+  }
+
+  // ---------- 드롭존 ----------
+  dropzone.addEventListener("click", function(e){
+    // 안쪽의 input 자체를 눌렀을 때까지 click()을 또 부르면 파일 선택 창이 두 번 열린다.
+    if (e.target === fileInput) return;
+    if (busy || modalOpen()) return;
+    fileInput.click();
+  });
+  // 드롭존은 <div>라 Tab으로 닿지도, Enter로 열리지도 않았다 — 키보드만 쓰는 사람은
+  // 이 도구를 아예 쓸 수 없었다.
+  dropzone.addEventListener("keydown", function(e){
+    if (e.key !== "Enter" && e.key !== " " && e.code !== "Space") return;
+    e.preventDefault();
+    if (busy || modalOpen()) return;
+    fileInput.click();
+  });
+  fileInput.addEventListener("change", function(){
+    var files = fileInput.files;
+    noteMultiple(files);
+    handleFile(files && files[0]);
+  });
+
+  // 여러 개를 한꺼번에 골랐거나 떨어뜨렸을 때, 조용히 첫 번째만 쓰지 않고 화면에 알려준다.
+  var pendingMultiNote = false;
+  function noteMultiple(files){
+    pendingMultiNote = !!(files && files.length > 1);
+  }
+  function applyMultiNote(){
+    fileNote.hidden = !pendingMultiNote;
+    if (pendingMultiNote) fileNote.textContent = "여러 개를 올렸는데, 이 도구는 한 번에 한 개만 변환해서 첫 번째 파일만 썼어요.";
+    pendingMultiNote = false;
+  }
 
   ["dragenter","dragover"].forEach(function(evt){
     dropzone.addEventListener(evt, function(e){
       e.preventDefault();
+      if (busy || modalOpen()) return;
       dropzone.classList.add("dragover");
     });
   });
@@ -1294,46 +1785,112 @@
     });
   });
   dropzone.addEventListener("drop", function(e){
-    var file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (busy || modalOpen()) return;
+    var files = e.dataTransfer && e.dataTransfer.files;
+    noteMultiple(files);
+    var file = files && files[0];
     if (file) handleFile(file);
   });
 
-  // "다른 파일 선택"은 화면을 초기 상태로 되돌리는 것에서 끝나지 않고, 곧바로 파일
-  // 선택 창을 열어서 사용자가 바로 새 오디오를 고를 수 있게 한다.
+  // 드롭존 밖(페이지 아무 데나)에 파일을 떨어뜨리면 브라우저가 그 파일을 열어버려서
+  // 지금까지의 변환 결과가 통째로 날아간다. 파일 드래그일 때만 막는다(글자 선택 드래그는
+  // 그대로 둔다).
+  function isFileDrag(e){
+    var dt = e.dataTransfer;
+    if (!dt) return false;
+    if (dt.types){
+      for (var i = 0; i < dt.types.length; i++){ if (dt.types[i] === "Files") return true; }
+      return false;
+    }
+    return true;
+  }
+  window.addEventListener("dragover", function(e){
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    if (e.dataTransfer && !dropzone.contains(e.target)){
+      e.dataTransfer.dropEffect = (busy || modalOpen()) ? "none" : "copy";
+    }
+  });
+  window.addEventListener("drop", function(e){
+    if (!isFileDrag(e)) return;
+    e.preventDefault(); // 브라우저가 파일을 열어 페이지를 떠나는 것을 막는다
+    if (dropzone.contains(e.target)) return; // 드롭존 자신의 처리에 맡긴다
+    if (busy || modalOpen()) return;
+    var files = e.dataTransfer && e.dataTransfer.files;
+    noteMultiple(files);
+    var file = files && files[0];
+    if (file) handleFile(file);
+  });
+
+  // "다른 파일 선택"은 화면을 바로 비우지 않는다 — 파일 선택 창에서 취소하면 지금 결과가
+  // 그대로 남아야 하기 때문(예전에는 취소만 해도 전멸했다). 실제 교체는 새 파일을 끝까지
+  // 읽은 뒤 handleFile 안에서 일어난다.
   changeBtn.addEventListener("click", function(){
-    resetUI();
+    if (busy || modalOpen()) return;
+    fileInput.value = "";
     fileInput.click();
   });
 
-  moreFormatsBtn.addEventListener("click", function(){
-    var targets = pendingMoreTargets;
+  moreFormatsBtn.addEventListener("click", async function(){
+    if (busy || modalOpen()) return;
     var audioBuffer = currentAudioBuffer;
-    if (!targets.length || !audioBuffer) return;
+    if (!audioBuffer) return;
+    var targets = pendingMoreTargets.length ? pendingMoreTargets : failedTargets;
+    if (!targets.length) return;
+    var retrying = !pendingMoreTargets.length;
+    if (retrying) removeCardsFor(targets); // 실패 카드를 치우고 그 자리에 다시 만든다
     pendingMoreTargets = [];
     moreFormatsBtn.hidden = true;
-    showLoading(targets.map(function(f){ return f.label; }).join("·") + "로 인코딩하는 중...");
-    nextFrame().then(function(){
-      return runConversions(targets, audioBuffer);
-    }).then(function(){
-      hideLoading();
-      resultCount.textContent = currentResults.length + "개 형식으로 변환 완료";
-      if (currentResults.length > 0) downloadAllBtn.classList.remove("disabled");
-    }).catch(function(err){
-      hideLoading();
+
+    setBusy(true);
+    showLoading(targets.map(function(f){ return f.label; }).join("·") + " 파일 만드는 중...");
+    var failed;
+    try {
+      await nextFrame();
+      failed = await runConversions(targets, audioBuffer);
+    } catch (err){
       console.error("추가 형식 변환 실패", err);
-    });
+      failed = targets.filter(function(f){
+        return !currentResults.some(function(r){ return r.key === f.key; });
+      });
+    }
+    failedTargets = failed;
+    hideLoading();
+    setBusy(false);
+    updateResultCount();
+    refreshMoreBtn();
   });
 
-  downloadAllBtn.addEventListener("click", function(e){
+  downloadAllBtn.addEventListener("click", async function(e){
     e.preventDefault();
-    if (!currentResults.length || typeof JSZip === "undefined") return;
-    var zip = new JSZip();
-    currentResults.forEach(function(r){ zip.file(r.name, r.blob); });
-    zip.generateAsync({ type: "blob" }).then(function(zipBlob){
+    if (busy || modalOpen()) return;
+    if (!currentResults.length) return;
+    if (typeof JSZip === "undefined"){
+      // 예전에는 여기서 조용히 아무 일도 일어나지 않아서 버튼이 고장 난 것처럼 보였다.
+      showAlert("zip으로 묶는 기능을 불러오지 못했어요.\n인터넷 연결을 확인하고 새로고침하거나, 카드마다 있는 다운로드 버튼으로 하나씩 받아주세요.");
+      return;
+    }
+    setBusy(true);
+    showLoading("zip으로 묶는 중...");
+    try {
+      await nextFrame();
+      var zip = new JSZip();
+      currentResults.forEach(function(r){ zip.file(r.name, r.blob); });
+      var zipBlob = await zip.generateAsync({ type: "blob" }, function(meta){
+        loadingPercent.textContent = Math.round(meta.percent || 0) + "%";
+      });
       var url = URL.createObjectURL(zipBlob);
-      triggerDownload(url, currentBaseName + "-변환.zip");
+      triggerDownload(url, currentBaseName + "_변환.zip");
       notifyDownload();
-    });
+      // 다운로드가 시작될 틈을 준 뒤에 임시 주소를 해제한다.
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
+    } catch (err){
+      console.error("zip 묶기 실패", err);
+      showAlert("zip으로 묶지 못했어요.\n파일이 너무 크거나 메모리가 부족할 수 있어요. 카드마다 있는 다운로드 버튼으로 하나씩 받아주세요.");
+    } finally {
+      hideLoading();
+      setBusy(false);
+    }
   });
 
   // 변환 결과가 하나라도 있는 상태에서 페이지를 벗어나면(새로고침, 탭 닫기, 도구상자로
