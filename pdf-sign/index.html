@@ -1,13 +1,30 @@
 <!DOCTYPE html>
+<!--
+  써봄 (sseobom.kr) — 브라우저에서 끝나는 파일 도구
+  ⓒ 2026 고윤태 (yuntaeko.com · kyt6350@cau.ac.kr). All rights reserved.
+
+  이 페이지의 코드·디자인·문구·이름은 저작권으로 보호됩니다.
+  이 파일의 전부 또는 일부를 복제·수정·재배포하거나 다른 사이트에 게시하는 것을 금지합니다.
+  사용하는 오픈소스 라이브러리와 각 라이선스는 https://sseobom.kr/notice/ 에 있습니다.
+  이용 허락·문의: https://sseobom.kr/#feedback · kyt6350@cau.ac.kr
+
+  Copyright (c) 2026 Yuntae Ko. All rights reserved.
+  Unauthorized copying, modification, redistribution, or hosting of this file,
+  in whole or in part, is prohibited. Open-source components are listed at
+  https://sseobom.kr/notice/ under their own licenses.
+  Contact: https://sseobom.kr/#feedback · kyt6350@cau.ac.kr
+-->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="copyright" content="ⓒ 2026 고윤태 · sseobom.kr">
 <script>
 // 써봄 홈이나 다른 도구 페이지에서 사용자가 직접 다크모드를 켜거나 껐다면, 그 선택을 이 페이지를
 // 열자마자(스타일이 그려지기 전에) 그대로 반영한다. 저장된 값이 없으면 아무 것도 하지 않고
 // 시스템 설정(prefers-color-scheme)을 그대로 따르는 기본 동작을 유지한다.
 (function(){
+  var SSEOBOM_ORIGIN = "sseobom.kr/2026/kyt";
   try {
     var t = localStorage.getItem("sseobom_theme");
     if (t === "dark" || t === "light") document.documentElement.setAttribute("data-theme", t);
@@ -37,6 +54,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Gaegu:wght@700&family=Hi+Melody&family=Nanum+Pen+Script&family=Poor+Story&family=Gamja+Flower&family=Nanum+Brush+Script&family=East+Sea+Dokdo&display=swap" rel="stylesheet">
 <style>
+  .sb-2026-kyt{ --origin:"sseobom.kr"; }
   :root{
     --bg:#f9f9f7;
     --text:#0b0b0b;
@@ -764,12 +782,12 @@
   }
   footer.note .copyright{
     margin-top:8px; padding-top:14px; border-top:1px solid var(--card-border);
-    font-size:12.5px; color:var(--text-dim); line-height:1.6;
+    font-size:12.5px; color:var(--text-dim); line-height:1.8;
   }
   footer.note .copyright .mark{ color:var(--text-dim); font-weight:600; }
-  footer.note .copyright .name{ color:var(--accent); font-weight:700; }
+  footer.note .copyright .name{ color:var(--text); font-weight:600; opacity:.85; }
   footer.note .copyright a{
-    color:var(--accent); font-weight:600; text-decoration:none;
+    color:var(--accent); font-weight:500; text-decoration:none;
     border-bottom:1px solid transparent; transition:border-color .12s ease;
   }
   footer.note .copyright a:hover{ border-bottom-color:var(--accent); }
@@ -984,7 +1002,11 @@
 
   <footer class="note">
     <div>써봄 · 브라우저에서 끝나는 파일 도구</div>
-    <div class="copyright"><span class="mark">ⓒ 2026</span> <span class="name">고윤태</span> · <a href="https://yuntaeko.com/" target="_blank" rel="noopener">yuntaeko.com</a> — 정성을 담아 제작한 도구입니다. 무단 도용 및 출처 표기 없는 재배포를 금지합니다.</div>
+    <div class="copyright">
+      <span class="mark">ⓒ 2026</span> <span class="name">써봄</span> · All rights reserved — 써봄의 이름, 디자인, 코드는 저작권으로 보호받으며 무단 복제·수정·재배포와 다른 사이트 게시를 금지합니다.<br>
+      <span class="mark">ⓒ 2026</span> <span class="name">고윤태</span> · <a href="https://yuntaeko.com/" target="_blank" rel="noopener noreferrer">yuntaeko.com</a> — 정성을 담아 제작한 도구입니다. 이용 허락·문의는 <a href="/#feedback">의견 보내기</a>로 남겨 주세요.<br>
+      <a href="/privacy/">개인정보처리방침</a> · <a href="/notice/">오픈소스 고지</a>
+    </div>
     <div class="updated">업데이트 · 2026. 9. 13.</div>
   </footer>
 </div>
