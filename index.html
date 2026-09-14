@@ -850,7 +850,10 @@
   <!-- 카드 순서 규칙 — 카테고리 안에서는 "그 카테고리를 대표하는 도구"를 앞에 두고, 그다음부터
        공개한 순서대로 놓는다. 사운드가 '편집 → 형식 변환 → 영상에서 오디오 추출'인 것은 출시 순이
        아니라 이 규칙에 따른 것(사운드 편집이 대표 도구). 이미지·PDF·설문은 대표 도구가 곧 첫 공개
-       도구라 결과적으로 공개 순과 같아 보인다. 준비 중(Coming Soon) 카드는 항상 그 뒤. -->
+       도구라 결과적으로 공개 순과 같아 보인다. 준비 중(Coming Soon) 카드는 항상 그 뒤이고,
+       준비 중끼리는 실제로 다음에 만들 것을 앞에 둔다(이미지의 '일괄 처리'가 '스케일 업'보다
+       앞에 있는 이유). 카테고리 옆 "N개"는 준비 중을 포함한 카드 수이고, 맨 위 "지금 쓸 수 있는
+       도구 N개"는 실제로 열 수 있는 도구 수다 — 두 숫자는 원래 다르다. -->
   <section class="tools">
     <div class="wrap">
       <div class="tools-head">
@@ -861,7 +864,7 @@
       <div class="tool-category">
         <div class="tool-category-head">
           <span class="tool-category-title">이미지</span>
-          <span class="tool-category-count">5개</span>
+          <span class="tool-category-count">6개</span>
         </div>
         <div class="tool-grid">
           <article class="tool-card">
@@ -908,6 +911,20 @@
 
           <article class="tool-card coming-soon">
             <div class="tool-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="3" width="13" height="13" rx="2" ry="2"></rect><path d="M5 8H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-1"></path></svg>
+            </div>
+            <div class="tool-body">
+              <div class="tool-name-row">
+                <div class="tool-name">이미지 일괄 처리</div>
+                <span class="tool-badge-soon">준비 중</span>
+              </div>
+              <p class="tool-desc">여러 이미지의 크기를 한 번에 맞추고 이름도 규칙대로 바꿔서 zip으로 받아요.</p>
+            </div>
+            <button type="button" class="tool-cta tool-cta-disabled" disabled aria-label="이미지 일괄 처리 — 아직 준비 중이에요">Coming Soon</button>
+          </article>
+
+          <article class="tool-card coming-soon">
+            <div class="tool-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"></path><path d="M21 8V5a2 2 0 0 0-2-2h-3"></path><path d="M3 16v3a2 2 0 0 0 2 2h3"></path><path d="M16 21h3a2 2 0 0 0 2-2v-3"></path></svg>
             </div>
             <div class="tool-body">
@@ -939,7 +956,7 @@
       <div class="tool-category">
         <div class="tool-category-head">
           <span class="tool-category-title">PDF</span>
-          <span class="tool-category-count">2개</span>
+          <span class="tool-category-count">4개</span>
         </div>
         <div class="tool-grid">
           <article class="tool-card">
@@ -968,6 +985,34 @@
               도구 열기
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"></path></svg>
             </a>
+          </article>
+
+          <article class="tool-card coming-soon">
+            <div class="tool-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"></circle><path d="M9.5 9h5"></path><path d="M5 20.5h14"></path><path d="M6.5 17.5h11"></path></svg>
+            </div>
+            <div class="tool-body">
+              <div class="tool-name-row">
+                <div class="tool-name">PDF 워터마크·도장</div>
+                <span class="tool-badge-soon">준비 중</span>
+              </div>
+              <p class="tool-desc">PDF 모든 쪽에 워터마크 글자나 도장 이미지를 한 번에 넣어요.</p>
+            </div>
+            <button type="button" class="tool-cta tool-cta-disabled" disabled aria-label="PDF 워터마크·도장 — 아직 준비 중이에요">Coming Soon</button>
+          </article>
+
+          <article class="tool-card coming-soon">
+            <div class="tool-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 3 4 11 4 11 6"></polyline><line x1="7" y1="4" x2="7" y2="14"></line><line x1="5" y1="14" x2="9" y2="14"></line><rect x="13" y="9" width="9" height="9" rx="1.5"></rect><circle cx="15.8" cy="12" r="0.9"></circle><polyline points="22 16 19 13 13 18"></polyline></svg>
+            </div>
+            <div class="tool-body">
+              <div class="tool-name-row">
+                <div class="tool-name">PDF 글자·이미지 고치기</div>
+                <span class="tool-badge-soon">준비 중</span>
+              </div>
+              <p class="tool-desc">PDF 안의 글자를 고치고, 들어 있는 사진을 다른 이미지로 갈아끼워요.</p>
+            </div>
+            <button type="button" class="tool-cta tool-cta-disabled" disabled aria-label="PDF 글자·이미지 고치기 — 아직 준비 중이에요">Coming Soon</button>
           </article>
         </div>
       </div>
@@ -1062,6 +1107,42 @@
               도구 열기
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"></path></svg>
             </a>
+          </article>
+        </div>
+      </div>
+
+      <div class="tool-category">
+        <div class="tool-category-head">
+          <span class="tool-category-title">텍스트</span>
+          <span class="tool-category-count">2개</span>
+        </div>
+        <div class="tool-grid">
+          <article class="tool-card coming-soon">
+            <div class="tool-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="3" height="3" rx=".6"></rect><rect x="18" y="18" width="3" height="3" rx=".6"></rect></svg>
+            </div>
+            <div class="tool-body">
+              <div class="tool-name-row">
+                <div class="tool-name">QR 코드 만들기</div>
+                <span class="tool-badge-soon">준비 중</span>
+              </div>
+              <p class="tool-desc">링크나 글자를 QR 코드로 만들고, 색과 크기를 골라 이미지로 저장해요.</p>
+            </div>
+            <button type="button" class="tool-cta tool-cta-disabled" disabled aria-label="QR 코드 만들기 — 아직 준비 중이에요">Coming Soon</button>
+          </article>
+
+          <article class="tool-card coming-soon">
+            <div class="tool-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="15" y2="12"></line><line x1="3" y1="18" x2="18" y2="18"></line></svg>
+            </div>
+            <div class="tool-body">
+              <div class="tool-name-row">
+                <div class="tool-name">글자수 세기·텍스트 정리</div>
+                <span class="tool-badge-soon">준비 중</span>
+              </div>
+              <p class="tool-desc">글자·단어 수를 바로 세고, 줄바꿈과 공백을 깔끔하게 정리해요.</p>
+            </div>
+            <button type="button" class="tool-cta tool-cta-disabled" disabled aria-label="글자수 세기·텍스트 정리 — 아직 준비 중이에요">Coming Soon</button>
           </article>
         </div>
       </div>
