@@ -1,4 +1,19 @@
 <!DOCTYPE html>
+<!--
+  써봄 (sseobom.kr) — 브라우저에서 끝나는 파일 도구
+  ⓒ 2026 고윤태 (yuntaeko.com · kyt6350@cau.ac.kr). All rights reserved.
+
+  이 페이지의 코드·디자인·문구·이름은 저작권으로 보호됩니다.
+  이 파일의 전부 또는 일부를 복제·수정·재배포하거나 다른 사이트에 게시하는 것을 금지합니다.
+  사용하는 오픈소스 라이브러리와 각 라이선스는 https://sseobom.kr/notice/ 에 있습니다.
+  이용 허락·문의: https://sseobom.kr/#feedback · kyt6350@cau.ac.kr
+
+  Copyright (c) 2026 Yuntae Ko. All rights reserved.
+  Unauthorized copying, modification, redistribution, or hosting of this file,
+  in whole or in part, is prohibited. Open-source components are listed at
+  https://sseobom.kr/notice/ under their own licenses.
+  Contact: https://sseobom.kr/#feedback · kyt6350@cau.ac.kr
+-->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -1365,11 +1380,11 @@
         <h2>의견 보내기</h2>
       </div>
       <p class="feedback-intro">
-        버그를 발견했거나 이런 기능이 있으면 좋겠다는 아이디어가 있다면 편하게 알려주세요. 로그인 없이 바로 보낼 수 있어요.
+        버그를 발견했거나 이런 기능이 있으면 좋겠다는 아이디어가 있다면 편하게 알려주세요. 써봄의 코드·디자인 이용 허락이나 그 밖의 문의도 여기로 보내주시면 돼요. 로그인 없이 바로 보낼 수 있어요.
       </p>
       <div class="feedback-panel" id="feedbackPanel">
         <button class="feedback-toggle" id="feedbackToggle" type="button" aria-expanded="false" aria-controls="feedbackContent">
-          <span class="feedback-toggle-icon">▶</span> 버그·개선·아이디어 제보하기
+          <span class="feedback-toggle-icon">▶</span> 버그·개선·아이디어·문의 보내기
         </button>
         <div class="feedback-content" id="feedbackContent">
           <div class="feedback-content-inner">
@@ -1385,6 +1400,7 @@
                     <li class="feedback-select-option is-selected" role="option" aria-selected="true" data-value="bug" data-label="🐞 버그 제보">🐞 버그 제보<span class="feedback-select-option-check">✓</span></li>
                     <li class="feedback-select-option" role="option" aria-selected="false" data-value="improve" data-label="💡 개선 제안">💡 개선 제안<span class="feedback-select-option-check">✓</span></li>
                     <li class="feedback-select-option" role="option" aria-selected="false" data-value="idea" data-label="✨ 아이디어">✨ 아이디어<span class="feedback-select-option-check">✓</span></li>
+                    <li class="feedback-select-option" role="option" aria-selected="false" data-value="inquiry" data-label="✉️ 이용 허락·문의">✉️ 이용 허락·문의<span class="feedback-select-option-check">✓</span></li>
                   </ul>
                   <input type="hidden" id="feedbackType" name="type" value="bug">
                 </div>
@@ -1427,9 +1443,9 @@
 <footer class="page-footer">
   <div class="wrap">
     이 페이지의 모든 도구는 브라우저 안에서 바로 작동하며, 별도 설치나 로그인이 필요하지 않습니다.<br>
-    <span class="footer-credit-mark">ⓒ 2026</span> <span class="footer-credit-name">써봄</span> · All rights reserved — 써봄의 이름, 디자인, 코드는 저작권으로 보호받으며 무단 복제·배포를 금지합니다.<br>
-    <span class="footer-credit-mark">ⓒ 2026</span> <span class="footer-credit-name">고윤태</span> · <a class="footer-credit-link" href="https://yuntaeko.com/" target="_blank" rel="noopener noreferrer">yuntaeko.com</a> — 정성을 담아 제작한 페이지입니다. 무단 도용 및 출처 표기 없는 재배포를 금지합니다.<br>
-    <a class="footer-credit-link" href="/privacy/">개인정보처리방침</a>
+    <span class="footer-credit-mark">ⓒ 2026</span> <span class="footer-credit-name">써봄</span> · All rights reserved — 써봄의 이름, 디자인, 코드는 저작권으로 보호받으며 무단 복제·수정·재배포와 다른 사이트 게시를 금지합니다.<br>
+    <span class="footer-credit-mark">ⓒ 2026</span> <span class="footer-credit-name">고윤태</span> · <a class="footer-credit-link" href="https://yuntaeko.com/" target="_blank" rel="noopener noreferrer">yuntaeko.com</a> — 정성을 담아 제작한 페이지입니다. 이용 허락·문의는 <a class="footer-credit-link" href="#feedback">의견 보내기</a>로 남겨 주세요.<br>
+    <a class="footer-credit-link" href="/privacy/">개인정보처리방침</a> · <a class="footer-credit-link" href="/notice/">오픈소스 고지</a>
     <span class="footer-updated">업데이트 · 2026. 9. 14.</span>
   </div>
 </footer>
@@ -1616,7 +1632,7 @@
     var typeDefaultValue = typeHidden ? typeHidden.value : "bug";
     if (!form) return;
 
-    var TYPE_LABELS = { bug: "🐞 버그 제보", improve: "💡 개선 제안", idea: "✨ 아이디어" };
+    var TYPE_LABELS = { bug: "🐞 버그 제보", improve: "💡 개선 제안", idea: "✨ 아이디어", inquiry: "✉️ 이용 허락·문의" };
 
     // 제보가 Firebase에 저장된 뒤, 관리자에게 EmailJS로 알림 메일을 보낸다. 실시간 메일
     // 발송은 부가 기능이라 실패해도(EmailJS 스크립트 차단, 월 발송량 초과 등) 제보 자체는
