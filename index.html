@@ -18,12 +18,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="copyright" content="ⓒ 2026 고윤태 · sseobom.kr">
 <meta name="naver-site-verification" content="86a410042c1197eec92595c4a614ad4e645dc74a" />
 <script>
 // 다른 써봄 도구 페이지에서 사용자가 직접 다크모드를 켜거나 껐다면, 그 선택을 이 페이지를
 // 열자마자(스타일이 그려지기 전에) 그대로 반영한다. 저장된 값이 없으면 아무 것도 하지 않고
 // 시스템 설정(prefers-color-scheme)을 그대로 따르는 기본 동작을 유지한다.
 (function(){
+  var SSEOBOM_ORIGIN = "sseobom.kr/2026/kyt";
   try {
     var t = localStorage.getItem("sseobom_theme");
     if (t === "dark" || t === "light") document.documentElement.setAttribute("data-theme", t);
@@ -56,6 +58,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
 
 <style>
+  .sb-2026-kyt{ --origin:"sseobom.kr"; }
   :root{
     color-scheme: light;
     --bg:            #f9f9f7;
