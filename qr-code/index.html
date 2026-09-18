@@ -1112,6 +1112,7 @@
     to  { opacity:0; transform:translateY(4px); }
   }
   @media (prefers-reduced-motion: reduce){
+    .mini-preview{ animation:none; }
     .download-bar .status-line > span{ animation:none; }
     .download-bar .status-line > span.leaving{ animation:none; opacity:0; }
   }
@@ -1202,6 +1203,49 @@
     margin:0 auto 12px;
   }
 
+  /* ---------- 조건부로 나타나는 줄 ----------
+     "그라데이션"을 켜면 두 번째 색이, 문구를 넣으면 크기·글꼴이 생긴다. 예전에는 hidden을
+     껐다 켰다 해서 툭 튀어나왔다. grid의 0fr→1fr을 쓰면 내용 높이를 미리 몰라도 부드럽게
+     열린다(사이트 공지사항 접기와 같은 방식).
+     닫혀 있는 동안에는 visibility:hidden이라 Tab이 들어가지 않는다 — 안 보이는 칸에
+     포커스가 빨려 들어가는 건 키보드로 쓸 때 제일 당황스러운 일이다.
+     다 열린 뒤에야 overflow를 풀어 준다(열리는 중에 풀면 내용이 삐져나오고, 계속 잠가
+     두면 포커스 테두리가 잘린다). */
+  .reveal{
+    display:grid;
+    grid-template-rows:0fr;
+    opacity:0;
+    transition:grid-template-rows .26s cubic-bezier(.4,0,.2,1), opacity .2s ease;
+  }
+  .reveal > .reveal-inner{
+    overflow:hidden;
+    min-height:0;
+    visibility:hidden;
+    transition:visibility 0s linear .26s;
+  }
+  .reveal.open{ grid-template-rows:1fr; opacity:1; }
+  .reveal.open > .reveal-inner{ visibility:visible; transition-delay:0s; }
+  .reveal.settled > .reveal-inner{ overflow:visible; }
+  /* .opt-row:last-child의 margin-bottom:0은 "카드의 마지막 줄"을 위한 규칙이다. reveal로
+     감싸면 그 안의 마지막 줄도 last-child가 되어 버려서, 펼쳤을 때 뒤따르는 줄과 딱 붙었다
+     (실측 14px → 0px). 감싼 안쪽에서는 여백을 되살리고, reveal이 카드의 마지막일 때만 뺀다. */
+  .reveal > .reveal-inner > .opt-row:last-child{ margin-bottom:14px; }
+  .card > .reveal:last-child > .reveal-inner > .opt-row:last-child{ margin-bottom:0; }
+  @media (prefers-reduced-motion: reduce){
+    .reveal{ transition:none; }
+    .reveal > .reveal-inner{ transition:none; }
+  }
+
+  /* 옵션 줄 아래에 붙는 짧은 설명 */
+  .opt-note{
+    display:block;
+    width:100%;
+    margin-top:7px;
+    font-size:11.5px;
+    line-height:1.5;
+    color:var(--text-dim);
+  }
+
   /* 포커스 표시는 사이트 공통 모양으로 (.dropzone과 같은 모양).
      선택자를 하나씩 나열하다 보니 절반이 빠져 있었다 — 저장 버튼, 파일 이름 칸,
      로고 탭, 돌아가기 링크, 푸터 링크가 브라우저 기본값(auto 1px)이었다.
@@ -1218,8 +1262,66 @@
   /* 색 견본은 동그란 칩이라 테두리도 따라 둥글게 */
   .preset:focus-visible{ outline-offset:2px; }
 
+  /* ---------- 좁은 화면용 작은 미리보기 ----------
+     넓은 화면에서는 왼쪽 칸이 스크롤을 따라오지만, 860px 아래로 내려가 한 줄이 되면
+     미리보기가 맨 위에 있고 옵션이 1300px 아래로 이어진다. 색을 바꾸고 결과를 보려면
+     매번 위로 올라가야 한다. 그래서 미리보기가 화면 밖으로 나가면 작게 따라붙는다. */
+  .mini-preview{ display:none; }
+
   /* 좁은 화면 규칙은 반드시 스타일 블록 맨 끝에 모아 둔다 (사이트 공통 규칙) */
   @media (max-width:860px){
+    .mini-preview{
+      position:fixed;
+      top:0; left:0; right:0;
+      z-index:40;
+      display:flex;
+      align-items:center;
+      gap:11px;
+      width:100%;
+      margin:0;
+      padding:8px 14px;
+      border:0;
+      border-bottom:1px solid var(--card-border);
+      border-radius:0;
+      background:var(--card);
+      box-shadow:0 4px 16px rgba(0,0,0,.10);
+      color:var(--text);
+      text-align:left;
+      cursor:pointer;
+      animation:miniIn .2s ease;
+    }
+    .mini-preview:hover{ background:var(--card); }
+    .mini-preview canvas{
+      width:38px; height:38px;
+      flex:0 0 auto;
+      border-radius:7px;
+      /* 배경은 캔버스 안에서 QR 배경색으로 칠한다. 여기에 흰색 여백을 두면
+         어두운 배경 QR일 때 흰 테가 둘러진 것처럼 보였다. */
+      border:1px solid var(--card-border);
+    }
+    .mini-body{ flex:1 1 auto; min-width:0; }
+    .mini-verdict{
+      display:block;
+      font-size:13px;
+      font-weight:700;
+      line-height:1.3;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .mini-preview.good .mini-verdict{ color:var(--accent); }
+    .mini-preview.warn .mini-verdict{ color:var(--warn); }
+    .mini-preview.bad  .mini-verdict{ color:var(--danger); }
+    .mini-preview.idle .mini-verdict{ color:var(--text-dim); font-weight:600; }
+    .mini-hint{
+      display:block;
+      font-size:11px;
+      color:var(--text-dim);
+      margin-top:1px;
+    }
+    .mini-preview svg{ flex:0 0 auto; color:var(--text-dim); }
+    @keyframes miniIn{ from{ opacity:0; transform:translateY(-100%); } to{ opacity:1; transform:translateY(0); } }
+
     .make-grid{ grid-template-columns:1fr; }
     /* 한 줄로 접히면 왼쪽 칸이 곧 맨 위 내용이라, 따라다닐 이유도 자리도 없다 */
     .make-side{ position:static; }
@@ -1255,7 +1357,7 @@
     <h1>QR 코드 만들기·읽기</h1>
     <p class="sub">주소나 글을 QR 코드로 만들고, 점 모양·색·로고까지 바꿔요. 만든 QR을 그 자리에서 다시 읽어보고 "잘 스캔돼요"까지 확인해 드려요. 사진 속 QR을 읽는 것도 여기서 돼요.</p>
     <div class="badge-row">
-      <span class="feature-badge">QR 만들기·읽기 · 점·눈 모양 바꾸기 · 그라데이션 · 가운데 아이콘·로고 · 스캔 되는지 즉시 확인 · 단축 주소 없이 그대로 · PNG·SVG 저장</span>
+      <span class="feature-badge">QR 만들기·읽기 · 점·눈 모양 7가지 · 그라데이션 · 가운데 아이콘 48종·내 로고 · 아래 서명·테두리 · 스캔 되는지 즉시 확인 · 단축 주소 없이 그대로 · PNG·SVG 저장</span>
       <span class="privacy-badge">파일은 서버에 업로드되지 않습니다 · 모든 처리는 이 브라우저 안에서 끝납니다</span>
       <span class="privacy-badge">로그인·구독 필요 없음 · 몇 번을 다시 만들어도 완전 무료</span>
     </div>
@@ -1271,17 +1373,19 @@
         <div class="help-section-label">만들기</div>
         <div class="help-grid">
           <div class="help-item"><span class="help-key">내용</span><span class="help-desc">주소를 넣으면 카메라로 찍었을 때 바로 열려요. 그냥 글을 넣으면 글이 그대로 보여요.</span></div>
-          <div class="help-item"><span class="help-key">점 · 눈 모양</span><span class="help-desc">네모·둥근네모·원·마름모 중에 고를 수 있어요. 가장자리 큰 사각형 세 개(눈)도 따로 바꿔요.</span></div>
+          <div class="help-item"><span class="help-key">점 · 눈 모양</span><span class="help-desc">점은 네모·둥근 네모·말랑·흐름·원·작은 원·마름모 7가지, 가장자리 큰 사각형 세 개(눈)는 5가지 중에 따로 골라요.</span></div>
           <div class="help-item"><span class="help-key">색</span><span class="help-desc">두 가지 색을 켜면 그라데이션이 돼요. 배경색도 바꿀 수 있고, 밝은 점·어두운 배경으로 뒤집어도 읽혀요.</span></div>
           <div class="help-item"><span class="help-key">오류정정</span><span class="help-desc">높을수록 로고나 얼룩에 강하지만 점이 촘촘해져요. 로고를 넣으면 알아서 올려드려요.</span></div>
-          <div class="help-item"><span class="help-key">가운데 아이콘</span><span class="help-desc">기본 아이콘 16종 중에 고르거나 내 로고 이미지를 올려요. 원본 비율은 그대로 지켜져요. 너무 크면 스캔이 안 되는데, 그 경계를 실제로 읽어봐서 알려드려요.</span></div>
+          <div class="help-item"><span class="help-key">가운데 아이콘</span><span class="help-desc">기본 아이콘 48종 중에 고르거나 내 로고 이미지를 올려요. 원본 비율은 그대로 지켜져요. 너무 크면 스캔이 안 되는데, 그 경계를 실제로 읽어봐서 알려드려요.</span></div>
           <div class="help-item"><span class="help-key">여백</span><span class="help-desc">QR 주변 흰 테두리예요. 4칸이 표준이고, 좁히면 스캔이 어려워질 수 있어요.</span></div>
+          <div class="help-item"><span class="help-key">아래 서명</span><span class="help-desc">가게 이름이나 아이디를 QR 밑(또는 위)에 적어요. 글꼴 4가지·크기·위치·앞 글머리 점을 고를 수 있어요. QR 바깥이라 스캔에는 영향이 없어요.</span></div>
+          <div class="help-item"><span class="help-key">테두리</span><span class="help-desc">카드처럼 네모 테두리를 둘러요. 두께도 조절돼요. 이것도 QR 바깥이에요.</span></div>
         </div>
       </div>
       <div class="help-section">
         <div class="help-section-label">스캔 안정성 진단</div>
         <div class="help-grid">
-          <div class="help-item help-item-wide"><span class="help-key">이게 뭔가요?</span><span class="help-desc">설정을 바꿀 때마다 <b>지금 화면의 QR을 실제로 다시 읽어봐요.</b> 예뻐 보여도 카메라가 못 읽는 경우가 있는데, 그걸 인쇄하고 나서 알면 늦으니까요. 밝기 차이·아이콘 크기·여백·점 크기를 같이 점검하고, 고칠 방법도 버튼으로 바로 눌러 적용할 수 있어요.</span></div>
+          <div class="help-item help-item-wide"><span class="help-key">이게 뭔가요?</span><span class="help-desc">설정을 바꿀 때마다 <b>지금 화면의 QR을 실제로 다시 읽어봐요.</b> 예뻐 보여도 카메라가 못 읽는 경우가 있는데, 그걸 인쇄하고 나서 알면 늦으니까요. 밝기 차이·아이콘 크기·여백·점 크기를 같이 점검하고, 고칠 방법도 버튼으로 바로 눌러 적용할 수 있어요. 그래도 스캔되지 않는 설정으로 저장하려고 하면 한 번 더 여쭤봐요.</span></div>
         </div>
       </div>
       <div class="help-section">
@@ -1290,7 +1394,7 @@
           <div class="help-item"><span class="help-key">PNG</span><span class="help-desc">사진처럼 쓰는 이미지예요. 크기를 골라 저장해요.</span></div>
           <div class="help-item"><span class="help-key">SVG</span><span class="help-desc">아무리 키워도 깨지지 않아요. 명함·현수막처럼 인쇄할 거면 이쪽이 좋아요.</span></div>
           <div class="help-item"><span class="help-key">공유</span><span class="help-desc">방금 만든 이미지를 카카오톡·메일 등으로 바로 보내요. (휴대폰에서 보여요)</span></div>
-          <div class="help-item"><span class="help-key">읽기</span><span class="help-desc">QR 사진을 올리거나 붙여넣으면 안에 뭐가 들어 있는지 읽어드려요. 카메라로 바로 비춰도 돼요.</span></div>
+          <div class="help-item"><span class="help-key">읽기</span><span class="help-desc">QR 사진을 올리거나 붙여넣으면 안에 뭐가 들어 있는지 읽어드려요. 비스듬히 찍혔거나 사진 한구석에 작게 담겨 있어도 찾아봐요. 카메라로 바로 비춰도 돼요.</span></div>
         </div>
         <div class="help-grid" style="margin-top:10px;">
           <div class="help-item help-tip"><span class="help-desc">💡 QR 코드는 여기서 만든 그대로 영원히 동작해요. 무료 QR 사이트 중에는 중간에 자기 주소를 끼워 넣어서, 나중에 그 서비스가 문을 닫거나 유료로 바뀌면 인쇄해 둔 QR이 통째로 죽는 곳이 있어요. 써봄은 입력하신 주소를 그대로 넣어요.</span></div>
@@ -1307,6 +1411,17 @@
       <button class="mode-seg" id="segRead" type="button" aria-pressed="false">QR 읽기</button>
     </div>
   </div>
+
+  <!-- 좁은 화면에서 옵션을 만지는 동안 결과가 화면 밖으로 사라지는 걸 막는 작은 미리보기.
+       데스크탑은 왼쪽 칸이 sticky로 따라오지만, 한 줄로 접히면 그럴 자리가 없다. -->
+  <button class="mini-preview" id="miniPreview" type="button" hidden>
+    <canvas id="miniCanvas" aria-hidden="true"></canvas>
+    <span class="mini-body">
+      <span class="mini-verdict" id="miniVerdict">확인 중이에요…</span>
+      <span class="mini-hint">눌러서 크게 보기</span>
+    </span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true"><path d="M18 15l-6-6-6 6"></path></svg>
+  </button>
 
   <!-- ========================= 만들기 ========================= -->
   <section class="panel" id="makePanel">
@@ -1412,7 +1527,9 @@
               <button class="chip" type="button" id="gradToggle" aria-pressed="false">그라데이션</button>
             </div>
           </div>
-          <div class="opt-row" id="grad2Row" hidden>
+          <div class="reveal" id="grad2Reveal">
+            <div class="reveal-inner">
+          <div class="opt-row" id="grad2Row">
             <span class="opt-label">두 번째 색</span>
             <div class="opt-body">
               <span class="color-field">
@@ -1425,6 +1542,8 @@
                 <button class="chip" type="button" data-grad="vertical" aria-pressed="false">세로</button>
                 <button class="chip" type="button" data-grad="radial" aria-pressed="false">가운데</button>
               </div>
+            </div>
+          </div>
             </div>
           </div>
           <div class="opt-row">
@@ -1466,11 +1585,15 @@
             <button class="danger-ghost" id="logoClearBtn" type="button" hidden>이미지 빼기</button>
             <input type="file" id="logoInput" aria-label="로고로 쓸 이미지 파일" accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif,image/bmp">
           </div>
-          <div class="opt-row" id="logoSizeRow" hidden style="margin:14px 0 0;">
+          <div class="reveal" id="logoSizeReveal">
+            <div class="reveal-inner">
+          <div class="opt-row" id="logoSizeRow" style="margin:14px 0 0;">
             <span class="opt-label">크기</span>
             <div class="opt-body">
               <input type="range" id="logoRange" min="8" max="34" step="1" value="20" aria-label="로고 크기(전체 폭 대비 %)">
               <span class="range-val" id="logoVal">20%</span>
+            </div>
+          </div>
             </div>
           </div>
         </div>
@@ -1483,21 +1606,45 @@
               <input type="text" id="captionInput" class="cap-input" maxlength="24" placeholder="가게 이름, @아이디 등" aria-label="QR 아래에 넣을 문구">
             </div>
           </div>
-          <div class="opt-row">
+          <div class="reveal" id="capExtra">
+            <div class="reveal-inner">
+          <div class="opt-row cap-only">
             <span class="opt-label">글자 크기</span>
             <div class="opt-body">
               <input type="range" id="capSizeRange" min="10" max="30" step="1" value="16" aria-label="서명 글자 크기">
               <span class="range-val" id="capSizeVal">1.6칸</span>
             </div>
           </div>
-          <div class="opt-row">
+          <div class="opt-row cap-only">
+            <span class="opt-label">글꼴</span>
+            <div class="opt-body">
+              <div class="chip-group" id="capFontChips" role="group" aria-label="서명 글꼴 선택">
+                <button class="chip" type="button" data-capfont="gothic" aria-pressed="true">고딕</button>
+                <button class="chip" type="button" data-capfont="myeongjo" aria-pressed="false">명조</button>
+                <button class="chip" type="button" data-capfont="brush" aria-pressed="false">붓글씨</button>
+                <button class="chip" type="button" data-capfont="mono" aria-pressed="false">고정폭</button>
+              </div>
+              <span class="opt-note">PNG는 지금 보이는 그대로 저장돼요. SVG는 글자를 글자로 남겨서, 그 글꼴이 없는 기기에서는 비슷한 글꼴로 보여요.</span>
+            </div>
+          </div>
+          <div class="opt-row cap-only">
             <span class="opt-label">위치</span>
             <div class="opt-body">
               <div class="chip-group" id="capPosChips" role="group" aria-label="서명 위치">
                 <button class="chip" type="button" data-pos="bottom" aria-pressed="true">아래</button>
                 <button class="chip" type="button" data-pos="top" aria-pressed="false">위</button>
               </div>
-              <button class="chip" type="button" id="capDotToggle" aria-pressed="true">앞에 점</button>
+            </div>
+          </div>
+          <div class="opt-row cap-only">
+            <span class="opt-label">글머리</span>
+            <div class="opt-body">
+              <div class="chip-group" id="capDotChips" role="group" aria-label="서명 앞 글머리 점">
+                <button class="chip" type="button" data-capdot="none" aria-pressed="false">없음</button>
+                <button class="chip" type="button" data-capdot="dot" aria-pressed="true">점</button>
+              </div>
+            </div>
+          </div>
             </div>
           </div>
           <div class="opt-row">
@@ -1509,11 +1656,15 @@
               </div>
             </div>
           </div>
-          <div class="opt-row" id="frameWidthRow" hidden style="margin-bottom:0;">
+          <div class="reveal" id="frameWidthReveal">
+            <div class="reveal-inner">
+          <div class="opt-row" id="frameWidthRow" style="margin-bottom:0;">
             <span class="opt-label">테두리 두께</span>
             <div class="opt-body">
               <input type="range" id="frameWidthRange" min="1" max="12" step="1" value="2" aria-label="테두리 두께">
               <span class="range-val" id="frameWidthVal">0.2칸</span>
+            </div>
+          </div>
             </div>
           </div>
         </div>
@@ -1606,7 +1757,7 @@
       <span class="mark">ⓒ 2026</span> <span class="name">고윤태</span> · <a href="https://yuntaeko.com/" target="_blank" rel="noopener noreferrer">yuntaeko.com</a> — 정성을 담아 제작한 도구입니다. 이용 허락·문의는 <a href="/#feedback">의견 보내기</a>로 남겨 주세요.<br>
       <a href="/privacy/">개인정보처리방침</a> · <a href="/notice/">오픈소스 고지</a>
     </div>
-    <div class="updated">업데이트 · 2026. 9. 15.</div>
+    <div class="updated">업데이트 · 2026. 9. 18.</div>
   </footer>
 </div>
 
@@ -2545,6 +2696,18 @@
 (function (root) {
   "use strict";
 
+  /* ---- 서명 글꼴 ----
+     한글이 나와야 하므로 기기에 기본으로 깔린 글꼴만 쓴다(웹폰트를 받아오지 않는다).
+     PNG는 지금 화면에 보이는 그대로 그려서 저장되니 어느 기기에서 열어도 같다.
+     SVG는 글자를 글자로 남기므로, 그 글꼴이 없는 기기에서는 비슷한 글꼴로 보인다. */
+  var CAPTION_FONTS = {
+    gothic:    { label: "고딕",   stack: 'system-ui, -apple-system, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif', weight: 700 },
+    myeongjo:  { label: "명조",   stack: '"AppleMyungjo", "Apple SD Gothic Neo", Batang, "바탕", "Nanum Myeongjo", "Noto Serif KR", serif', weight: 700 },
+    brush:     { label: "붓글씨", stack: 'Gungsuh, "궁서", GungsuhChe, "Hiragino Mincho ProN", "Nanum Brush Script", cursive, serif', weight: 400 },
+    mono:      { label: "고정폭", stack: '"D2Coding", Consolas, Menlo, "Courier New", monospace', weight: 700 }
+  };
+  function fontOf(key) { return CAPTION_FONTS[key] || CAPTION_FONTS.gothic; }
+
   var DEFAULTS = {
     scale: 8,          // 모듈 하나당 픽셀
     quiet: 4,          // 여백(모듈 단위). 규격 권장은 4.
@@ -2574,6 +2737,7 @@
     captionDot: true,    // 글자 앞 동그라미
     captionSize: 1.55,   // 글자 크기(모듈 단위)
     captionPos: "bottom",// bottom | top
+    captionFont: "gothic", // gothic | myeongjo | brush | mono
     frame: "none",       // none | card
     frameWidth: 0.22     // 테두리 두께(모듈 단위)
   };
@@ -2668,12 +2832,16 @@
     };
   }
 
-  // 서명 영역·테두리가 차지하는 여분 크기(픽셀)
-  function chromeOf(o, scale) {
+  /* 서명 영역·테두리가 차지하는 여분 크기.
+     scale을 곱한 뒤에 반올림해야 한다. 예전에는 SVG가 scale=1로 부르는 바람에 모듈 단위에서
+     반올림돼, 같은 설정인데 PNG는 36.20×39.50칸, SVG는 37×40칸이 나왔다(실측). 인쇄용
+     파일이 화면에서 본 그림과 다른 셈이라, 캔버스일 때만(정수 픽셀이 필요할 때만) 반올림한다. */
+  function chromeOf(o, scale, exact) {
     var hasCap = !!(o.caption && String(o.caption).trim());
-    var capH = hasCap ? Math.round(scale * (o.captionSize * 1.5 + 0.9)) : 0;
+    var r = exact ? function(v){ return v; } : Math.round;
+    var capH = hasCap ? r(scale * (o.captionSize * 1.5 + 0.9)) : 0;
     // 테두리는 두꺼워질수록 안쪽 여백도 같이 넓혀야 QR에 닿지 않는다
-    var pad = (o.frame === "card") ? Math.round(scale * (1.2 + o.frameWidth * 2)) : 0;
+    var pad = (o.frame === "card") ? r(scale * (1.2 + o.frameWidth * 2)) : 0;
     return {
       capH: capH, pad: pad,
       capTop: (hasCap && o.captionPos === "top") ? capH : 0,
@@ -2831,7 +2999,8 @@
       var text = String(o.caption).trim();
       var capColor = o.captionColor || o.fg;
       var fs = Math.round(o.scale * o.captionSize);
-      ctx.font = "700 " + fs + "px system-ui, -apple-system, \"Segoe UI\", \"Apple SD Gothic Neo\", \"Malgun Gothic\", sans-serif";
+      var cf = fontOf(o.captionFont);
+      ctx.font = cf.weight + " " + fs + "px " + cf.stack;
       ctx.textBaseline = "middle";
       var cy = (o.captionPos === "top")
         ? ch.pad + ch.capH / 2
@@ -2872,7 +3041,7 @@
     var gradId = "g" + Math.random().toString(36).slice(2, 8);
     var fillRef = o.fg2 ? ("url(#" + gradId + ")") : o.fg;
 
-    var chS = chromeOf(o, 1);            // 모듈 단위 여분
+    var chS = chromeOf(o, 1, true);      // 모듈 단위 여분(반올림 없이 — 캔버스와 같은 그림이 되도록)
     var vbW = total + chS.pad * 2;
     var vbH = total + chS.capH + chS.pad * 2;
     var qrTop = chS.pad + chS.capTop;
@@ -2952,18 +3121,20 @@
       var capColor = o.captionColor || o.fg;
       var fs = o.captionSize;
       var cy = (o.captionPos === 'top') ? (chS.pad + chS.capH / 2) : (qrTop + total + chS.capH / 2);
-      var family = "system-ui, -apple-system, Segoe UI, Apple SD Gothic Neo, Malgun Gothic, sans-serif";
+      var cfS = fontOf(o.captionFont);
+      var family = cfS.stack.replace(/"/g, "&apos;");   // 속성 안에 큰따옴표를 못 쓴다
+      var fw = cfS.weight;
       if (o.captionDot) {
         // 글자 폭을 SVG 안에서 잴 수 없으므로, 점은 글자 묶음 왼쪽에 두고 전체를 가운데 정렬한다.
         parts.push('<g>');
         parts.push('<circle cx="' + (vbW / 2 - capText.length * fs * 0.32 - fs * 0.5) + '" cy="' + cy
           + '" r="' + (fs * 0.30) + '" fill="' + (o.eyeFg || capColor) + '"/>');
         parts.push('<text x="' + (vbW / 2 + fs * 0.42) + '" y="' + cy + '" text-anchor="middle" dominant-baseline="central" font-family="'
-          + family + '" font-size="' + fs + '" font-weight="700" fill="' + capColor + '">' + capText + '</text>');
+          + family + '" font-size="' + fs + '" font-weight="' + fw + '" fill="' + capColor + '">' + capText + '</text>');
         parts.push('</g>');
       } else {
         parts.push('<text x="' + (vbW / 2) + '" y="' + cy + '" text-anchor="middle" dominant-baseline="central" font-family="'
-          + family + '" font-size="' + fs + '" font-weight="700" fill="' + capColor + '">' + capText + '</text>');
+          + family + '" font-size="' + fs + '" font-weight="' + fw + '" fill="' + capColor + '">' + capText + '</text>');
       }
     }
     if (o.frame === "card") {
@@ -3014,7 +3185,7 @@
     draw: draw, toSVG: toSVG, contrastRatio: contrastRatio, luminance: luminance,
     grayOf: grayOf, grayGap: grayGap,
     DEFAULTS: DEFAULTS, logoMask: logoMask, logoBox: logoBox, logoAspect: logoAspect,
-    chromeOf: chromeOf
+    chromeOf: chromeOf, CAPTION_FONTS: CAPTION_FONTS
   };
 })(typeof module !== "undefined" && module.exports ? module.exports : (typeof window !== "undefined" ? window : globalThis));
 
@@ -3210,6 +3381,220 @@
     return m;
   }
 
+  /* =======================================================================
+     원근 보정
+     파인더는 세 개뿐이라 아핀 변환까지밖에 못 만든다. 그런데 카메라로 QR을 찍으면
+     거의 항상 조금은 비스듬해서, 먼 쪽 변이 좁아 보인다. 실측해 보니 위 변이 10%만
+     좁아져도 아핀으로는 격자가 어긋나 못 읽었다 — 책상 위 QR을 앉아서 찍으면 바로
+     나오는 정도다.
+     네 번째 점이 있으면 원근까지 펼 수 있다. QR에는 마침 오른쪽 아래에 정렬 패턴
+     (alignment pattern)이 있다 — 버전 2 이상이면 항상. 아핀으로 그 자리를 어림잡아
+     찾아낸 다음, 네 점으로 호모그래피를 만들어 다시 찍는다.
+     ======================================================================= */
+
+  /* 정렬 패턴은 5칸짜리 과녁이다.
+       ■■■■■
+       ■□□□■
+       ■□■□■
+       ■□□□■
+       ■■■■■
+     처음에는 파인더처럼 "1:1:1:1:1 구간 세기"로 찾으려 했는데 한 번도 못 찾았다.
+     정렬 패턴 바로 옆은 데이터 칸이라, 그 칸이 검정이면 바깥 고리와 붙어 버려서
+     첫 구간이 1칸이 아니라 2칸으로 세진다 — 비율이 깨진다.
+     대신 모눈 그대로 찍어 보고 몇 칸이나 맞는지 센다. 우리는 이미 모듈 크기와 방향을
+     알고 있으니(파인더 세 개로 구한 ex·ey) 그걸 쓰면 된다. 옆 칸은 아예 보지 않는다. */
+  var AP_TEMPLATE = [
+    [1, 1, 1, 1, 1],
+    [1, 0, 0, 0, 1],
+    [1, 0, 1, 0, 1],
+    [1, 0, 0, 0, 1],
+    [1, 1, 1, 1, 1]
+  ];
+  function alignScore(bin, w, h, px, py, ex, ey) {
+    var hit = 0;
+    for (var r = -2; r <= 2; r++) for (var c = -2; c <= 2; c++) {
+      var sx = Math.round(px + ex.x * c + ey.x * r);
+      var sy = Math.round(py + ex.y * c + ey.y * r);
+      if (sx < 0 || sy < 0 || sx >= w || sy >= h) return -1;
+      if (bin[sy * w + sx] === AP_TEMPLATE[r + 2][c + 2]) hit++;
+    }
+    return hit;
+  }
+  /* 어림잡은 자리 주변을 훑어 가장 잘 맞는 중심을 고른다.
+     기운 쪽에서는 모듈이 좁아 보이므로 크기도 몇 단계 같이 바꿔 본다.
+     점수가 같으면 어림값에 가까운 쪽을 고른다 — 큰 QR에는 정렬 패턴이 여럿이라,
+     넓게 볼수록 옆 것을 집을 위험이 있다. 그래서 좁게 시작해 없을 때만 넓힌다. */
+  function findAlignmentAt(bin, w, h, cx, cy, ex, ey, radius) {
+    // 기울면 먼 쪽 모듈이 좁아 보이므로 크기도 몇 단계 같이 훑는다.
+    // (0.6·0.68·1.45까지 더 넓혀 봤지만 통과 수는 그대로여서 되돌렸다 — 속도만 들었다.)
+    var scales = [1, 0.88, 1.13, 0.78, 1.28];
+    var base = Math.hypot(ex.x, ex.y);
+    var step = Math.max(1, Math.round(base / 3));
+    var best = null, bestScore = -1, bestDist = Infinity, si, dx, dy, s, d2;
+    for (si = 0; si < scales.length; si++) {
+      var k = scales[si];
+      var e1 = { x: ex.x * k, y: ex.y * k }, e2 = { x: ey.x * k, y: ey.y * k };
+      for (dy = -radius; dy <= radius; dy += step) {
+        for (dx = -radius; dx <= radius; dx += step) {
+          s = alignScore(bin, w, h, cx + dx, cy + dy, e1, e2);
+          if (s < 0) continue;
+          d2 = dx * dx + dy * dy;
+          if (s > bestScore || (s === bestScore && d2 < bestDist)) {
+            bestScore = s; bestDist = d2;
+            best = { x: cx + dx, y: cy + dy, ex: e1, ey: e2 };
+          }
+        }
+      }
+    }
+    // 25칸 중 22칸은 맞아야 한다 — 데이터 칸에 우연히 비슷한 모양이 생기기도 한다
+    if (!best || bestScore < 22) return null;
+    // 1픽셀 단위로 다듬기 (중심이 정확할수록 호모그래피가 정확해진다)
+    var bx = best.x, by = best.y;
+    for (dy = -3; dy <= 3; dy++) for (dx = -3; dx <= 3; dx++) {
+      s = alignScore(bin, w, h, bx + dx, by + dy, best.ex, best.ey);
+      if (s > bestScore) { bestScore = s; best.x = bx + dx; best.y = by + dy; }
+    }
+    best.score = bestScore;
+    return best;
+  }
+  /* 아핀으로 찍은 어림값은 기울수록, QR이 클수록 크게 빗나간다(먼 모서리일수록 오차가
+     쌓인다). 좁은 데부터 차례로 넓혀 가며 찾는다. */
+  function findAlignment(bin, w, h, cx, cy, ex, ey, unit) {
+    var radii = [unit * 3, unit * 6, unit * 11, unit * 18];
+    for (var i = 0; i < radii.length; i++) {
+      var r = Math.max(6, Math.round(radii[i]));
+      var ap = findAlignmentAt(bin, w, h, cx, cy, ex, ey, r);
+      if (ap) return ap;
+    }
+    return null;
+  }
+
+  /* 모듈 좌표 네 점 → 이미지 좌표 네 점. 8×8 가우스 소거(부분 피벗) 한 번이면 된다. */
+  function solveHomography(src, dst) {
+    var A = [], b = [], i, r, c;
+    for (i = 0; i < 4; i++) {
+      var x = src[i][0], y = src[i][1], u = dst[i][0], v = dst[i][1];
+      A.push([x, y, 1, 0, 0, 0, -u * x, -u * y]); b.push(u);
+      A.push([0, 0, 0, x, y, 1, -v * x, -v * y]); b.push(v);
+    }
+    for (i = 0; i < 8; i++) {
+      var piv = i;
+      for (r = i + 1; r < 8; r++) if (Math.abs(A[r][i]) > Math.abs(A[piv][i])) piv = r;
+      if (Math.abs(A[piv][i]) < 1e-9) return null;   // 네 점이 한 줄에 있다
+      var t = A[i]; A[i] = A[piv]; A[piv] = t;
+      var tb = b[i]; b[i] = b[piv]; b[piv] = tb;
+      for (r = 0; r < 8; r++) {
+        if (r === i) continue;
+        var f = A[r][i] / A[i][i];
+        if (!f) continue;
+        for (c = i; c < 8; c++) A[r][c] -= f * A[i][c];
+        b[r] -= f * b[i];
+      }
+    }
+    var hm = [];
+    for (i = 0; i < 8; i++) hm.push(b[i] / A[i][i]);
+    hm.push(1);
+    return hm;
+  }
+
+  /* 호모그래피로 격자를 찍는다. 표본 간격은 모듈 좌표에서 ±0.25칸으로 잡으므로
+     멀어서 좁아진 쪽에서는 자동으로 촘촘해진다(아핀 때처럼 고정 픽셀이 아니다). */
+  function samplePerspective(bin, w, h, hm, size) {
+    var m = [];
+    function at(x, y) {
+      var d = hm[6] * x + hm[7] * y + hm[8];
+      if (!d) return 0;
+      var sx = Math.round((hm[0] * x + hm[1] * y + hm[2]) / d);
+      var sy = Math.round((hm[3] * x + hm[4] * y + hm[5]) / d);
+      if (sx < 0 || sy < 0 || sx >= w || sy >= h) return -1;
+      return bin[sy * w + sx];
+    }
+    for (var r = 0; r < size; r++) {
+      m.push(new Uint8Array(size));
+      for (var c = 0; c < size; c++) {
+        var x = c + 0.5, y = r + 0.5;
+        var on = 0, tot = 0, s;
+        var pts = [[0, 0], [-0.25, -0.25], [0.25, -0.25], [-0.25, 0.25], [0.25, 0.25]];
+        for (var i = 0; i < 5; i++) {
+          s = at(x + pts[i][0], y + pts[i][1]);
+          if (s < 0) continue;
+          on += s; tot++;
+        }
+        m[r][c] = (tot && on * 2 > tot) ? 1 : 0;
+      }
+    }
+    return m;
+  }
+
+  /* 아핀으로 어림잡은 위치에서 정렬 패턴을 찾아 네 점 호모그래피를 만든다.
+     못 찾으면 빈 배열 — 그러면 부르는 쪽이 아핀 결과로 만족한다.
+
+     중요한 건 "어느 정렬 패턴을 노리느냐"다. 처음에는 오른쪽 아래 것을 썼는데, 큰 QR에서
+     줄줄이 실패했다. 재보니 v15 30% 기울기에서 아핀 어림값이 진짜 자리에서 19칸이나
+     빗나갔고, 그 근처에는 옆 정렬 패턴이 있어서 그걸 집고 있었다(점수 25점 만점으로,
+     모양은 완벽하지만 다른 놈).
+     평면을 찍은 사진은 정확히 호모그래피이므로, 네 점만 맞으면 어느 점이든 상관없다.
+     그래서 파인더에서 가까운 정렬 패턴부터 노린다 — 가까울수록 아핀 어림값이 정확하다. */
+  function perspectiveGrids(bin, w, h, o, version, alignTable) {
+    if (version < 2) return [];              // 버전 1에는 정렬 패턴이 없다
+    var size = version * 4 + 17;
+    var d = size - 7;
+    var ex = { x: (o.tr.x - o.tl.x) / d, y: (o.tr.y - o.tl.y) / d };
+    var ey = { x: (o.bl.x - o.tl.x) / d, y: (o.bl.y - o.tl.y) / d };
+    var unit = (Math.hypot(ex.x, ex.y) + Math.hypot(ey.x, ey.y)) / 2;
+    if (!(unit > 0)) return [];
+
+    // 노릴 정렬 패턴의 모듈 좌표. 가까운 것 → 먼 것 순.
+    // ALIGN 표는 버전-1로 색인한다(ALIGN[0]이 버전 1). 여기서 한 칸 밀렸다가
+    // 모든 목표가 옆 버전 좌표로 잡혀서 원근 보정이 통째로 죽었다.
+    var coords = (alignTable && alignTable[version - 1]) || null;
+    var targets = [];
+    if (coords && coords.length >= 2) {
+      for (var ci = 1; ci < coords.length; ci++) targets.push(coords[ci]);
+    } else {
+      targets.push(size - 7);                // 표가 없으면 오른쪽 아래만
+    }
+
+    var corners0 = [[3.5, 3.5], [size - 3.5, 3.5], [3.5, size - 3.5]];
+    var dst0 = [[o.tl.x, o.tl.y], [o.tr.x, o.tr.y], [o.bl.x, o.bl.y]];
+    var out = [];
+    for (var ti = 0; ti < targets.length && out.length < 3; ti++) {
+      var mc = targets[ti] + 0.5;            // 정렬 패턴 중심의 모듈 좌표
+      var off = mc - 3.5;
+      var estX = o.tl.x + ex.x * off + ey.x * off;
+      var estY = o.tl.y + ex.y * off + ey.y * off;
+      var ap = findAlignment(bin, w, h, estX, estY, ex, ey, unit);
+      if (!ap) continue;
+      var src4 = corners0.concat([[mc, mc]]);
+      var hm = solveHomography(src4, dst0.concat([[ap.x, ap.y]]));
+      if (!hm) continue;
+
+      // 한 번 편 다음 그 변환으로 같은 정렬 패턴을 다시 짚어 본다. 아핀보다 훨씬
+      // 정확하므로, 조금 빗나갔거나 옆 것을 집었더라도 여기서 제자리를 찾는다.
+      var den = hm[6] * mc + hm[7] * mc + hm[8];
+      if (den) {
+        var rx = (hm[0] * mc + hm[1] * mc + hm[2]) / den;
+        var ry = (hm[3] * mc + hm[4] * mc + hm[5]) / den;
+        var da = hm[6] * (mc + 1) + hm[7] * mc + hm[8];
+        var db = hm[6] * mc + hm[7] * (mc + 1) + hm[8];
+        if (da && db) {
+          var nex = { x: (hm[0] * (mc + 1) + hm[1] * mc + hm[2]) / da - rx,
+                      y: (hm[3] * (mc + 1) + hm[4] * mc + hm[5]) / da - ry };
+          var ney = { x: (hm[0] * mc + hm[1] * (mc + 1) + hm[2]) / db - rx,
+                      y: (hm[3] * mc + hm[4] * (mc + 1) + hm[5]) / db - ry };
+          var ap2 = findAlignmentAt(bin, w, h, rx, ry, nex, ney,
+            Math.max(4, Math.round(Math.hypot(nex.x, nex.y) * 3)));
+          if (ap2) {
+            var hm2 = solveHomography(src4, dst0.concat([[ap2.x, ap2.y]]));
+            if (hm2) hm = hm2;
+          }
+        }
+      }
+      out.push(samplePerspective(bin, w, h, hm, size));
+    }
+    return out;
+  }
+
   /* ---- 회색조 한 장에서 읽어보기 ----
      실패해도 "어디쯤에 있었는지"는 loc에 적어 둔다. 사진 속 QR이 작아서 못 읽은 것뿐이라면
      그 자리만 잘라서 키워 다시 보면 되기 때문이다. */
@@ -3242,14 +3627,33 @@
             var estD = dist / unit;               // 파인더 중심 사이 모듈 수 ≈ size-7
             var estSize = Math.round(estD) + 7;
             var vEst = Math.round((estSize - 17) / 4);
-            for (var dv = -1; dv <= 1; dv++) {
+            // 버전 어림값은 "파인더 사이 거리 ÷ 모듈 크기"라 모듈 크기가 몇 % 어긋나면
+            // 그대로 몇 칸이 어긋난다. 비스듬히 찍으면 가까운 파인더와 먼 파인더의 모듈
+            // 크기가 달라져서 꼭 어긋난다. QR이 클수록 오차도 같이 커지므로(v15에서
+            // 10%면 7칸 = 버전 1.75개), 후보 폭을 크기에 맞춰 넓힌다.
+            var span = Math.max(1, Math.min(6, Math.round(vEst * 0.22) + 1));
+            var order = [0];
+            for (var k = 1; k <= span; k++) { order.push(k); order.push(-k); }
+            for (var oi = 0; oi < order.length; oi++) {
+              var dv = order[oi];
               var v = vEst + dv;
               if (v < 1 || v > 40) continue;
+              // 1) 아핀 — 반듯한 이미지는 여기서 거의 다 끝난다(빠르다)
               var m = sample(b, w, h, o, v);
               var res = decodeFn(m, tables);
               if (res && res.ok) {
                 res.inverted = (a === 1);
                 return res;
+              }
+              // 2) 원근 — 비스듬히 찍힌 사진은 정렬 패턴을 네 번째 점으로 삼아 편다
+              var grids = perspectiveGrids(b, w, h, o, v, tables && tables.align);
+              for (var gi = 0; gi < grids.length; gi++) {
+                res = decodeFn(grids[gi], tables);
+                if (res && res.ok) {
+                  res.inverted = (a === 1);
+                  res.perspective = true;
+                  return res;
+                }
               }
             }
           }
@@ -3347,7 +3751,8 @@
     return { ok: false, reason: "이미지에서 QR 코드를 찾지 못했어요" };
   }
 
-  root.SseobomQRDetect = { detect: detect, binarize: binarize, findFinders: findFinders };
+  root.SseobomQRDetect = { detect: detect, binarize: binarize, findFinders: findFinders,
+    findAlignment: findAlignment, solveHomography: solveHomography };
 })(typeof module !== "undefined" && module.exports ? module.exports : (typeof window !== "undefined" ? window : globalThis));
 
 </script>
@@ -3418,6 +3823,63 @@
       function onKey(e){ if (e.key === "Escape" || e.key === "Enter"){ e.preventDefault(); close(); } }
       okBtn.addEventListener("click", close);
       overlay.addEventListener("mousedown", function(e){ if (e.target === overlay) close(); });
+      document.addEventListener("keydown", onKey);
+      requestAnimationFrame(function(){ overlay.classList.add("show"); okBtn.focus(); });
+    });
+  }
+
+  /* 조건부 줄을 부드럽게 펼치고 접는다. 다 열린 뒤에만 overflow를 풀어서
+     포커스 테두리가 잘리지 않게 한다(열리는 중에 풀면 내용이 삐져나온다). */
+  function setReveal(id, on){
+    var box = $(id);
+    if (!box) return;
+    if (on){
+      box.classList.add("open");
+      if (box._revealTimer) clearTimeout(box._revealTimer);
+      box._revealTimer = setTimeout(function(){
+        if (box.classList.contains("open")) box.classList.add("settled");
+      }, 280);
+    } else {
+      if (box._revealTimer) clearTimeout(box._revealTimer);
+      box.classList.remove("settled");
+      box.classList.remove("open");
+    }
+  }
+
+  // 확인/취소 팝업 (사이트 공통 구현)
+  function showConfirm(message, opts){
+    opts = opts || {};
+    return new Promise(function(resolve){
+      var overlay = el("div", "modal-overlay");
+      var box = el("div", "modal-box");
+      var msg = el("div", "modal-message");
+      msg.textContent = message;
+      box.appendChild(msg);
+      var actions = el("div", "modal-actions");
+      var cancelBtn = el("button", "ghost", opts.cancelLabel || "취소");
+      cancelBtn.type = "button";
+      var okBtn = el("button", opts.danger === false ? "primary" : "danger", opts.okLabel || "확인");
+      okBtn.type = "button";
+      actions.appendChild(cancelBtn);
+      actions.appendChild(okBtn);
+      box.appendChild(actions);
+      overlay.appendChild(box);
+      document.body.appendChild(overlay);
+      var restoreFocus = setupModalA11y(overlay, msg, [cancelBtn, okBtn]);
+      function close(result){
+        overlay.classList.remove("show");
+        setTimeout(function(){ if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 150);
+        document.removeEventListener("keydown", onKey);
+        restoreFocus();
+        resolve(result);
+      }
+      function onKey(e){
+        if (e.key === "Escape"){ e.preventDefault(); close(false); }
+        else if (e.key === "Enter"){ e.preventDefault(); close(true); }
+      }
+      cancelBtn.addEventListener("click", function(){ close(false); });
+      okBtn.addEventListener("click", function(){ close(true); });
+      overlay.addEventListener("mousedown", function(e){ if (e.target === overlay) close(false); });
       document.addEventListener("keydown", onKey);
       requestAnimationFrame(function(){ overlay.classList.add("show"); okBtn.focus(); });
     });
@@ -3497,6 +3959,7 @@
     captionDot: true,
     captionSize: 1.6,
     captionPos: "bottom",
+    captionFont: "gothic",
     frame: "none",
     frameWidth: 0.2,
     saveSize: 1024,
@@ -3506,11 +3969,14 @@
   var TABLES = {
     functionMask: SseobomQR._internal.functionMask,
     blocksOf: SseobomQR._internal.blocksOf,
-    totalCodewords: SseobomQR._internal.totalCodewords
+    totalCodewords: SseobomQR._internal.totalCodewords,
+    // 검출기가 "어느 정렬 패턴을 노릴지" 고를 때 쓴다(원근 보정)
+    align: SseobomQR._internal.ALIGN
   };
 
   var previewCanvas = $("previewCanvas");
-  // 진단은 화면 미리보기가 아니라 "저장될 크기"로 그린 것을 읽어야 의미가 있다.
+  // 진단은 화면 미리보기가 아니라 저장될 조건으로 그린 것을 읽어야 의미가 있다
+  // (모듈이 8px을 넘어가는 부분만 상한을 둔다 — 아래 diagnose의 주석 참고).
   var workCanvas = document.createElement("canvas");
   var lastQR = null, lastBlob = null, lastBlobName = "";
 
@@ -3534,6 +4000,16 @@
     if (rebuildTimer) clearTimeout(rebuildTimer);
     rebuildTimer = setTimeout(rebuild, 90);
   }
+  /* 다시 그리기는 90ms 뒤로 미뤄 둔다(타자 칠 때마다 그리지 않으려고). 그런데 주소를
+     붙여넣자마자 저장을 누르면 그 90ms 안에 들어와서, 아직 예전 QR인 lastQR이 저장된다.
+     실제로 재보니 바뀐 주소가 아니라 직전 주소가 담긴 PNG가 나왔다 — 조용히 틀린 QR을
+     인쇄하게 되는 종류의 사고라, 저장 전에는 밀린 그리기를 먼저 끝낸다. */
+  function flushRebuild(){
+    if (!rebuildTimer) return;
+    clearTimeout(rebuildTimer);
+    rebuildTimer = null;
+    rebuild();
+  }
 
   function renderOptions(scale){
     return {
@@ -3553,6 +4029,7 @@
       captionDot: state.captionDot,
       captionSize: state.captionSize,
       captionPos: state.captionPos,
+      captionFont: state.captionFont,
       frame: state.frame,
       frameWidth: state.frameWidth
     };
@@ -3565,14 +4042,19 @@
   }
 
   function rebuild(){
-    markDirty();   // 뭔가 만들고 있으면 나갈 때 확인창을 띄운다(저장하면 다시 꺼진다)
+    markDirty();        // 뭔가 만들고 있으면 나갈 때 확인창을 띄운다(저장하면 다시 꺼진다)
+    invalidateShare();  // 저장해 둔 이미지는 더 이상 화면의 QR이 아니다
     var text = state.text;
-    if (!text){
+    // 공백만 친 경우도 "없는 것"으로 본다. 예전에는 화면에 "빈 내용"이라고 써 놓고
+    // 공백 세 칸짜리 QR을 만들어 주고 있었다 — 읽어도 아무 것도 안 나오는 QR이다.
+    if (!text.trim()){
       lastQR = null;
       var c = previewCanvas.getContext("2d");
       previewCanvas.width = previewCanvas.height = 10;
       c.clearRect(0,0,10,10);
       setPreviewEmpty(true);
+      cancelDiagnose();
+      clearMini();
       $("previewMeta").textContent = "";
       showVerdict("idle", "위 칸에 내용을 넣어 주세요",
         [], null, "주소·글·전화번호 무엇이든 괜찮아요.");
@@ -3592,6 +4074,8 @@
     } catch (err) {
       lastQR = null;
       setPreviewEmpty(true);
+      cancelDiagnose();
+      clearMini();
       $("previewMeta").textContent = "";
       if (err && err.tooLong){
         // "오류정정 낮추기"는 그렇게 해서 실제로 들어갈 때만 내놓는다.
@@ -3620,6 +4104,7 @@
     // 미리보기를 올려둔 흰 판은 QR 배경색을 따라간다 — 어두운 배경 QR을 골랐을 때
     // 흰 테두리가 남아 종이에 인쇄한 느낌이 깨지지 않게.
     $("previewPlate").style.background = state.bg;
+    drawMini();
     previewCanvas.setAttribute("aria-label",
       "QR 코드 미리보기. 내용: " + (text.length > 40 ? text.slice(0, 40) + "…" : text));
 
@@ -3630,13 +4115,44 @@
       "버전 " + qr.version + " · " + qr.size + "×" + qr.size + "칸 · 저장하면 모듈 하나가 "
       + (Math.round(perModule * 10) / 10) + "px";
 
-    diagnose(qr, perModule);
+    scheduleDiagnose(qr, perModule);
   }
 
   /* ---- 스캔 안정성 진단 ----
-     색 대비나 로고 크기를 "규칙"으로만 따지면 실제와 어긋난다. 저장될 크기 그대로 한 번 더
+     색 대비나 로고 크기를 "규칙"으로만 따지면 실제와 어긋난다. 저장될 조건 그대로 한 번 더
      그린 다음, 그 픽셀을 다시 읽어서(디코딩) 통과 여부를 최종 판정한다. */
-  function diagnose(qr, perModule){
+  /* 진단은 저장될 크기로 다시 그린 다음 그 픽셀을 실제로 디코딩해서 판정한다. 정확한 대신
+     비싸다 — 1024px 기준 136ms이고, 그 중 디코딩만 135.7ms다(실측).
+     이게 펼침 애니메이션(0.26초) 도중에 돌면 한 프레임이 133ms 통째로 밀려서 화면이
+     멈춘 것처럼 보인다. "테두리 → 카드"를 누를 때 제일 잘 보였다.
+     그래서 애니메이션이 끝난 뒤로 미룬다. 미리보기는 즉시 바뀌고, 판정만 조금 늦게 따라온다.
+     저장 직전에는 flushDiagnose로 밀린 진단을 바로 끝내고 본다 — 오래된 판정으로
+     "스캔되지 않아요" 확인창을 건너뛰면 안 되기 때문이다. */
+  var diagTimer = null, diagPending = null;
+  function scheduleDiagnose(qr, perModule){
+    // 그 순간의 내용·레벨을 함께 들고 간다. 예전에는 진단이 state.text를 그때그때 읽어서,
+    // 재그리기(+90ms)보다 진단(+300ms)이 먼저 터지는 구간에 타자를 치면 "예전 QR 대 새 글자"를
+    // 비교해 빨간 "스캔되지 않아요"가 떴다 — 340ms 간격 타자 10번에 5번(실측).
+    diagPending = { qr: qr, perModule: perModule, text: state.text, ec: state.ec };
+    if (diagTimer) clearTimeout(diagTimer);
+    diagTimer = setTimeout(function(){
+      // 타이머가 프레임 한복판에 떨어질 수도 있어, 다음 프레임 시작에 맞춰 돌린다
+      requestAnimationFrame(function(){ flushDiagnose(); });
+    }, 300);
+  }
+  function cancelDiagnose(){
+    if (diagTimer) { clearTimeout(diagTimer); diagTimer = null; }
+    diagPending = null;
+  }
+  function flushDiagnose(){
+    if (diagTimer) { clearTimeout(diagTimer); diagTimer = null; }
+    if (!diagPending) return;
+    var d = diagPending;
+    diagPending = null;
+    diagnose(d.qr, d.perModule, d.text, d.ec);
+  }
+
+  function diagnose(qr, perModule, atText, atEc){
     var items = [], fixes = [];
 
     // 1) 밝기 차이 — 스캐너가 실제로 보는 값으로 잰다.
@@ -3718,15 +4234,19 @@
       }
     }
 
-    // 5) 최종 판정 — 저장될 크기로 그려서 실제로 다시 읽어본다.
+    // 5) 최종 판정 — 저장될 조건으로 그려서 실제로 다시 읽어본다.
     var readOk = false, readReason = "";
     try {
-      var scale = Math.max(1, Math.round(state.saveSize / (qr.size + state.quiet * 2)));
+      // 저장 크기 그대로 읽는 게 원칙이지만, 모듈 하나가 8px을 넘으면 그 이상은 판정을
+      // 바꾸지 않으면서 시간만 잡아먹는다. 2048px·여백0에서 한 번에 1338ms, 스캔 불가일 때는
+      // 1664ms가 걸려 화면이 멎었다(실측). 정수 배율이라 픽셀 무늬는 그대로고, 모듈이 작아서
+      // 위험한 경우(작은 저장 크기)에는 상한에 걸리지 않으므로 판정도 그대로다.
+      var scale = Math.min(8, Math.max(1, Math.round(state.saveSize / (qr.size + state.quiet * 2))));
       SseobomQRRender.draw(workCanvas, qr, renderOptions(scale));
       var g = workCanvas.getContext("2d");
       var img = g.getImageData(0, 0, workCanvas.width, workCanvas.height);
       var res = SseobomQRDetect.detect(img, TABLES, SseobomQRDecode.decode);
-      readOk = !!(res && res.ok && res.text === state.text);
+      readOk = !!(res && res.ok && res.text === atText);
       if (!readOk) readReason = (res && res.reason) || "내용이 다르게 읽혔어요";
     } catch (err) {
       readReason = "확인하지 못했어요";
@@ -3734,7 +4254,7 @@
 
     var hasBad = items.some(function(i){ return i.state === "bad"; });
     var hasWarn = items.some(function(i){ return i.state === "warn"; });
-    var sub = "버전 " + qr.version + " · 오류정정 " + state.ec + " · " + qr.size + "×" + qr.size + "칸";
+    var sub = "버전 " + qr.version + " · 오류정정 " + atEc + " · " + qr.size + "×" + qr.size + "칸";
     if (!readOk){
       showVerdict("bad", "지금 설정으로는 스캔되지 않아요", items, fixes,
         "직접 읽어봤는데 실패했어요 — " + readReason);
@@ -3745,7 +4265,13 @@
     }
   }
 
+  // 마지막 판정. 저장할 때 "정말 이대로 저장할까요?"를 물을지 정하는 근거가 된다.
+  var lastVerdict = "idle";
   function showVerdict(kind, text, items, fixes, sub){
+    lastVerdict = kind;
+    var mini = $("miniPreview");
+    mini.className = "mini-preview " + kind;
+    $("miniVerdict").textContent = text;
     var v = $("diagVerdict");
     v.className = "diag-verdict " + kind;
     $("diagMark").textContent = kind === "good" ? "✓"
@@ -3831,6 +4357,7 @@
     scheduleRebuild();
   });
   wireChips("sizeChips", "data-size", function(v){ state.saveSize = +v; scheduleRebuild(); });
+  wireChips("capFontChips", "data-capfont", function(v){ state.captionFont = v; scheduleRebuild(); });
 
   function setSaveSize(px){
     state.saveSize = px;
@@ -3864,7 +4391,7 @@
       $("fg2Code").textContent = state.fg2.toUpperCase();
     }
     $("gradToggle").setAttribute("aria-pressed", state.fg2 ? "true" : "false");
-    $("grad2Row").hidden = !state.fg2;
+    setReveal("grad2Reveal", !!state.fg2);
   }
   $("fgColor").addEventListener("input", function(e){ state.fg = e.target.value; syncColorInputs(); refreshIconLogo(); scheduleRebuild(); });
   $("fg2Color").addEventListener("input", function(e){ state.fg2 = e.target.value; syncColorInputs(); scheduleRebuild(); });
@@ -3897,13 +4424,20 @@
   });
 
   // ---- 아래 서명 ----
+  /* 서명 세부 설정(크기·글꼴·위치)은 문구를 넣기 전에는 할 일이 없다. 다섯 줄이 늘
+     펼쳐져 있으면 카드만 342px(모바일 513px) 차지하면서 아무 것도 안 한다.
+     문구가 생기는 순간 나타나고, 지우면 다시 접힌다 — 숨기는 게 아니라 차례를 맞추는 것. */
+  function syncCapRows(){
+    var on = !!$("captionInput").value.trim();
+    setReveal("capExtra", on);
+  }
   $("captionInput").addEventListener("input", function(e){
     state.caption = e.target.value;
+    syncCapRows();
     scheduleRebuild();
   });
-  $("capDotToggle").addEventListener("click", function(){
-    state.captionDot = !state.captionDot;
-    $("capDotToggle").setAttribute("aria-pressed", state.captionDot ? "true" : "false");
+  wireChips("capDotChips", "data-capdot", function(v){
+    state.captionDot = (v === "dot");
     scheduleRebuild();
   });
   $("capSizeRange").addEventListener("input", function(e){
@@ -3914,7 +4448,7 @@
   wireChips("capPosChips", "data-pos", function(v){ state.captionPos = v; scheduleRebuild(); });
   wireChips("frameChips", "data-frame", function(v){
     state.frame = v;
-    $("frameWidthRow").hidden = (v !== "card");
+    setReveal("frameWidthReveal", v === "card");
     scheduleRebuild();
   });
   $("frameWidthRange").addEventListener("input", function(e){
@@ -3979,14 +4513,14 @@
     if (mode === "none"){
       state.logo = null; state.logoDataUrl = null; iconKey = null;
       syncIconGrid();
-      $("logoSizeRow").hidden = true;
+      setReveal("logoSizeReveal", false);
       scheduleRebuild();
     } else if (mode === "icon"){
-      $("logoSizeRow").hidden = !iconKey;
+      setReveal("logoSizeReveal", !!iconKey);
       if (!iconKey){ pickIcon(SseobomQRIcons.list[0].key); } else { refreshIconLogo(); }
     } else {
       // 이미지 모드: 이미 고른 이미지가 있으면 되살린다
-      $("logoSizeRow").hidden = !imageLogo;
+      setReveal("logoSizeReveal", !!imageLogo);
       state.logo = imageLogo; state.logoDataUrl = imageLogoUrl;
       scheduleRebuild();
     }
@@ -4001,19 +4535,26 @@
     });
   }
   // 아이콘은 점 색을 따라간다 — 색을 바꾸면 아이콘도 다시 그린다.
+  /* 아이콘은 SVG를 이미지로 불러 캔버스에 굽는다 — 비동기다. 요청 번호를 달아 두지 않으면
+     늦게 도착한 결과가 이미 바뀐 상태를 덮어쓴다. 아이콘을 고르고 곧바로 "없음"을 눌렀더니
+     탭은 "없음"인데 오류정정이 H로 올라가 있었다(= 지운 로고가 되살아남, 실측). */
+  var iconReq = 0;
   function refreshIconLogo(){
     if (logoMode !== "icon" || !iconKey) return;
+    var my = ++iconReq, wantKey = iconKey, wantFg = state.fg;
     SseobomQRIcons.toCanvas(iconKey, state.fg, 256).then(function(cv){
       if (!cv) return;
+      if (my !== iconReq || logoMode !== "icon" || iconKey !== wantKey || state.fg !== wantFg) return;
       state.logo = cv;
       state.logoDataUrl = cv.toDataURL("image/png");
       scheduleRebuild();
     });
   }
   function pickIcon(key){
+    iconReq++;            // 이전 요청 결과가 늦게 와도 무시된다
     iconKey = key;
     syncIconGrid();
-    $("logoSizeRow").hidden = false;
+    setReveal("logoSizeReveal", true);
     refreshIconLogo();
   }
   (function buildIconGrid(){
@@ -4046,7 +4587,7 @@
         $("logoThumb").src = reader.result;
         $("logoThumb").hidden = false;
         $("logoClearBtn").hidden = false;
-        $("logoSizeRow").hidden = false;
+        setReveal("logoSizeReveal", true);
         syncLogoRange();
         scheduleRebuild();
       };
@@ -4063,7 +4604,7 @@
     state.logo = null; state.logoDataUrl = null;
     $("logoThumb").hidden = true;
     $("logoClearBtn").hidden = true;
-    $("logoSizeRow").hidden = true;
+    setReveal("logoSizeReveal", false);
     scheduleRebuild();
   });
   $("logoRange").addEventListener("input", function(e){
@@ -4075,7 +4616,24 @@
   /* ===================== 저장 ===================== */
   function safeName(){
     var n = ($("filenameInput").value || "QR").trim().replace(/[\\/:*?"<>|]/g, "_");
+    // 파일 이름은 대개 255바이트까지다. 한글은 한 글자가 3바이트라 85자만 넘어도 한도에
+    // 걸린다 — 그러면 브라우저가 이름을 통째로 버리고 "download"로 저장한다.
+    // (헤드리스 테스트 환경에서는 한글 이름이 길이와 무관하게 전부 버려져서 이 경계를
+    //  직접 확인하지는 못했다. 대조군으로 도구와 무관한 <a download="한글.txt">도 똑같이
+    //  버려지는 걸 확인했으니 환경 탓이다. 아래는 예방 차원의 상한이다.)
+    n = clampBytes(n, 100);
     return n || "QR";
+  }
+  // UTF-8 기준으로 잘라낸다. 글자 중간에서 끊기지 않게 한 글자씩 더해 본다.
+  function clampBytes(str, maxBytes){
+    var out = "", bytes = 0;
+    for (var i = 0; i < str.length; i++){
+      var ch = str[i];
+      var n = new Blob([ch]).size;
+      if (bytes + n > maxBytes) break;
+      out += ch; bytes += n;
+    }
+    return out;
   }
   function triggerDownload(blob, name){
     var url = URL.createObjectURL(blob);
@@ -4105,7 +4663,9 @@
      내용도 로고도 없으면(=첫 화면 그대로면) 뜨지 않고, 저장한 뒤 아무것도 안 바꿨어도
      뜨지 않는다 — 잃을 게 없는데 붙잡는 건 우리 방식이 아니다. */
   var unsaved = false;
-  function markDirty(){ unsaved = !!(state.text || state.logo); }
+  // 내용이 없으면 만들어진 QR도 없다 — 아이콘만 골라 둔 상태로 나갈 때 붙잡으면
+  // 화면에는 "위 칸에 내용을 넣어 주세요"만 있는데 경고가 떠서 어리둥절해진다.
+  function markDirty(){ unsaved = !!(state.text && state.text.trim()); }
   function markSaved(){ unsaved = false; }
   window.addEventListener("beforeunload", function(e){
     if (!unsaved) return;
@@ -4113,6 +4673,25 @@
     e.returnValue = "변경사항이 저장되지 않을 수 있습니다.";
     return e.returnValue;
   });
+
+  /* 저장 버튼을 누른 순간의 이미지를 공유 버튼이 들고 있다. 그 뒤에 내용이나 색을 바꾸면
+     화면의 QR과 손에 든 이미지가 달라진다 — 그대로 두면 바뀐 줄 알고 옛 주소가 담긴 QR을
+     보내게 된다. 다시 그릴 때마다 손을 비운다. */
+  /* 다시 그릴 때마다 올라가는 번호. 저장은 PNG 인코딩(toBlob)이 비동기라, 저장을 누른 뒤
+     내용을 고치면 인코딩이 끝난 콜백이 "저장 완료"를 뒤늦게 적용해 버린다 — 공유 버튼이
+     옛 이미지를 든 채 다시 켜지고, 나갈 때 경고도 꺼진다. 번호가 바뀌었으면 결과를 버린다. */
+  var buildSeq = 0;
+  function invalidateShare(){
+    buildSeq++;
+    if (!lastBlob) return;
+    lastBlob = null; lastBlobName = "";
+    var btn = $("shareBtn");
+    if (btn){
+      btn.disabled = true;
+      btn.title = "먼저 저장하면 이 버튼으로 바로 보낼 수 있어요.";
+      btn.classList.remove("just-enabled");
+    }
+  }
 
   function setLastResult(blob, name){
     markSaved();
@@ -4132,13 +4711,42 @@
     }
   }
 
-  $("pngBtn").addEventListener("click", function(){
+  /* 스캔되지 않는 설정으로 저장하려 할 때 한 번 물어본다.
+     저장 자체를 막지는 않는다 — 디자인 시안이나 테스트용으로 일부러 받는 경우가 있고,
+     "왜 버튼이 안 눌리지"만큼 답답한 것도 없다. 다만 모르고 인쇄까지 가는 건 막는다. */
+  /* 저장 버튼을 두 번 누르면 파일이 두 개 내려받아지고 다운로드 수도 두 번 센다(실측:
+     더블클릭 2개, 3연타 3개). 한 번 누르면 끝날 때까지 다음 누름을 무시한다. */
+  var saving = false;
+  function beginSave(){ if (saving) return false; saving = true; return true; }
+  function endSave(){ saving = false; }
+
+  var askingUnscannable = false;
+  function confirmIfUnscannable(){
+    flushDiagnose();   // 미뤄 둔 진단이 있으면 지금 끝내고 그 결과로 판단한다
+    if (lastVerdict !== "bad") return Promise.resolve(true);
+    // 저장을 연달아 누르면 확인창이 겹쳐 쌓였다(3번 누르면 3장). 하나만 띄운다.
+    if (askingUnscannable) return Promise.resolve(false);
+    askingUnscannable = true;
+    return showConfirm(
+      "지금 설정으로는 스캔되지 않아요. 인쇄하거나 배포하면 아무도 읽을 수 없어요.\n그래도 저장할까요?",
+      { okLabel: "그래도 저장", cancelLabel: "돌아가서 고치기" })
+      .then(function(ok){ askingUnscannable = false; return ok; });
+  }
+
+  $("pngBtn").addEventListener("click", async function(){
+    flushRebuild();   // 방금 바꾼 내용이 아직 안 그려졌으면 먼저 그린다
     if (!lastQR){ showAlert("먼저 내용을 입력해 주세요."); return; }
+    if (!beginSave()) return;
+    if (!(await confirmIfUnscannable())){ endSave(); return; }
+    if (!lastQR){ endSave(); return; }   // 확인창을 보는 사이에 내용이 바뀌었을 수 있다
     var total = lastQR.size + state.quiet * 2;
     var scale = Math.max(1, Math.round(state.saveSize / total));
     SseobomQRRender.draw(workCanvas, lastQR, renderOptions(scale));
+    var mySeq = buildSeq;
     workCanvas.toBlob(function(blob){
+      endSave();
       if (!blob){ showAlert("이미지를 만들지 못했어요."); return; }
+      if (mySeq !== buildSeq) return;   // 굽는 사이에 QR이 바뀌었다 — 이건 이미 옛 그림이다
       var name = safeName() + ".png";
       triggerDownload(blob, name);
       setLastResult(blob, name);
@@ -4148,8 +4756,12 @@
     }, "image/png");
   });
 
-  $("svgBtn").addEventListener("click", function(){
+  $("svgBtn").addEventListener("click", async function(){
+    flushRebuild();   // 방금 바꾼 내용이 아직 안 그려졌으면 먼저 그린다
     if (!lastQR){ showAlert("먼저 내용을 입력해 주세요."); return; }
+    if (!beginSave()) return;
+    if (!(await confirmIfUnscannable())){ endSave(); return; }
+    if (!lastQR){ endSave(); return; }   // 확인창을 보는 사이에 내용이 바뀌었을 수 있다
     var total = lastQR.size + state.quiet * 2;
     var scale = Math.max(1, Math.round(state.saveSize / total));
     var svg = SseobomQRRender.toSVG(lastQR, renderOptions(scale));
@@ -4159,10 +4771,14 @@
     setLastResult(blob, name);
     setExt(".svg");
     setStatus("완료! \"" + name + "\" (" + Math.round(blob.size / 1024) + " KB) 다운로드를 시작했어요.");
+    endSave();
   });
 
+  var sharing = false;
   $("shareBtn").addEventListener("click", function(){
-    if (!lastBlob) return;
+    if (!lastBlob || sharing) return;   // 두 번 탭하면 InvalidStateError가 난다
+    sharing = true;
+    setTimeout(function(){ sharing = false; }, 1200);
     var file = new File([lastBlob], lastBlobName, { type: lastBlob.type });
     // 파일만 넘긴다 — url·text를 같이 넣으면 blob: 임시 주소가 따라간다.
     navigator.share({ files: [file] }).catch(function(err){
@@ -4173,6 +4789,54 @@
 
   // 확장자 표시는 마지막으로 누른 저장 형식을 따라간다
   function setExt(ext){ $("filenameExt").textContent = ext; }
+
+  /* ---- 좁은 화면용 작은 미리보기 ----
+     미리보기가 화면 위로 사라지면 맨 위에 작게 따라붙는다. 누르면 원래 자리로 돌아간다.
+     따로 그리지 않고 이미 그려 둔 미리보기를 줄여 복사한다(캔버스 한 번 더 그릴 일 없음). */
+  var miniBtn = $("miniPreview"), miniCanvas = $("miniCanvas");
+  miniCanvas.width = miniCanvas.height = 76;   // 38px × 2배(선명하게)
+  var miniVisible = false, makeMode = true;
+  function makeModeIsRead(){ return !makeMode; }
+
+  function drawMini(){
+    if (!lastQR) return;
+    var g = miniCanvas.getContext("2d");
+    var W = miniCanvas.width, H = miniCanvas.height;
+    g.fillStyle = state.bg;
+    g.fillRect(0, 0, W, H);
+    var sw = previewCanvas.width, sh = previewCanvas.height;
+    if (sw < 2 || sh < 2) return;
+    // 서명이나 테두리가 붙으면 미리보기는 세로로 길어진다(297×327). 정사각형에 그대로
+    // 욱여넣으면 QR이 눌린다 — 로고를 1:1로 눌러 그렸다가 한 번 데인 적이 있다.
+    var k = Math.min(W / sw, H / sh);
+    var dw = Math.round(sw * k), dh = Math.round(sh * k);
+    g.imageSmoothingEnabled = true;
+    g.drawImage(previewCanvas, Math.round((W - dw) / 2), Math.round((H - dh) / 2), dw, dh);
+  }
+  function syncMini(){
+    miniBtn.hidden = !(miniVisible && makeMode && !!lastQR);
+  }
+  /* 내용을 지우면 lastQR은 없어지는데, 작은 미리보기는 스크롤이 움직이기 전까지 그대로
+     떠 있었다 — 판정은 "내용을 넣어 주세요"인데 옆에는 방금 지운 QR 그림이 남아 있었다. */
+  function clearMini(){
+    if (!miniCanvas) return;
+    var g = miniCanvas.getContext("2d");
+    g.clearRect(0, 0, miniCanvas.width, miniCanvas.height);
+    syncMini();
+  }
+  miniBtn.addEventListener("click", function(){
+    var stage = document.querySelector(".preview-stage");
+    if (stage) stage.scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+  if (window.IntersectionObserver){
+    var io = new IntersectionObserver(function(entries){
+      // 미리보기가 조금이라도 보이면 작은 건 필요 없다
+      miniVisible = !entries[0].isIntersecting;
+      syncMini();
+    }, { threshold: 0 });
+    var stageEl = document.querySelector(".preview-stage");
+    if (stageEl) io.observe(stageEl);
+  }
 
   /* ===================== 모드 전환 ===================== */
   var modeTrack = $("modeTrack");
@@ -4186,6 +4850,8 @@
     $("makePanel").hidden = !make;
     $("readPanel").hidden = make;
     $("downloadBar").hidden = !make;
+    makeMode = make;
+    syncMini();
     if (make) stopCamera();
   }
   $("segMake").addEventListener("click", function(){ setMode("make"); });
@@ -4266,7 +4932,12 @@
     return cv;
   }
 
+  /* 붙여넣기·드래그는 로딩 덮개를 뚫고 들어온다(클릭만 막힌다). 큰 사진을 원본 크기로
+     다시 보는 데 몇 초가 걸리는 동안 두 번째 사진이 들어오면, 먼저 끝난 쪽이 덮개를 걷고
+     늦게 끝난 쪽이 결과를 덮어써서 "A 사진 아래 B 결과"가 될 수 있다. 세대 번호로 막는다. */
+  var readGen = 0;
   async function decodeImageElement(img, dataUrl){
+    var myGen = ++readGen;
     showLoading("QR을 찾는 중...");
     await nextFrame();
     try {
@@ -4293,6 +4964,7 @@
       // 요즘 폰 사진은 4000px이 넘어서, 포스터에 붙은 작은 QR은 줄이는 순간 모듈이 1~2px이
       // 되어 버린다. 원본 크기로 한 번 더 본다(느리지만, 못 읽는 것보다는 낫다).
       if (text == null && Math.max(img.naturalWidth, img.naturalHeight) > 1400){
+        if (myGen !== readGen) return;
         showLoading("원본 크기로 다시 보는 중...");
         await nextFrame();
         full = imgToCanvas(img, 4200);
@@ -4310,6 +4982,7 @@
         }
       }
 
+      if (myGen !== readGen) return;        // 그 사이 다른 사진이 들어왔다 — 이 결과는 버린다
       hideLoading();
       if (text == null){
         showReadResult(null, dataUrl, "");
@@ -4317,6 +4990,7 @@
       }
       showReadResult(text, dataUrl, via);
     } catch (err){
+      if (myGen !== readGen) return;
       hideLoading();
       showAlert("QR을 읽는 중 문제가 생겼어요.");
     }
@@ -4373,14 +5047,21 @@
     }
   });
 
-  /* ---- 카메라 ---- */
-  var camStream = null, camTimer = null;
+  /* ---- 카메라 ----
+     권한 창이 뜨는 동안 버튼을 한 번 더 누르거나 "만들기"로 넘어갈 수 있다. 그때
+     getUserMedia가 두 번 돌면 먼저 켠 카메라를 끌 방법이 없어지고(변수가 덮여 버린다)
+     인식 루프도 둘이 돌아, 한참 뒤에 엉뚱한 결과가 튀어나온다. 세대 번호로 막는다. */
+  var camStream = null, camTimer = null, camGen = 0, camStarting = false;
   function stopCamera(){
+    camGen++;                      // 기다리는 중인 시작 요청을 무효로
+    camStarting = false;
     if (camTimer){ cancelAnimationFrame(camTimer); camTimer = null; }
     if (camStream){
       camStream.getTracks().forEach(function(t){ t.stop(); });
       camStream = null;
     }
+    var v = $("cameraVideo");
+    if (v){ try { v.pause(); } catch(e){} v.srcObject = null; }
     $("cameraStage").hidden = true;
     $("cameraBtn").hidden = false;
     $("cameraStopBtn").hidden = true;
@@ -4391,17 +5072,31 @@
       showAlert("이 브라우저에서는 카메라를 쓸 수 없어요. QR 사진을 올려서 읽어주세요.");
       return;
     }
+    if (camStarting || camStream) return;     // 이미 켜는 중이거나 켜져 있다
+    camStarting = true;
+    var myGen = ++camGen;
+    var stream = null;
     try {
-      camStream = await navigator.mediaDevices.getUserMedia({
+      stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: { ideal: "environment" } }, audio: false
       });
     } catch (err){
+      if (myGen === camGen) camStarting = false;
       showAlert("카메라를 켜지 못했어요. 브라우저 주소창의 카메라 권한을 확인해 주세요.");
       return;
     }
+    // 권한 창을 보는 사이에 껐거나 만들기로 넘어갔다면, 켜자마자 다시 끈다
+    if (myGen !== camGen || !makeModeIsRead()){
+      stream.getTracks().forEach(function(t){ t.stop(); });
+      camStarting = false;
+      return;
+    }
+    camStream = stream;
+    camStarting = false;
     var video = $("cameraVideo");
     video.srcObject = camStream;
     await video.play().catch(function(){});
+    if (myGen !== camGen) return;             // play를 기다리는 사이에 꺼졌다
     $("cameraStage").hidden = false;
     $("cameraBtn").hidden = true;
     $("cameraStopBtn").hidden = false;
@@ -4414,6 +5109,7 @@
     }
     var busy = false, last = 0;
     async function tick(now){
+      if (myGen !== camGen) return;           // 이미 끝난 세대의 루프는 스스로 멈춘다
       camTimer = requestAnimationFrame(tick);
       if (busy || !video.videoWidth) return;
       if (now - last < 180) return; // 초당 대여섯 번이면 충분하다
@@ -4460,6 +5156,7 @@
   $("capSizeVal").textContent = state.captionSize.toFixed(1) + "칸";
   $("frameWidthVal").textContent = state.frameWidth.toFixed(1) + "칸";
   syncContentMeta();
+  syncCapRows();
   syncEcChips();
   setLogoMode("none");
   rebuild();
