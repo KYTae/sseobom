@@ -119,7 +119,12 @@
   .wrap{
     max-width:980px;
     margin:0 auto;
-    padding:32px 20px 140px; /* extra bottom room so the floating download bar never covers the last cards */
+    /* 아래 여백은 떠 있는 다운로드 바가 마지막 카드를 가리지 않게 비워 두는 자리다.
+       예전에는 140px 고정이었는데, 바에 버튼이 하나 늘자 바가 165px가 되면서 첫 줄 카드가
+       바 밑에 깔렸다(실측: 카드 y=845, 바 상단 y=817). 고정값은 버튼을 더할 때마다 또
+       어긋나므로 syncBottomSpace()가 실제 바 높이를 재서 이 값을 덮어쓴다 — 여기 140px는
+       스크립트가 돌기 전(그리고 바가 숨어 있을 때)의 기본값. */
+    padding:32px 20px 140px;
   }
   header.top{
     display:flex;
@@ -1114,7 +1119,156 @@
     border-radius:999px;
   }
 
+  /* ---------- 페이지 선택 모드 ----------
+     200페이지짜리 스캔본에서 홀수 페이지만 지우려면 카드를 하나씩 100번 눌러야 했다.
+     새 기능을 더하는 게 아니라, 이미 있는 삭제·회전·복제를 "여러 장에 한 번에"
+     쓸 수 있게 하는 층이라 기존 함수(deletePage/rotatePage/duplicatePage)의
+     로직은 그대로 두고 그것들을 묶어 부르는 경로만 새로 만든다. */
+  /* 한 줄에 다 넣고 flex-wrap에 맡겼더니 "회전·복제"는 윗줄, "이미지 zip·삭제"는 아랫줄로
+     끊겨서 어디까지가 고르는 버튼이고 어디부터가 동작 버튼인지 안 보였다.
+     고르는 줄과 동작하는 줄을 아예 다른 줄로 나눈다 — 배지 줄에서 쓰던
+     ".badge-row(세로 래퍼) + .badge-line(줄 단위)" 구조와 같은 방식. */
+  /* 열리고 닫힐 때 뚝 끊기지 않게, display:none↔flex 대신 사용법 박스(.help-content)와 똑같이
+     바깥을 grid-template-rows 0fr↔1fr로 트랜지션한다. 위/아래 여백과 테두리 두께도 같이
+     0↔실제값으로 움직여야 완전히 접힌다(border-box라 트랙이 0이어도 padding/border는 남는다).
+     visibility는 0초짜리로 지연시켜 접힌 동안 버튼들이 Tab 순서에서 빠지게 한다 —
+     높이만 0으로 만들면 안 보이는 버튼에 포커스가 들어간다. */
+  .select-bar-wrap{
+    display:grid;
+    grid-template-rows:0fr;
+    margin-bottom:0;
+    opacity:0;
+    visibility:hidden;
+    transition:
+      grid-template-rows .26s cubic-bezier(.4,0,.2,1),
+      opacity .2s ease,
+      margin-bottom .26s cubic-bezier(.4,0,.2,1),
+      visibility 0s linear .26s;
+  }
+  .select-bar-wrap.show{
+    grid-template-rows:1fr;
+    margin-bottom:16px;
+    opacity:1;
+    visibility:visible;
+    transition:
+      grid-template-rows .26s cubic-bezier(.4,0,.2,1),
+      opacity .2s ease .04s,
+      margin-bottom .26s cubic-bezier(.4,0,.2,1),
+      visibility 0s linear;
+  }
+  .select-bar-inner{
+    overflow:hidden;
+    min-height:0; /* grid 트랙이 0으로 줄어들 수 있게 — 없으면 내용 높이에서 안 내려간다 */
+  }
+  .select-bar{
+    display:flex;
+    flex-direction:column;
+    align-items:stretch;
+    gap:10px;
+    padding:12px 14px;
+    background:var(--accent-dim);
+    border:1px solid var(--accent);
+    border-radius:var(--radius-sm);
+    /* 접힐 때 박스가 살짝 위로 빨려 들어가는 느낌을 줘서 "줄이 사라졌다"가 분명해진다. */
+    transform:translateY(-4px);
+    transition:transform .26s cubic-bezier(.4,0,.2,1);
+  }
+  .select-bar-wrap.show .select-bar{transform:translateY(0);}
+  /* 모션을 줄이도록 설정한 사용자에게는 움직임 없이 즉시 바뀌게 한다. */
+  @media (prefers-reduced-motion: reduce){
+    .select-bar-wrap, .select-bar-wrap.show, .select-bar{transition-duration:.01ms;}
+    .select-bar{transform:none;}
+  }
+  .sel-row{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:8px;
+  }
+  /* 동작 줄은 얇은 선으로 한 번 더 갈라 준다 — 되돌릴 수 없는 삭제가 여기 있어서,
+     고르다가 실수로 누르지 않도록 시각적으로도 구역을 분리한다. */
+  .sel-row.sel-actions{
+    padding-top:10px;
+    border-top:1px solid var(--accent);
+    border-top-color:color-mix(in srgb, var(--accent) 28%, transparent);
+  }
+  .select-bar .sel-count{
+    font-size:13.5px;
+    font-weight:700;
+    color:var(--accent);
+    margin-right:2px;
+  }
+  .select-bar .sel-label{
+    font-size:12.5px;
+    font-weight:600;
+    color:var(--accent);
+    opacity:.85;
+    margin-right:2px;
+  }
+  .select-bar .sel-actions .spacer{flex:1;}
+  .select-bar button{
+    padding:6px 11px;
+    font-size:12.5px;
+    border-radius:8px;
+  }
+  .select-bar .sel-range{
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .select-bar .sel-range input[type=text]{
+    width:132px;
+    padding:6px 9px;
+    font-size:12.5px;
+    border-radius:8px;
+    border:1px solid var(--card-border);
+    background:var(--card);
+    color:var(--text);
+    font-family:inherit;
+  }
+  .select-bar .sel-range input[type=text]:focus-visible{
+    outline:2px solid var(--accent);
+    outline-offset:2px;
+  }
+  /* 선택 모드일 때만 카드 전체가 "고르는 대상"이 된다 — 평소에는 드래그로 순서를
+     바꾸는 손잡이라, 두 동작이 한 카드에 겹치지 않도록 모드로 갈라 둔다. */
+  .page-card.selectable{cursor:pointer;}
+  .page-card.selected{
+    border-color:var(--accent);
+    box-shadow:0 0 0 2px var(--accent-dim), 0 0 0 3px var(--accent);
+  }
+  .select-check{
+    position:absolute;
+    top:6px;
+    right:6px;
+    width:22px;
+    height:22px;
+    border-radius:50%;
+    border:2px solid #fff;
+    background:rgba(0,0,0,.42);
+    color:#fff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:13px;
+    line-height:1;
+    z-index:3;
+    pointer-events:none;
+    box-shadow:0 1px 4px rgba(0,0,0,.3);
+  }
+  .page-card.selected .select-check{
+    background:var(--accent);
+    border-color:#fff;
+  }
+
   @media (max-width:520px){
+    .select-bar{gap:8px; padding:10px;}
+    .sel-row{gap:6px;}
+    .select-bar .sel-range{flex:1 1 100%;}
+    .select-bar .sel-range input[type=text]{flex:1; width:auto;}
+    /* 좁은 화면에서는 "고른 페이지를" 라벨이 한 줄을 통째로 먹어 버튼이 더 밀린다 */
+    .select-bar .sel-label{display:none;}
+    .select-bar .sel-actions .spacer{display:none;}
     .grid{grid-template-columns:repeat(auto-fill, minmax(120px,1fr));}
     .filename-row input[type=text]{width:110px;}
     .download-bar{width:calc(100% - 20px);bottom:10px;padding:12px;}
@@ -1142,9 +1296,9 @@
   <header class="top">
     <div class="brand"><span class="dot"></span>써봄</div>
     <h1>PDF 편집기</h1>
-    <p class="sub">여러 PDF를 하나로 합치고, 원하는 페이지 범위로 나누고, 순서를 바꾸거나 회전하고, 필요한 페이지는 복제하고, 필요없는 페이지는 지우세요. 페이지를 이미지로 저장할 수도 있어요.</p>
+    <p class="sub">여러 PDF를 하나로 합치고, 원하는 페이지 범위로 나누고, 순서를 바꾸거나 회전하고, 필요한 페이지는 복제하고, 필요없는 페이지는 지우세요. 여러 장을 한 번에 골라서 처리할 수 있고, 페이지를 이미지로도 저장할 수 있어요.</p>
     <div class="badge-row">
-      <span class="feature-badge">PDF 합치기 · 분할 · 압축 · 순서변경 · 회전 · 복제 · A4비율 변경 · 이미지 다운로드 · 삭제</span>
+      <span class="feature-badge">PDF 합치기 · 분할 · 압축 · 순서변경 · 회전 · 복제 · A4비율 변경 · 여러 장 한 번에 고르기 · 이미지 zip 저장 · 삭제</span>
       <span class="privacy-badge">파일은 서버에 업로드되지 않습니다 · 모든 처리는 이 브라우저 안에서 끝납니다</span>
       <span class="privacy-badge">로그인·구독 필요 없음 · 몇 번을 다시 편집해도 완전 무료</span>
     </div>
@@ -1163,6 +1317,7 @@
           <div class="help-item"><span class="help-key">파일명순 정렬 ▲/▼</span><span class="help-desc">파일 목록 화면에서 파일들을 이름 기준으로 정렬해요. 업로드한 순서가 자동으로 바뀌지는 않고, 이 버튼을 누른 순간에만 한 번 정렬돼요. 누를 때마다 오름차순 ↔ 내림차순이 번갈아 바뀌어요.</span></div>
           <div class="help-item"><span class="help-key">+ 파일 추가</span><span class="help-desc">지금 목록에 PDF 파일을 더 추가해요.</span></div>
           <div class="help-item"><span class="help-key">전체 지우기</span><span class="help-desc">올린 파일과 페이지를 모두 지우고 처음 화면으로 되돌려요.</span></div>
+          <div class="help-item"><span class="help-key">☑ 페이지 선택</span><span class="help-desc">여러 페이지를 골라서 한 번에 회전·복제·삭제하거나 이미지로 받아요. 카드를 눌러 고르고, <b>Shift를 누른 채 누르면</b> 직전에 고른 카드부터 여기까지가 한 번에 선택돼요. 전체·홀수·짝수·반전 버튼이나 "3-15, 40" 같은 범위 입력으로도 고를 수 있어요. 선택 모드에서는 카드 드래그로 순서를 바꾸는 기능이 잠시 꺼져요 — 고르는 동작과 겹치지 않게 하려는 거예요.</span></div>
         </div>
       </div>
       <div class="help-section">
@@ -1190,7 +1345,8 @@
           <div class="help-item"><span class="help-key">저장 파일명</span><span class="help-desc">다운로드될 PDF 파일의 이름을 정해요.</span></div>
           <div class="help-item"><span class="help-key">용량 압축</span><span class="help-desc">체크하면 사진·스캔 이미지만 다시 압축해서 용량을 줄여요. "편집한 PDF 다운로드"와 "✂ 분할 저장" 둘 다에 적용돼요.</span></div>
           <div class="help-item"><span class="help-key">✂ 분할 저장</span><span class="help-desc">"1-13, 14-30"처럼 페이지 범위를 직접 입력해서 여러 개의 PDF로 나눠 zip 파일 하나로 받아요. 범위에 포함되지 않은 페이지(예: 13-24)는 어떤 파일에도 들어가지 않고 빠져요.</span></div>
-          <div class="help-item"><span class="help-key">편집한 PDF 다운로드</span><span class="help-desc">누르면 지금 화면에 보이는 순서·회전·A4비율·삭제 상태 그대로 하나의 PDF로 합쳐서 바로 다운로드해요.</span></div>
+          <div class="help-item"><span class="help-key">📥 이미지 zip</span><span class="help-desc">지금 화면의 모든 페이지를 한 장씩 PNG 이미지로 만들어 zip 하나로 받아요. 파일 이름에 순서 번호가 붙어서 탐색기에서도 순서대로 정렬돼요. A4비율을 켠 페이지는 A4 비율 그대로 저장돼요. 일부만 받고 싶으면 "☑ 페이지 선택"으로 고른 뒤 선택 줄의 📥 이미지 zip을 누르세요. 페이지를 골라둔 채로 아래 바의 버튼을 누르면 고른 것만 받을지 전체를 받을지 한 번 물어봐요.</span></div>
+          <div class="help-item"><span class="help-key">편집한 PDF 다운로드</span><span class="help-desc">누르면 지금 화면에 보이는 순서·회전·A4비율·삭제 상태 그대로 하나의 PDF로 합쳐서 바로 다운로드해요. 페이지를 골라둔 상태라면 고른 것만 받을지 전체를 받을지 한 번 물어봐요 — 고른 페이지만 뽑아내고 싶을 때 쓰면 편해요.</span></div>
         </div>
       </div>
       <div class="help-section">
@@ -1214,10 +1370,38 @@
     <div class="count"><strong id="pageCount">0</strong>페이지 · <span id="fileCount">0</span>개 파일</div>
     <button class="ghost" id="viewToggleBtn" style="display:none;"></button>
     <button class="ghost" id="sortByNameBtn" style="display:none;">파일명순 정렬</button>
+    <button class="ghost" id="selectModeBtn" style="display:none;" aria-pressed="false" title="여러 페이지를 골라서 한 번에 회전·복제·이미지 zip·삭제해요.">☑ 페이지 선택</button>
     <button class="ghost" id="addMoreBtn">+ 파일 추가</button>
     <button class="danger-ghost" id="clearAllBtn">전체 지우기</button>
   </div>
   <div class="view-hint" id="viewHint" style="display:none;"></div>
+
+  <div class="select-bar-wrap" id="selectBarWrap">
+   <div class="select-bar-inner">
+    <div class="select-bar" id="selectBar">
+    <div class="sel-row" role="group" aria-label="페이지 고르기">
+      <span class="sel-count" id="selCount">0장 선택</span>
+      <button class="ghost" type="button" id="selAllBtn">전체</button>
+      <button class="ghost" type="button" id="selNoneBtn">해제</button>
+      <button class="ghost" type="button" id="selOddBtn" title="1, 3, 5… 번째 페이지를 골라요">홀수</button>
+      <button class="ghost" type="button" id="selEvenBtn" title="2, 4, 6… 번째 페이지를 골라요">짝수</button>
+      <button class="ghost" type="button" id="selInvertBtn" title="고른 것과 안 고른 것을 서로 바꿔요">반전</button>
+      <span class="sel-range">
+        <input type="text" id="selRangeInput" placeholder="예: 3-15, 40" aria-label="선택할 페이지 번호나 범위">
+        <button class="ghost" type="button" id="selRangeBtn">범위 선택</button>
+      </span>
+    </div>
+    <div class="sel-row sel-actions" role="group" aria-label="고른 페이지에 적용할 작업">
+      <span class="sel-label">고른 페이지를</span>
+      <button class="ghost" type="button" id="bulkRotateBtn">↻ 회전</button>
+      <button class="ghost" type="button" id="bulkDupBtn">복제</button>
+      <button class="ghost" type="button" id="bulkImgBtn" aria-label="고른 페이지만 이미지 zip으로 저장" title="고른 페이지만 PNG로 묶어서 받아요">📥 이미지 zip</button>
+      <span class="spacer"></span>
+      <button class="danger-ghost" type="button" id="bulkDeleteBtn">✕ 삭제</button>
+    </div>
+    </div>
+   </div>
+  </div>
 
   <div class="grid" id="grid"></div>
   <div class="empty-state" id="emptyState" style="display:none;">불러온 페이지가 없습니다.</div>
@@ -1236,6 +1420,7 @@
           <span>용량 압축</span>
         </label>
         <button class="ghost" id="splitToggleBtn" title="원하는 페이지 범위별로 나눠서 zip으로 저장해요.">✂ 분할 저장</button>
+        <button class="ghost" id="imageZipBtn" aria-label="모든 페이지를 이미지 zip으로 저장" title="모든 페이지를 한 장씩 PNG 이미지로 만들어 zip 하나로 받아요. A4비율을 켠 페이지는 A4 비율 그대로 저장돼요.">📥 이미지 zip</button>
         <button class="ghost" id="shareBtn" type="button" hidden title="방금 만든 파일을 카카오톡·메일 등으로 바로 보내요.">공유</button>
         <button class="primary" id="downloadToggleBtn" title="지금 화면에 보이는 순서·회전·A4비율·삭제 상태 그대로 PDF로 바로 다운로드해요. 왼쪽의 '용량 압축' 체크박스를 켜면 압축해서 받아요.">편집한 PDF 다운로드</button>
       </div>
@@ -1437,6 +1622,21 @@
   const lightboxA4SegA4 = document.getElementById("lightboxA4SegA4");
   const lightboxA4SegOriginal = document.getElementById("lightboxA4SegOriginal");
   const lightboxCaption = document.getElementById("lightboxCaption");
+  const selectModeBtn = document.getElementById("selectModeBtn");
+  const selectBarWrap = document.getElementById("selectBarWrap");
+  const selCount = document.getElementById("selCount");
+  const selAllBtn = document.getElementById("selAllBtn");
+  const selNoneBtn = document.getElementById("selNoneBtn");
+  const selOddBtn = document.getElementById("selOddBtn");
+  const selEvenBtn = document.getElementById("selEvenBtn");
+  const selInvertBtn = document.getElementById("selInvertBtn");
+  const selRangeInput = document.getElementById("selRangeInput");
+  const selRangeBtn = document.getElementById("selRangeBtn");
+  const bulkRotateBtn = document.getElementById("bulkRotateBtn");
+  const bulkDupBtn = document.getElementById("bulkDupBtn");
+  const bulkImgBtn = document.getElementById("bulkImgBtn");
+  const bulkDeleteBtn = document.getElementById("bulkDeleteBtn");
+  const imageZipBtn = document.getElementById("imageZipBtn");
 
   // sources[fileIndex] = { name, pdfLibDoc, pdfJsDoc, numPages }
   let sources = [];
@@ -1452,6 +1652,12 @@
   // 'file' = one card per uploaded PDF (only used when 2+ files are active).
   let viewMode = "page";
   let fileSortAsc = true; // 다음 "파일명순 정렬" 클릭에 적용될 방향 — 클릭할 때마다 뒤집힌다.
+  // 선택 모드: 켜면 카드를 눌러 여러 장을 고르고 한 번에 삭제·회전·복제·이미지 저장을 한다.
+  // 선택은 페이지 id로 들고 있어야 한다 — 순서(index)로 들고 있으면 삭제·복제 한 번에
+  // 나머지 선택이 통째로 어긋난다.
+  let selectMode = false;
+  let selectedIds = new Set();
+  let lastPickedIdx = -1; // Shift+클릭 범위 선택의 기준점
 
   function activeFileCount(){
     return new Set(pages.map(p => p.fileIndex)).size;
@@ -1480,8 +1686,31 @@
     }
   }
 
-  function setStatus(msg){
+  // 화면에 보이는 상태 문구(statusLine)는 완료·오류만이 아니라 "3/12장째 이미지로 만드는 중..."
+  // 같은 진행률에도 쓰인다. 그래서 statusLine 자체에 aria-live를 걸면 12장짜리 zip 하나에
+  // 스크린 리더가 12번을 읽는다. 그렇다고 아무것도 안 걸면 선택·회전·복제·삭제·완료·오류가
+  // 전부 무음이 된다 — 시끄러운 것보다 그쪽이 더 나쁘다.
+  // 그래서 읽어줄 영역을 따로 숨겨 두고, 진행률만 화면에 쓰고 넘어간다.
+  // (사운드 편집 도구의 레인 순서 안내와 같은 방식 — 숨은 영역 하나를 공유한다.)
+  let statusLive = null;
+  function announceStatus(msg){
+    if (!msg) return; // 문구를 지우는 건 읽어줄 것이 없다
+    if (!statusLive){
+      statusLive = document.createElement("div");
+      statusLive.setAttribute("aria-live", "polite");
+      statusLive.setAttribute("aria-atomic", "true");
+      statusLive.style.cssText = "position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;";
+      document.body.appendChild(statusLive);
+    }
+    // 같은 문구가 연달아 오면(회전을 두 번 누르는 등) 내용이 안 바뀌어 아무것도 안 읽힌다.
+    // 끝에 안 보이는 공백을 번갈아 붙여서 "바뀐 것"으로 만들어 준다(소리로는 차이가 없다).
+    statusLive.textContent = (statusLive.textContent === msg) ? msg + " " : msg;
+  }
+
+  // opts.progress: 진행률처럼 곧 다음 문구로 덮일 중간 상태 — 화면에만 쓰고 읽어주지 않는다.
+  function setStatus(msg, opts){
     statusLine.textContent = msg || "";
+    if (!opts || !opts.progress) announceStatus(msg);
   }
 
   // 분할 저장 패널이 열려 있는 동안은 "편집한 PDF 다운로드"를 눌러도 반응하지 않도록
@@ -1504,11 +1733,212 @@
     addMoreBtn.disabled = b;
     clearAllBtn.disabled = b || pages.length === 0;
     sortByNameBtn.disabled = b;
+    imageZipBtn.disabled = b || pages.length === 0;
+    selectModeBtn.disabled = b;
+    updateSelectBar();
     updateDownloadToggleStates();
     if (msg !== undefined) setStatus(msg);
   }
 
+  /* ===================== 페이지 선택 모드 ===================== */
+
+  // 화면 순서대로 정렬된 "선택된 페이지" 목록. 선택은 id로 들고 있으므로
+  // 삭제·복제·순서변경이 아무리 일어나도 가리키는 페이지가 바뀌지 않는다.
+  function selectedPages(){
+    return pages.filter(p => selectedIds.has(p.id));
+  }
+
+  // 페이지가 사라졌는데 선택만 남아 있으면 "3장 선택"인데 아무것도 안 되는 상태가 된다.
+  function pruneSelection(){
+    if (!selectedIds.size) return;
+    const alive = new Set(pages.map(p => p.id));
+    selectedIds.forEach(id => { if (!alive.has(id)) selectedIds.delete(id); });
+  }
+
+  function setSelectMode(on){
+    selectMode = !!on;
+    if (!selectMode){ selectedIds.clear(); lastPickedIdx = -1; }
+    selectModeBtn.setAttribute("aria-pressed", selectMode ? "true" : "false");
+    selectModeBtn.classList.toggle("active", selectMode);
+    selectModeBtn.textContent = selectMode ? "☑ 선택 끝내기" : "☑ 페이지 선택";
+    renderGrid({ keepResult: true });
+  }
+
+  function updateSelectBar(){
+    const n = selectedIds.size;
+    // 선택 모드라도 파일 목록 화면에서는 고를 페이지 카드가 없으니 바를 숨긴다.
+    const show = selectMode && viewMode === "page" && pages.length > 0;
+    // .show는 바깥 래퍼에 건다 — 높이·여백 트랜지션이 거기 걸려 있다.
+    selectBarWrap.classList.toggle("show", show);
+    // 접히는 애니메이션이 재생되는 동안에도 안쪽 내용은 그대로 남아야 자연스럽다.
+    // 다만 버튼 활성/비활성 갱신은 보일 때만 하면 된다.
+    if (!show) return;
+    selCount.textContent = n > 0 ? `${n}장 선택 (전체 ${pages.length}장)` : `고를 페이지를 눌러주세요 (전체 ${pages.length}장)`;
+    [bulkRotateBtn, bulkDupBtn, bulkImgBtn, bulkDeleteBtn].forEach(b => { b.disabled = (n === 0) || busy; });
+    [selAllBtn, selNoneBtn, selOddBtn, selEvenBtn, selInvertBtn, selRangeBtn].forEach(b => { b.disabled = busy; });
+    selRangeInput.disabled = busy;
+  }
+
+  // "3-15, 40" 같은 입력을 페이지 번호 집합으로 바꾼다. 분할 저장의 parseSplitRanges는
+  // 구간 쌍을 돌려주는 별도 용도라(범위 밖 페이지를 버리는 의미가 있다) 여기서는 쓰지 않는다.
+  function parsePageList(text, total){
+    const nums = new Set();
+    const cleaned = (text || "").trim();
+    if (!cleaned) return { error: "선택할 페이지 번호를 적어주세요. 예: 3-15, 40" };
+    const parts = cleaned.split(",").map(s => s.trim()).filter(Boolean);
+    for (const part of parts){
+      const m = part.match(/^(\d+)\s*(?:-\s*(\d+))?$/);
+      if (!m) return { error: `"${part}"는 알아볼 수 없어요. 3-15, 40 처럼 적어주세요.` };
+      let a = parseInt(m[1], 10);
+      let b = m[2] ? parseInt(m[2], 10) : a;
+      if (a > b) { const t = a; a = b; b = t; } // 15-3처럼 거꾸로 적어도 받아준다
+      // 한 개만 적었으면 "99-99"가 아니라 "99"로 돌려준다. 뒤에 "페이지는"을 붙이는 이유는
+      // 숫자 바로 뒤에 조사를 붙이면 끝자리 읽는 법에 따라 은/는이 갈리기 때문이다
+      // ("12는"은 맞지만 "10는"은 틀리다). "페이지는"이면 어떤 숫자에도 어색하지 않다.
+      const label = (a === b) ? `${a}` : `${a}-${b}`;
+      if (a < 1 || b > total) return { error: `${label}페이지는 범위를 벗어났어요. 지금은 1-${total}페이지까지 있어요.` };
+      for (let n = a; n <= b; n++) nums.add(n);
+    }
+    if (!nums.size) return { error: "고를 페이지가 없어요." };
+    return { nums };
+  }
+
+  function applySelection(fn){
+    pages.forEach((p, idx) => { if (fn(idx + 1, p)) selectedIds.add(p.id); else selectedIds.delete(p.id); });
+    lastPickedIdx = -1;
+    renderGrid({ keepResult: true });
+  }
+
+  // 카드를 눌렀을 때. Shift를 누른 채면 직전에 고른 카드부터 여기까지를 한 번에 켠다.
+  function pickCardAt(idx, shiftKey){
+    const p = pages[idx];
+    if (!p) return;
+    if (shiftKey && lastPickedIdx >= 0 && lastPickedIdx < pages.length){
+      const a = Math.min(lastPickedIdx, idx), b = Math.max(lastPickedIdx, idx);
+      // 범위 선택은 항상 "켜기"로만 동작한다 — 끄기까지 섞으면 어디까지 켜질지 예측이 안 된다.
+      for (let i = a; i <= b; i++) selectedIds.add(pages[i].id);
+    } else {
+      if (selectedIds.has(p.id)) selectedIds.delete(p.id); else selectedIds.add(p.id);
+      lastPickedIdx = idx;
+    }
+    renderGrid({ keepResult: true });
+  }
+
+  async function bulkDelete(){
+    const targets = selectedPages();
+    if (!targets.length || busy) return;
+    const ok = await showConfirm(`고른 ${targets.length}장을 지울까요? 되돌릴 수 없어요.`, { okLabel: "삭제" });
+    if (!ok) return;
+    const ids = new Set(targets.map(p => p.id));
+    const removed = targets.length;
+    // 한 장짜리 deletePage()와 같은 방식: 지워질 카드들을 먼저 사라지게 하고(200ms),
+    // 그 사이 남는 카드들의 "지금 자리"를 기록해 뒀다가 실제 제거 후 FLIP으로 메운다.
+    const firstRects = captureCardRects();
+    let popping = 0;
+    ids.forEach(id => {
+      const el = grid.querySelector(`.page-card[data-id="${id}"]`);
+      if (el){ el.classList.add("card-pop-out"); popping++; }
+    });
+    const finish = () => {
+      pages = pages.filter(p => !ids.has(p.id));
+      selectedIds.clear();
+      lastPickedIdx = -1;
+      syncViewMode();
+      renderGrid();
+      playFlipFrom(firstRects);
+      setStatus(`${removed}장을 지웠어요. 남은 페이지 ${pages.length}장.`);
+      // 확인창은 닫히면서 자기를 연 "✕ 삭제" 버튼으로 포커스를 돌려주는데, 그 버튼은 방금
+      // 선택이 비워져서 disabled가 된다 — 그래서 포커스가 body로 떨어지고, 키보드만 쓰는
+      // 사람은 Tab을 페이지 맨 위에서 다시 시작해야 한다. 바로 위에 있는 "페이지 선택"
+      // 버튼으로 옮겨서 선택 바 근처에 머물게 한다.
+      if (document.activeElement === document.body
+          && selectModeBtn.style.display !== "none" && !selectModeBtn.disabled){
+        selectModeBtn.focus({ preventScroll: true });
+      }
+    };
+    // 카드를 못 찾은 예외적인 경우(파일 화면 전환 등)엔 애니메이션 없이 바로 처리한다.
+    if (popping) setTimeout(finish, 200); else finish();
+  }
+
+  // 여러 장을 한 번에 다룰 때도 한 장짜리(rotatePage/duplicatePage/deletePage)와 같은
+  // 애니메이션을 보여준다. 한 장짜리 함수를 장마다 부르면 타이머가 장 수만큼 겹쳐서
+  // 오히려 끊겨 보이므로, 같은 기법을 쓰되 **한 번에 모아서** 재생한다 —
+  // 위치 기록 1회 → 상태 변경 → renderGrid() 1회 → FLIP 일괄 재생 → 타이머 1개.
+
+  // 지금 그려져 있는 카드들의 위치를 기록해 둔다(FLIP의 First).
+  function captureCardRects(){
+    const m = new Map();
+    grid.querySelectorAll(".page-card").forEach(c => m.set(c.dataset.id, c.getBoundingClientRect()));
+    return m;
+  }
+  // 다시 그린 뒤, 자리가 바뀐 카드들을 옛 자리에서 새 자리로 미끄러뜨린다(Last·Invert·Play).
+  function playFlipFrom(firstRects){
+    grid.querySelectorAll(".page-card").forEach(c => {
+      const first = firstRects.get(c.dataset.id);
+      if (!first) return; // 이번에 새로 생긴 카드 — 등장 애니메이션을 따로 받는다
+      const last = c.getBoundingClientRect();
+      const dx = first.left - last.left;
+      const dy = first.top - last.top;
+      if (dx || dy) playFlip(c, dx, dy);
+    });
+  }
+
+  function bulkRotate(){
+    const targets = selectedPages();
+    if (!targets.length || busy) return;
+    // 한 장짜리와 같은 방식: 화면에 있는 이미지를 먼저 새 각도로 돌려 트랜지션을 보여주고,
+    // 다 돌 때쯤 renderGrid()로 마무리한다. 다만 타이머는 장마다가 아니라 전체에 하나만 건다.
+    let animated = 0;
+    targets.forEach(p => {
+      const from = p.rotation;
+      p.rotation = (p.rotation + 90) % 360;
+      const img = grid.querySelector(`.page-card[data-id="${p.id}"] .thumb-box img`);
+      if (!img) return;
+      const rotated90 = Math.abs(p.rotation % 180) === 90;
+      // from+90을 그대로 쓴다(270→0이 아니라 270→360) — 그래야 역방향으로 돌지 않는다.
+      img.style.transform = `rotate(${from + 90}deg)`;
+      img.style.width = rotated90 ? "133.3333%" : "100%";
+      img.style.height = rotated90 ? "75%" : "100%";
+      animated++;
+    });
+    setStatus(`${targets.length}장을 90도 회전했어요.`);
+    if (animated) setTimeout(renderGrid, 160); else renderGrid();
+  }
+
+  function bulkDuplicate(){
+    const targets = selectedPages();
+    if (!targets.length || busy) return;
+    const firstRects = captureCardRects();
+    // 뒤에서부터 끼워 넣어야 앞쪽 인덱스가 밀리지 않는다.
+    const idxs = targets.map(p => pages.findIndex(q => q.id === p.id)).sort((a, b) => b - a);
+    const newIds = [];
+    idxs.forEach(idx => {
+      const copy = { ...pages[idx], id: "p" + (idSeed++) };
+      pages.splice(idx + 1, 0, copy);
+      newIds.push(copy.id);
+    });
+    // 복제본이 아니라 원본이 선택된 채로 남는다 — 방금 고른 것을 계속 다루는 게 자연스럽다.
+    renderGrid();
+    playFlipFrom(firstRects);                       // 밀려나는 카드들
+    newIds.forEach(playCardEnterAnimation);          // 새로 생긴 카드들
+    setStatus(`${targets.length}장을 복제했어요. 전체 ${pages.length}장.`);
+  }
+
+  // 떠 있는 다운로드 바가 카드를 가리지 않도록, 실제 바 높이만큼 페이지 아래 여백을 벌린다.
+  // 바 높이는 화면 폭(버튼 줄바꿈)·분할 패널 펼침 여부에 따라 달라지므로 그때마다 다시 잰다.
+  const wrapEl = document.querySelector(".wrap");
+  function syncBottomSpace(){
+    if (!wrapEl || !downloadBar) return;
+    const shown = downloadBar.style.display !== "none";
+    const h = shown ? downloadBar.getBoundingClientRect().height + 18 /* bottom */ + 16 /* 숨 쉴 틈 */ : 0;
+    wrapEl.style.paddingBottom = Math.max(140, Math.round(h)) + "px";
+  }
+
   function refreshToolbar(){
+    // viewMode가 "file"인데 실제로 살아 있는 파일이 1개 이하면 renderGrid()는 이미 페이지
+    // 화면을 그린다. 그때 viewMode만 "file"로 남아 있으면 아래 canSelect 같은 판정이
+    // 화면과 어긋난다(페이지 카드가 보이는데 "페이지 선택" 버튼이 숨는다). 여기서 맞춰둔다.
+    syncViewMode();
     const hasPages = pages.length > 0;
     const activeFiles = activeFileCount();
     toolbar.style.display = (sources.length > 0) ? "flex" : "none";
@@ -1518,10 +1948,22 @@
     fileCountEl.textContent = activeFiles;
     splitDownloadBtn.disabled = !hasPages || busy;
     clearAllBtn.disabled = !hasPages || busy;
+    imageZipBtn.disabled = !hasPages || busy;
     if (!hasPages){
       splitPanel.classList.remove("show");
     }
+    // 선택 모드 버튼은 고를 페이지 카드가 실제로 보이는 화면에서만 의미가 있다.
+    const canSelect = hasPages && viewMode === "page";
+    selectModeBtn.style.display = canSelect ? "inline-flex" : "none";
+    selectModeBtn.disabled = busy;
+    if (!canSelect && selectMode){ selectMode = false; selectedIds.clear(); lastPickedIdx = -1;
+      selectModeBtn.setAttribute("aria-pressed", "false");
+      selectModeBtn.classList.remove("active");
+      selectModeBtn.textContent = "☑ 페이지 선택"; }
+    pruneSelection();
+    updateSelectBar();
     updateDownloadToggleStates();
+    syncBottomSpace();
 
     if (activeFiles >= 2){
       viewToggleBtn.style.display = "inline-flex";
@@ -1576,7 +2018,11 @@
     //  - ends up with exactly 1 file  -> page view (nothing to list)
     //  - goes from 0/1 files to 2+    -> file view (first time multi-file, show the simple list by default)
     //  - was already at 2+ files      -> leave whatever view the user is currently in alone
-    const prevCount = sources.length;
+    // sources[]에는 페이지를 전부 지운 파일도 그대로 남아 있다(다시 쓰지 않을 뿐).
+    // 그래서 sources.length로 세면 "12장짜리 PDF를 올렸다가 전부 지우고 같은 PDF를 다시
+    // 올리는" 흔한 흐름에서 파일이 2개로 잡혀 화면이 파일 목록으로 넘어가 버린다.
+    // 실제로 페이지가 살아 있는 파일 수(activeFileCount)로 세야 맞다.
+    const prevCount = activeFileCount();
     const predictedCount = prevCount + files.length;
     if (predictedCount === 1){
       viewMode = "page";
@@ -1668,7 +2114,7 @@
     sources.push({ name: file.name, pdfLibDoc, pdfJsDoc, numPages: pdfLibDoc.getPageCount() });
 
     for (let i = 0; i < pdfJsDoc.numPages; i++){
-      setStatus(`"${file.name}" — ${i+1}/${pdfJsDoc.numPages} 페이지 미리보기 생성 중...`);
+      setStatus(`"${file.name}" — ${i+1}/${pdfJsDoc.numPages} 페이지 미리보기 생성 중...`, { progress: true });
       const pct = Math.round(((batchIndex + (i + 1) / pdfJsDoc.numPages) / batchTotal) * 100);
       loadingPercent.textContent = `${pct}%`;
       const thumb = await renderThumb(pdfJsDoc, i + 1);
@@ -1720,23 +2166,67 @@
   // 다르게 나열할 뿐 결과물이 그대로라 공유 버튼을 남긴다. 그 외에는(이동·삭제·회전·
   // 복제·A4·정렬·파일 추가) 방금 만든 파일이 화면과 더 이상 맞지 않으므로 지운다.
   // 참고: "파일명순 정렬"은 합쳐질 순서가 실제로 바뀌므로 지우는 쪽이 맞다.
+  // renderGrid()는 그리드를 통째로 지우고 새로 그리기 때문에, 카드나 카드 안 버튼에 있던
+  // 키보드 포커스가 그대로 사라져 버린다(→ body). 그러면 선택 모드에서 한 장 고를 때마다,
+  // 회전 버튼을 한 번 누를 때마다 Tab을 맨 처음부터 다시 눌러야 해서 키보드로는 쓸 수가 없다.
+  // 그래서 다시 그리기 직전에 "어느 카드의 무엇에 포커스가 있었는지"를 적어 뒀다가 같은
+  // 자리에 돌려놓는다. 그리드 밖에 포커스가 있었으면 아무것도 건드리지 않는다(memo === null).
+  function rememberGridFocus(){
+    const a = document.activeElement;
+    if (!a || a === document.body || !grid.contains(a)) return null;
+    const card = a.closest(".page-card");
+    if (!card) return null;
+    const btn = a.closest("button[data-act]");
+    return {
+      key: card.dataset.id || card.dataset.runKey || "",
+      act: btn ? btn.dataset.act : null,
+      idx: Array.prototype.indexOf.call(grid.children, card),
+    };
+  }
+  function restoreGridFocus(memo){
+    if (!memo) return;
+    let card = memo.key
+      ? grid.querySelector(`.page-card[data-id="${memo.key}"], .page-card[data-run-key="${memo.key}"]`)
+      : null;
+    // 그 카드 자체가 사라졌으면(삭제) 같은 자리에 올라온 카드로 넘겨준다 —
+    // 마지막 카드를 지웠으면 그 앞 카드가 받는다. 카드가 하나도 안 남았으면 그냥 둔다.
+    if (!card && memo.idx >= 0 && grid.children.length){
+      card = grid.children[Math.min(memo.idx, grid.children.length - 1)];
+    }
+    if (!card || !card.classList.contains("page-card")) return;
+    const el = (memo.act && card.querySelector(`button[data-act="${memo.act}"]:not([disabled])`))
+      || (card.tabIndex >= 0 ? card : card.querySelector("button:not([disabled])"));
+    // preventScroll: 되돌리는 것뿐인데 화면이 툭 스크롤되면 오히려 방해가 된다.
+    if (el && el.focus) el.focus({ preventScroll: true });
+  }
+
   function renderGrid(opts){
     if (!opts || !opts.keepResult) clearLastResult();
+    const focusMemo = rememberGridFocus();
     if (viewMode === "file" && activeFileCount() >= 2){
       renderFileView();
     } else {
       renderPageView();
     }
     refreshToolbar();
+    restoreGridFocus(focusMemo);
   }
 
   function renderPageView(){
     grid.innerHTML = "";
     pages.forEach((p, idx) => {
       const isDragging = !!(dragState && dragState.kind === "page" && dragState.moved && dragState.id === p.id);
+      const isSelected = selectMode && selectedIds.has(p.id);
       const card = document.createElement("div");
-      card.className = "page-card" + (isDragging ? " dragging" : "");
+      card.className = "page-card" + (isDragging ? " dragging" : "")
+        + (selectMode ? " selectable" : "") + (isSelected ? " selected" : "");
       card.dataset.id = p.id;
+      if (selectMode){
+        card.setAttribute("role", "button");
+        card.tabIndex = 0;
+        card.setAttribute("aria-pressed", isSelected ? "true" : "false");
+        card.setAttribute("aria-label", `${idx + 1}번째 페이지 ${isSelected ? "선택 해제" : "선택"}`);
+      }
       const nearA4 = isNearA4(p);
       const rotated90 = Math.abs(p.rotation % 180) === 90;
 
@@ -1744,6 +2234,7 @@
         <div class="thumb-box${p.fitA4 ? " a4-fit" : ""}">
           <span class="order-badge">${idx + 1}</span>
           ${p.fitA4 ? '<span class="a4-badge">A4</span>' : ""}
+          ${selectMode ? `<span class="select-check" aria-hidden="true">${isSelected ? "✓" : ""}</span>` : ""}
           <img src="${p.thumbUrl}" alt="${idx+1}번째 페이지 미리보기" draggable="false" class="${rotated90 ? "rotated-90" : ""}" style="transform:rotate(${p.rotation}deg);">
           <button class="zoom-badge" data-act="zoom" title="크게 보기" aria-label="${idx+1}번째 페이지 크게 보기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.35-4.35"></path></svg></button>
         </div>
@@ -1767,7 +2258,24 @@
         </div>
       `;
 
-      card.addEventListener("pointerdown", (e) => onCardPointerDown(e, p, card));
+      // 선택 모드에서는 카드가 "고르는 버튼"이 되고, 평소에는 순서를 바꾸는 드래그 손잡이다.
+      // 한 카드에 두 동작을 겹치면 고르려다 순서가 바뀌므로 모드로 갈라 둔다.
+      if (selectMode){
+        card.addEventListener("click", (e) => {
+          if (e.target.closest("button[data-act]")) return; // 카드 안 버튼은 원래 동작 그대로
+          if (busy) return;
+          pickCardAt(pages.findIndex(pg => pg.id === p.id), e.shiftKey);
+        });
+        card.addEventListener("keydown", (e) => {
+          if (e.key !== "Enter" && e.key !== " " && e.key !== "Spacebar") return;
+          if (e.target.closest("button[data-act]")) return;
+          e.preventDefault();
+          if (busy) return;
+          pickCardAt(pages.findIndex(pg => pg.id === p.id), e.shiftKey);
+        });
+      } else {
+        card.addEventListener("pointerdown", (e) => onCardPointerDown(e, p, card));
+      }
 
       card.querySelectorAll("button[data-act]").forEach(btn => {
         btn.addEventListener("click", async (e) => {
@@ -2295,41 +2803,46 @@
     renderGrid();
   }
 
+  // 페이지 한 장을 내보내기 해상도로 그려서 캔버스로 돌려준다.
+  // 한 장 저장(📥 이미지)과 전체 이미지 zip이 똑같은 그림을 내놓아야 하므로 한 곳에 둔다.
+  async function renderPageToCanvas(p, asA4){
+    const src = sources[p.fileIndex];
+    const page = await src.pdfJsDoc.getPage(p.pageIndex + 1); // pdf.js pages are 1-based
+    const nativeRotation = page.rotate || 0;
+    const totalRotation = (nativeRotation + p.rotation) % 360;
+    const targetWidth = 1600; // export at higher resolution than the grid thumbnail
+    const baseViewport = page.getViewport({ scale: 1, rotation: totalRotation });
+    const scale = targetWidth / baseViewport.width;
+    const viewport = page.getViewport({ scale, rotation: totalRotation });
+    const canvas = document.createElement("canvas");
+    // Math.floor, not ceil — see renderThumb()'s comment: rounding the canvas UP leaves an
+    // unpainted (transparent → white-on-export) sliver at the edge pdf.js doesn't actually paint.
+    canvas.width = Math.max(1, Math.floor(viewport.width));
+    canvas.height = Math.max(1, Math.floor(viewport.height));
+    const ctx = canvas.getContext("2d");
+    await page.render({ canvasContext: ctx, viewport }).promise;
+
+    // A4비율로 받기를 골랐으면, 방금 그린(회전까지 반영된) 비트맵을 A4 비율 캔버스에 여백 없이
+    // 늘려 채운다 — addA4WrappedPage()가 실제 PDF에 쓰는 것과 동일한 "가로/세로 독립 스케일" 방식.
+    if (!asA4) return canvas;
+    const landscape = isPageLandscape(p);
+    const longEdge = 1600;
+    const shortEdge = Math.round(1600 * A4_RATIO); // A4_RATIO ≈ 0.7071 (짧은 변 / 긴 변)
+    const outW = landscape ? longEdge : shortEdge;
+    const outH = landscape ? shortEdge : longEdge;
+    const exportCanvas = document.createElement("canvas");
+    exportCanvas.width = outW;
+    exportCanvas.height = outH;
+    exportCanvas.getContext("2d").drawImage(canvas, 0, 0, canvas.width, canvas.height, 0, 0, outW, outH);
+    return exportCanvas;
+  }
+
   async function downloadPageAsImage(p, idx, asA4){
     if (busy) return;
     setBusy(true, `${idx + 1}번째 페이지를 이미지로 만드는 중...`);
     try{
       const src = sources[p.fileIndex];
-      const page = await src.pdfJsDoc.getPage(p.pageIndex + 1); // pdf.js pages are 1-based
-      const nativeRotation = page.rotate || 0;
-      const totalRotation = (nativeRotation + p.rotation) % 360;
-      const targetWidth = 1600; // export at higher resolution than the grid thumbnail
-      const baseViewport = page.getViewport({ scale: 1, rotation: totalRotation });
-      const scale = targetWidth / baseViewport.width;
-      const viewport = page.getViewport({ scale, rotation: totalRotation });
-      const canvas = document.createElement("canvas");
-      // Math.floor, not ceil — see renderThumb()'s comment: rounding the canvas UP leaves an
-      // unpainted (transparent → white-on-export) sliver at the edge pdf.js doesn't actually paint.
-      canvas.width = Math.max(1, Math.floor(viewport.width));
-      canvas.height = Math.max(1, Math.floor(viewport.height));
-      const ctx = canvas.getContext("2d");
-      await page.render({ canvasContext: ctx, viewport }).promise;
-
-      // A4비율로 받기를 골랐으면, 방금 그린(회전까지 반영된) 비트맵을 A4 비율 캔버스에 여백 없이
-      // 늘려 채운다 — addA4WrappedPage()가 실제 PDF에 쓰는 것과 동일한 "가로/세로 독립 스케일" 방식.
-      let exportCanvas = canvas;
-      if (asA4){
-        const landscape = isPageLandscape(p);
-        const longEdge = 1600;
-        const shortEdge = Math.round(1600 * A4_RATIO); // A4_RATIO ≈ 0.7071 (짧은 변 / 긴 변)
-        const outW = landscape ? longEdge : shortEdge;
-        const outH = landscape ? shortEdge : longEdge;
-        exportCanvas = document.createElement("canvas");
-        exportCanvas.width = outW;
-        exportCanvas.height = outH;
-        const exCtx = exportCanvas.getContext("2d");
-        exCtx.drawImage(canvas, 0, 0, canvas.width, canvas.height, 0, 0, outW, outH);
-      }
+      const exportCanvas = await renderPageToCanvas(p, asA4);
 
       await new Promise((resolve) => {
         exportCanvas.toBlob((blob) => {
@@ -2353,6 +2866,76 @@
       setStatus("페이지를 이미지로 저장하는 중 오류가 발생했어요.");
     }finally{
       setBusy(false);
+    }
+  }
+
+  // 여러 페이지를 PNG로 뽑아 zip 하나로 묶는다. targets가 없으면 화면의 모든 페이지.
+  // A4비율은 페이지마다 켜둔 상태를 그대로 따른다 — "편집한 PDF 다운로드"와 같은 원칙이라
+  // 장마다 물어보지 않는다(한 장 저장은 그 한 장만 고르면 되니 지금처럼 계속 물어본다).
+  async function downloadImagesZip(targets){
+    if (busy) return;
+    const list = (targets && targets.length) ? targets : pages.slice();
+    if (!list.length) return;
+    // 고른 것만 받은 경우에는 완료 문구에도 그렇게 적는다 — "편집한 PDF 다운로드"와 문구를
+    // 맞춰야 한다. 같은 팝업으로 고른 두 동작이 결과를 다르게 말하면 헷갈린다.
+    const partial = !!(targets && targets.length);
+
+    // 1600px PNG가 장당 대략 1~3MB라 전부 메모리에 쌓인다. 수백 장이면 탭이 버틸 수 없어
+    // 미리 알리고 고르게 한다(막지는 않는다 — 기기에 따라 되기도 한다).
+    if (list.length > 60){
+      const ok = await showConfirm(
+        `${list.length}장을 이미지로 만들면 용량이 매우 커서(수백 MB) 브라우저가 느려지거나 멈출 수 있어요. 그래도 진행할까요?\n\n` +
+        `필요한 페이지만 "☑ 페이지 선택"으로 골라서 받는 쪽을 권해요.`,
+        { okLabel: "그대로 진행", danger: false });
+      if (!ok) return;
+    }
+
+    setBusy(true, "페이지를 이미지로 만드는 중...");
+    try{
+      const zip = new JSZip();
+      let baseName = (filenameInput.value || "합친문서").trim();
+      if (!baseName) baseName = "합친문서";
+      baseName = baseName.replace(/\.pdf$/i, "");
+      // 파일 탐색기에서 1, 10, 11, 2... 로 섞이지 않도록 자리수를 맞춘다.
+      // 기준은 고른 장수가 아니라 전체 장수다 — 12장 중 2·5·11만 골랐을 때 고른 장수(3)로
+      // 자리를 잡으면 _2, _5, _11이 되어 다시 순서가 섞인다.
+      const pad = String(pages.length).length;
+
+      for (let i = 0; i < list.length; i++){
+        const p = list[i];
+        const orderNo = pages.findIndex(q => q.id === p.id) + 1; // 화면에 보이는 순서
+        setStatus(`${i + 1}/${list.length}장째 이미지로 만드는 중...`, { progress: true });
+        const canvas = await renderPageToCanvas(p, !!p.fitA4);
+        const bytes = await canvasToBytes(canvas, "image/png");
+        const no = String(orderNo).padStart(pad, "0");
+        zip.file(`${baseName}_${no}${p.fitA4 ? "_A4" : ""}.png`, bytes);
+        // 캔버스를 바로 놓아주지 않으면 장수가 많을 때 메모리가 계속 쌓인다.
+        canvas.width = 0; canvas.height = 0;
+        // 한 장마다 제어권을 넘겨야 진행률이 실제로 그려지고 화면이 멈추지 않는다
+        // (사이트 표준 순차+양보 패턴).
+        await new Promise(r => setTimeout(r, 0));
+      }
+
+      setStatus("zip으로 묶는 중...");
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(zipBlob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${baseName}_이미지.zip`;
+      setLastResult(zipBlob, a.download, (base) => `${base}_이미지.zip`);
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      if (window.incrementSseobomDownload) window.incrementSseobomDownload();
+      const sizeMB = (zipBlob.size / 1024 / 1024).toFixed(1);
+      setStatus(`완료! ${partial ? "고른 " : ""}${list.length}장을 "${baseName}_이미지.zip" (${sizeMB}MB)으로 저장했어요.`);
+    }catch(err){
+      console.error(err);
+      setStatus("이미지 zip을 만드는 중 오류가 발생했어요. 페이지 수를 줄여서 다시 시도해보세요.");
+    }finally{
+      setBusy(false);
+      refreshToolbar();
     }
   }
 
@@ -2598,15 +3181,18 @@
   // compress=true: same page structure, but embedded JPEG images are shrunk in place —
   // see recompressPageImages. Effect size depends entirely on how image-heavy the source
   // PDF is; a text/table-only document has little to shrink.
-  async function buildAndDownload(compress){
+  // targets를 주면 그 페이지들만, 없으면 화면의 전체 페이지를 하나의 PDF로 만든다.
+  async function buildAndDownload(compress, targets){
     if (pages.length === 0) return;
+    const list = (targets && targets.length) ? targets : pages;
+    const partial = list !== pages;
     setBusy(true, compress ? "PDF를 압축하는 중..." : "PDF를 합치는 중...");
     try{
       const outDoc = await PDFLib.PDFDocument.create();
       const imageCache = new Map();
-      for (let i = 0; i < pages.length; i++){
-        setStatus(`페이지 ${i+1}/${pages.length} 처리 중...`);
-        await appendPageToDoc(outDoc, pages[i], compress, imageCache);
+      for (let i = 0; i < list.length; i++){
+        setStatus(`페이지 ${i+1}/${list.length} 처리 중...`, { progress: true });
+        await appendPageToDoc(outDoc, list[i], compress, imageCache);
       }
       const bytes = await outDoc.save();
       const blob = new Blob([bytes], { type: "application/pdf" });
@@ -2626,7 +3212,7 @@
       setTimeout(() => URL.revokeObjectURL(url), 4000);
       if (window.incrementSseobomDownload) window.incrementSseobomDownload();
       const sizeKB = Math.round(bytes.length / 1024).toLocaleString();
-      setStatus(`완료! "${name}.pdf" (${sizeKB}KB) ${compress ? "압축 다운로드" : "다운로드"}를 시작했어요.`);
+      setStatus(`완료! ${partial ? `고른 ${list.length}장을 ` : ""}"${name}.pdf" (${sizeKB}KB) ${compress ? "압축 다운로드" : "다운로드"}를 시작했어요.`);
     }catch(err){
       console.error(err);
       setStatus("PDF를 만드는 중 오류가 발생했어요. 파일이 암호로 보호되어 있지 않은지 확인해주세요.");
@@ -2728,7 +3314,7 @@
       const compress = compressCheckbox.checked;
       for (let idx = 0; idx < result.ranges.length; idx++){
         const r = result.ranges[idx];
-        setStatus(`${idx+1}/${result.ranges.length}번째 파일(${r.start}-${r.end}페이지) 만드는 중...`);
+        setStatus(`${idx+1}/${result.ranges.length}번째 파일(${r.start}-${r.end}페이지) 만드는 중...`, { progress: true });
         const outDoc = await PDFLib.PDFDocument.create();
         const imageCache = new Map();
         for (let n = r.start; n <= r.end; n++){
@@ -3143,6 +3729,103 @@
     });
   }
 
+  // 페이지를 골라둔 채로 아래 다운로드 바의 "이미지 zip"을 누르면, 고른 것만 받고 싶었는지
+  // 전부 받고 싶었는지 알 수 없다 — 그 버튼은 "전체"라는 뜻이지만 방금 고르는 중이었다면
+  // 착각하기 쉽다. 그래서 고른 게 하나라도 있을 때만 무엇을 받을지 한 번 물어본다.
+  // (선택 줄의 "이미지 zip"은 뜻이 분명하므로 묻지 않는다.)
+  function showZipScopeChoice(selCount, allCount){
+    return new Promise((resolve) => {
+      const overlay = el("div", "modal-overlay");
+      const box = el("div", "modal-box");
+      const msg = el("div", "modal-message");
+      msg.textContent = `지금 ${selCount}장을 골라두셨어요. 어느 쪽을 이미지로 받을까요?`;
+      box.appendChild(msg);
+
+      const actions = el("div", "modal-actions");
+      const cancelBtn = el("button", "ghost", "취소");
+      cancelBtn.type = "button";
+      const allBtn = el("button", "ghost", `전체 ${allCount}장`);
+      allBtn.type = "button";
+      const selBtn = el("button", "primary", `고른 ${selCount}장`);
+      selBtn.type = "button";
+      actions.appendChild(cancelBtn);
+      actions.appendChild(allBtn);
+      actions.appendChild(selBtn);
+      box.appendChild(actions);
+      overlay.appendChild(box);
+      document.body.appendChild(overlay);
+      const restoreFocus = setupModalA11y(overlay, msg, [cancelBtn, allBtn, selBtn]);
+
+      function close(result){
+        overlay.classList.remove("show");
+        setTimeout(() => { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 150);
+        document.removeEventListener("keydown", onKey);
+        restoreFocus();
+        resolve(result);
+      }
+      function onKey(e){
+        if (e.key === "Escape"){ e.preventDefault(); close(null); }
+      }
+      cancelBtn.addEventListener("click", () => close(null));
+      allBtn.addEventListener("click", () => close("all"));
+      selBtn.addEventListener("click", () => close("selected"));
+      overlay.addEventListener("mousedown", (e) => { if (e.target === overlay) close(null); });
+      document.addEventListener("keydown", onKey);
+
+      requestAnimationFrame(() => {
+        overlay.classList.add("show");
+        selBtn.focus(); // 고르던 중이었으니 "고른 N장"을 기본으로 둔다
+      });
+    });
+  }
+
+  // 이미지 zip의 showZipScopeChoice와 같은 구조 — 문구만 PDF에 맞춘다.
+  function showPdfScopeChoice(selCount, allCount){
+    return new Promise((resolve) => {
+      const overlay = el("div", "modal-overlay");
+      const box = el("div", "modal-box");
+      const msg = el("div", "modal-message");
+      msg.textContent = `지금 ${selCount}장을 골라두셨어요. 어느 쪽을 PDF로 받을까요?`;
+      box.appendChild(msg);
+
+      const actions = el("div", "modal-actions");
+      const cancelBtn = el("button", "ghost", "취소");
+      cancelBtn.type = "button";
+      const allBtn = el("button", "ghost", `전체 ${allCount}장`);
+      allBtn.type = "button";
+      const selBtn = el("button", "primary", `고른 ${selCount}장`);
+      selBtn.type = "button";
+      actions.appendChild(cancelBtn);
+      actions.appendChild(allBtn);
+      actions.appendChild(selBtn);
+      box.appendChild(actions);
+      overlay.appendChild(box);
+      document.body.appendChild(overlay);
+      const restoreFocus = setupModalA11y(overlay, msg, [cancelBtn, allBtn, selBtn]);
+
+      function close(result){
+        overlay.classList.remove("show");
+        setTimeout(() => { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 150);
+        document.removeEventListener("keydown", onKey);
+        restoreFocus();
+        resolve(result);
+      }
+      function onKey(e){
+        if (e.key === "Escape"){ e.preventDefault(); close(null); }
+      }
+      cancelBtn.addEventListener("click", () => close(null));
+      allBtn.addEventListener("click", () => close("all"));
+      selBtn.addEventListener("click", () => close("selected"));
+      overlay.addEventListener("mousedown", (e) => { if (e.target === overlay) close(null); });
+      document.addEventListener("keydown", onKey);
+
+      requestAnimationFrame(() => {
+        overlay.classList.add("show");
+        selBtn.focus(); // 고르던 중이었으니 "고른 N장"을 기본으로 둔다
+      });
+    });
+  }
+
   function clearAll(){
     sources = [];
     pages = [];
@@ -3234,10 +3917,17 @@
   // 예전엔 눌렀을 때 압축/일반 중 고르는 패널이 한 번 더 열렸는데, 그 한 단계가 다운로드를
   // "바로" 받는다는 느낌을 깨서 UX상 아쉽다는 피드백에 따라 클릭 즉시 다운로드하도록 바꿨다.
   // 압축 여부는 미리 켜둔 왼쪽의 "용량 압축" 체크박스 상태를 그대로 따른다.
-  downloadToggleBtn.addEventListener("click", () => {
+  downloadToggleBtn.addEventListener("click", async () => {
     if (busy) return;
     setStatus(""); // 분할 저장 쪽에 남아있던 오류 문구 등이 이어서 보이지 않도록 지운다.
-    buildAndDownload(compressCheckbox.checked);
+    const picked = selectedPages();
+    // 이미지 zip과 같은 규칙 — 고른 게 있으면 무엇을 받을지 한 번 묻는다.
+    // 이 버튼은 원래 "전체"라는 뜻이지만, 방금 페이지를 고르던 중이라면 착각하기 쉽다.
+    if (!picked.length){ buildAndDownload(compressCheckbox.checked); return; }
+    const scope = await showPdfScopeChoice(picked.length, pages.length);
+    if (!scope) return;
+    // 묻는 사이에 선택이 바뀌었을 수 있으니 실행 직전에 다시 읽는다.
+    buildAndDownload(compressCheckbox.checked, scope === "selected" ? selectedPages() : null);
   });
   compressCheckbox.addEventListener("change", () => {
     compressToggle.classList.toggle("checked", compressCheckbox.checked);
@@ -3276,12 +3966,62 @@
     }
     setStatus(""); // 이전에 뜬 오류/완료 문구가 다음 상태까지 이어서 남아있지 않도록 지운다.
     updateDownloadToggleStates();
+    syncBottomSpace();
   });
+  // 분할 패널은 0fr↔1fr로 펼쳐지므로 애니메이션이 끝난 뒤의 높이로 다시 재야 정확하다.
+  splitPanel.addEventListener("transitionend", syncBottomSpace);
+  // 화면 폭이 바뀌면 바 안의 버튼 줄바꿈이 달라져 높이도 달라진다.
+  window.addEventListener("resize", syncBottomSpace);
   splitRangesInput.addEventListener("input", updateSplitPreview);
   splitRangesInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter") buildSplitZipAndDownload();
   });
   splitDownloadBtn.addEventListener("click", buildSplitZipAndDownload);
+
+  // ---- 페이지 선택 모드 ----
+  selectModeBtn.addEventListener("click", () => { if (!busy) setSelectMode(!selectMode); });
+  selAllBtn.addEventListener("click", () => applySelection(() => true));
+  selNoneBtn.addEventListener("click", () => applySelection(() => false));
+  selOddBtn.addEventListener("click", () => applySelection((no) => no % 2 === 1));
+  selEvenBtn.addEventListener("click", () => applySelection((no) => no % 2 === 0));
+  selInvertBtn.addEventListener("click", () => {
+    const flipped = new Set(pages.filter(p => !selectedIds.has(p.id)).map(p => p.id));
+    selectedIds = flipped;
+    lastPickedIdx = -1;
+    renderGrid({ keepResult: true });
+  });
+  function runRangeSelect(){
+    if (busy) return;
+    const res = parsePageList(selRangeInput.value, pages.length);
+    if (res.error){ setStatus(res.error); return; }
+    // 범위 선택은 기존 선택에 더한다 — "3-15 고르고 40도 추가"가 자연스럽다.
+    // 적은 장수(res.nums.size)가 아니라 **실제로 새로 켜진 장수**를 말해줘야 한다 —
+    // 이미 골라둔 페이지를 다시 적었을 때 "3장 더 골랐어요"라고 하면 거짓말이 된다.
+    const before = selectedIds.size;
+    pages.forEach((p, idx) => { if (res.nums.has(idx + 1)) selectedIds.add(p.id); });
+    const added = selectedIds.size - before;
+    lastPickedIdx = -1;
+    renderGrid({ keepResult: true });
+    setStatus(added > 0
+      ? `${added}장을 더 골랐어요. 모두 ${selectedIds.size}장이에요.`
+      : `이미 골라둔 페이지라 달라진 건 없어요. 지금 ${selectedIds.size}장이에요.`);
+  }
+  selRangeBtn.addEventListener("click", runRangeSelect);
+  selRangeInput.addEventListener("keydown", (e) => { if (e.key === "Enter"){ e.preventDefault(); runRangeSelect(); } });
+  bulkRotateBtn.addEventListener("click", bulkRotate);
+  bulkDupBtn.addEventListener("click", bulkDuplicate);
+  bulkDeleteBtn.addEventListener("click", bulkDelete);
+  bulkImgBtn.addEventListener("click", () => downloadImagesZip(selectedPages()));
+  imageZipBtn.addEventListener("click", async () => {
+    if (busy) return;
+    const picked = selectedPages();
+    // 고른 게 없으면 물어볼 것도 없다 — 바로 전체를 받는다.
+    if (!picked.length){ downloadImagesZip(null); return; }
+    const scope = await showZipScopeChoice(picked.length, pages.length);
+    if (!scope) return;
+    // 물어보는 사이에 선택이 바뀌었을 수 있으니 다시 읽는다.
+    downloadImagesZip(scope === "selected" ? selectedPages() : null);
+  });
 
   lightboxClose.addEventListener("click", closeLightbox);
   lightboxPrev.addEventListener("click", () => lightboxStep(-1));
