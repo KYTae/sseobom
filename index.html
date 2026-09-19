@@ -277,77 +277,118 @@
      자체도 아이콘+이름+한 줄 설명 정도로 압축해서 한 화면에 훨씬 많은 도구가 한눈에
      들어오게 한다. 아코디언(접기)은 쓰지 않고 전부 펼쳐둔다 — 검색(Ctrl+F)이나
      훑어보기가 접었다 펴는 것보다 더 쉽기 때문. */
-  .tool-category{ margin-bottom:34px; }
-  .tool-category:last-child{ margin-bottom:0; }
-  .tool-category-head{
-    display:flex; align-items:baseline; gap:10px;
-    margin-bottom:14px;
+  /* ---------- 카테고리 칩 + 검색(sticky) ---------- */
+  .tool-nav{
+    position:sticky; top:0; z-index:20;
+    display:flex; align-items:center; gap:10px 14px; flex-wrap:wrap;
+    padding:10px 0 12px;
+    margin:-6px 0 18px;
+    background:var(--bg);
+    border-bottom:1px solid var(--border);
   }
-  .tool-category-title{
-    font-size:15px;
-    font-weight:700;
-    color:var(--text);
+  .tool-chips{ display:flex; gap:6px; flex-wrap:wrap; }
+  .tool-chip{
+    font:inherit; font-size:12.5px; font-weight:700;
+    padding:6px 12px;
+    border-radius:999px;
+    border:1px solid var(--border);
+    background:var(--surface);
+    color:var(--text-secondary);
+    cursor:pointer;
+    transition: background .12s ease, color .12s ease, border-color .12s ease;
   }
-  .tool-category-count{
-    font-size:12.5px;
+  .tool-chip:hover{ color:var(--text-primary); border-color:var(--border-strong); }
+  .tool-chip[aria-pressed="true"]{ background:var(--accent); color:var(--accent-ink); border-color:var(--accent); }
+  .tool-search{
+    display:flex; align-items:center; gap:6px;
+    margin-left:auto;
+    min-width:200px; flex:1 1 200px; max-width:300px;
+    padding:6px 10px;
+    border:1px solid var(--border);
+    border-radius:999px;
+    background:var(--surface);
     color:var(--text-muted);
-    font-variant-numeric: tabular-nums;
   }
+  .tool-search:focus-within{ border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-wash); }
+  .tool-search svg{ width:15px; height:15px; flex:none; }
+  .tool-search input{
+    flex:1; min-width:0;
+    font:inherit; font-size:13px;
+    border:none; background:transparent; color:var(--text-primary);
+    outline:none;
+  }
+  .tool-search input::-webkit-search-cancel-button{ -webkit-appearance:none; }
+  .tool-search-clear{ font:inherit; font-size:11px; border:none; background:transparent; color:var(--text-muted); cursor:pointer; padding:2px 4px; border-radius:999px; }
+  .tool-search-clear:hover{ color:var(--text-primary); }
+  .tool-search-clear[hidden]{ display:none; }
+  .tool-result{ font-size:12.5px; color:var(--text-muted); margin:-6px 0 14px; }
+  .tool-result[hidden]{ display:none; }
+  .tool-card[hidden], .soon-card[hidden], .soon-panel[hidden]{ display:none; }
 
+  /* ---------- 카드: 전체가 링크, 한 행에 4장, 아이콘은 이름 왼쪽에 가로로 ---------- */
   .tool-grid{
     display:grid;
-    grid-template-columns:repeat(auto-fill, minmax(210px, 1fr));
-    gap:12px;
+    grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));
+    gap:10px;
   }
   .tool-card{
+    position:relative;
     display:flex;
     flex-direction:column;
-    gap:10px;
+    gap:8px;
     background:var(--surface);
     border:1px solid var(--border);
     border-radius:var(--radius-md);
-    padding:16px;
+    padding:12px 14px 30px;
     box-shadow:var(--shadow);
+    color:inherit;
+    text-decoration:none;
+    transition: border-color .12s ease, transform .12s ease, box-shadow .12s ease;
   }
+  .tool-card:hover{ border-color:var(--accent); transform:translateY(-1px); }
+  .tool-card:active{ transform:translateY(0); }
+  .tool-head{ display:flex; align-items:center; gap:9px; min-width:0; }
   .tool-icon{
     display:flex; align-items:center; justify-content:center;
-    width:36px; height:36px;
+    width:30px; height:30px;
     flex:none;
-    border-radius:10px;
+    border-radius:8px;
     background:var(--accent-wash);
     color:var(--accent);
   }
-  .tool-icon svg{ width:18px; height:18px; }
-
-  .tool-body{ flex:1; min-width:0; display:flex; flex-direction:column; gap:5px; }
+  .tool-icon svg{ width:16px; height:16px; }
   .tool-name{
-    font-size:14.5px;
+    font-size:14px;
     font-weight:700;
+    line-height:1.3;
+    word-break:keep-all;
+  }
+  /* 종류 라벨 — 카드 왼쪽 아래 구석에 작게. 위 칩과 같은 이름을 쓴다.
+     (이름 위 눈썹 줄로 올려 봤으나 사용자가 더 별로라고 해서 되돌림 — 2026-09-19) */
+  .tool-cat{
+    position:absolute; left:14px; bottom:10px;
+    font-size:10.5px; font-weight:600; letter-spacing:.02em;
+    color:var(--text-muted);
   }
   .tool-desc{
-    font-size:12.5px;
-    line-height:1.5;
+    font-size:12px;
+    line-height:1.45;
     color:var(--text-secondary);
-    flex:1;
+    word-break:keep-all;
+    overflow-wrap:anywhere;
   }
-  .tool-cta{
-    display:inline-flex; align-items:center; justify-content:center; gap:5px;
-    background:var(--accent);
-    color:var(--accent-ink);
-    border:none;
-    border-radius:8px;
-    padding:8px 12px;
-    font-size:13px; font-weight:700;
-    text-decoration:none;
-    margin-top:2px;
-    transition: filter .12s ease, transform .05s ease;
+  .tool-arrow{
+    position:absolute; right:10px; bottom:8px;
+    width:22px; height:22px; border-radius:999px;
+    display:flex; align-items:center; justify-content:center;
+    color:var(--accent);
+    background:var(--accent-wash);
+    opacity:0; transform:translateX(-4px);
+    transition: opacity .15s ease, transform .15s ease;
   }
-  .tool-cta:hover{ filter:brightness(1.07); }
-  .tool-cta:active{ transform:scale(.98); }
-  .tool-cta svg{ width:14px; height:14px; }
-
-  /* ---------- 준비 중(coming soon) 도구 카드 ---------- */
-  .tool-card.coming-soon .tool-icon{ background:var(--bg); color:var(--text-muted); }
+  .tool-arrow svg{ width:12px; height:12px; }
+  .tool-card:hover .tool-arrow, .tool-card:focus-visible .tool-arrow{ opacity:1; transform:translateX(0); }
+  /* ---------- 배지 · 준비 중 패널(접이식) ---------- */
   .tool-name-row{ display:flex; align-items:center; gap:7px; flex-wrap:wrap; }
   .tool-badge-soon{
     font-size:10.5px; font-weight:700;
@@ -358,7 +399,7 @@
     color:var(--text-muted);
     border:1px solid var(--border);
   }
-  /* 베타 — 열려 있지만 아직 다듬는 중인 도구. 준비 중 배지와 같은 크기, 색만 포인트 색 */
+  /* 베타 — 열려 있지만 아직 다듬는 중인 도구. 준비 중 배지와 같은 알약, 파란 테두리·글자 */
   .tool-badge-beta{
     font-size:10.5px; font-weight:700;
     padding:2px 8px;
@@ -368,16 +409,22 @@
     color:var(--accent);
     border:1px solid var(--accent);
   }
-  /* 버튼 자체를 disabled로 둬서 클릭이 아예 안 먹도록 한다(가짜로 막은 링크가 아니라
-     진짜 비활성 버튼). .tool-cta의 기본 스타일(패딩·둥근 모서리 등)은 그대로 쓰고
-     색만 눈에 띄게 죽인다. */
-  button.tool-cta.tool-cta-disabled{
-    background:var(--bg);
-    color:var(--text-muted);
-    border:1px solid var(--border);
-    cursor:not-allowed;
+  .soon-panel{ margin-top:30px; padding-top:18px; border-top:1px solid var(--border); }
+  .soon-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:8px; }
+  .soon-card{
+    display:flex; align-items:flex-start; gap:10px;
+    padding:10px 12px;
+    border:1px dashed var(--border-strong);
+    border-radius:var(--radius-md);
+    background:transparent;
   }
-  button.tool-cta.tool-cta-disabled:hover{ filter:none; }
+  .soon-card .tool-icon{ width:28px; height:28px; border-radius:8px; background:var(--bg); color:var(--text-muted); }
+  .soon-card .tool-icon svg{ width:15px; height:15px; }
+  .soon-card .tool-name{ font-size:13px; color:var(--text-secondary); }
+  .soon-card .tool-desc{ font-size:11.5px; color:var(--text-muted); }
+  .soon-cat{ font-size:10.5px; color:var(--text-muted); }
+  .soon-panel .grow-note{ margin-top:14px; }
+
 
   .grow-note{
     margin-top:22px;
@@ -420,14 +467,14 @@
     transition: background .12s ease, color .12s ease, border-color .12s ease;
   }
   .notices-toggle:hover{ background:var(--accent-wash); color:var(--text-primary); }
-  .notices-panel.open .notices-toggle{ color:var(--text-primary); border-color:var(--accent); }
+  .notices-panel.open .notices-toggle, .soon-panel.open .notices-toggle{ color:var(--text-primary); border-color:var(--accent); }
   .notices-toggle-icon{
     display:inline-block;
     transition:transform .15s ease;
     font-size:10px;
     color:var(--accent);
   }
-  .notices-panel.open .notices-toggle-icon{ transform:rotate(90deg); }
+  .notices-panel.open .notices-toggle-icon, .soon-panel.open .notices-toggle-icon{ transform:rotate(90deg); }
   .notices-latest-hint{ font-size:12.5px; color:var(--text-muted); }
   /* feedback 패널과 같은 grid-template-rows 0fr↔1fr 방식의 접이식 애니메이션. */
   .notices-content{
@@ -441,7 +488,7 @@
       opacity .22s ease,
       margin-top .3s cubic-bezier(.4,0,.2,1);
   }
-  .notices-panel.open .notices-content{
+  .notices-panel.open .notices-content, .soon-panel.open .notices-content{
     grid-template-rows:1fr;
     margin-top:20px;
     opacity:1;
@@ -754,6 +801,20 @@
     width:1px; height:1px;
     opacity:0; pointer-events:none;
   }
+  /* .tool-cta — 도구 카드에서는 더 이상 안 쓰지만(카드 전체가 링크) 의견 보내기 제출 버튼이 같은 모양을 쓴다 */
+  .tool-cta{
+    display:inline-flex; align-items:center; justify-content:center; gap:5px;
+    background:var(--accent);
+    color:var(--accent-ink);
+    border:none;
+    border-radius:8px;
+    padding:8px 12px;
+    font-size:13px; font-weight:700;
+    text-decoration:none;
+    transition: filter .12s ease, transform .05s ease;
+  }
+  .tool-cta:hover{ filter:brightness(1.07); }
+  .tool-cta:active{ transform:scale(.98); }
   .feedback-submit{
     align-self:flex-start;
     border:none; cursor:pointer;
@@ -802,13 +863,20 @@
      (image-to-pdf에서 실제로 겪은 버그). 지금은 규칙이 하나뿐일 때 옮겨두는 게 가장 싸다. */
   @media (max-width:520px){
     .hero-stat-divider{ display:none; }
+    /* 좁은 화면: 카드가 한 줄에 한 장이라 아래 여백 30px이 낭비 — 종류 라벨을 오른쪽 위로 올리고 바닥을 줄인다.
+       화살표는 터치에선 호버가 없어 안 보이니 자리도 비운다. */
+    .tool-card{ padding-bottom:12px; }
+    .tool-cat{ left:auto; right:14px; bottom:auto; top:19px; }
+    .tool-head{ padding-right:40px; }
+    .tool-arrow{ display:none; }
   }
 
   /* 키보드 포커스 표시를 도구 페이지 다섯 곳과 같은 모양으로 맞춘다 — 지금은 브라우저 기본값
      (outline: auto 1px)이라 페이지마다, 또 같은 페이지 안에서도(피드백 입력칸은 box-shadow)
      생김새가 달랐다. :focus-visible이라 마우스 클릭에는 테두리가 생기지 않는다. */
-  a.tool-cta:focus-visible,
-  button.tool-cta:focus-visible,
+  a.tool-card:focus-visible,
+  .tool-chip:focus-visible,
+  .soon-toggle:focus-visible,
   #btn-theme:focus-visible,
   .notices-toggle:focus-visible,
   .feedback-toggle:focus-visible,
@@ -818,6 +886,7 @@
     outline-offset:3px;
     border-radius:999px;
   }
+  a.tool-card:focus-visible{ border-radius:var(--radius-md); outline-offset:2px; }
 </style>
 </head>
 <body>
@@ -881,311 +950,199 @@
        아니라 이 규칙에 따른 것(사운드 편집이 대표 도구). 이미지·PDF·설문은 대표 도구가 곧 첫 공개
        도구라 결과적으로 공개 순과 같아 보인다. 준비 중(Coming Soon) 카드는 항상 그 뒤이고,
        준비 중끼리는 실제로 다음에 만들 것을 앞에 둔다(이미지의 '일괄 처리'가 '스케일 업'보다
-       앞에 있는 이유). 카테고리 옆 "N개"는 준비 중을 포함한 카드 수이고, 맨 위 "지금 쓸 수 있는
-       도구 N개"는 실제로 열 수 있는 도구 수다 — 두 숫자는 원래 다르다. -->
-  <section class="tools">
+       앞에 있는 이유). 카테고리 옆 "N개"와 맨 위 "지금 쓸 수 있는 도구 N개"는 둘 다 실제로 열 수
+       있는 도구 수(준비 중은 아래 접이식 패널에 따로 있어 세지 않는다). 2026-09-16 개편: 카드 전체가
+       링크(버튼 없음), 한 행에 4장, 카테고리 칩·검색은 sticky, 준비 중은 접어둠. -->
+  <section class="tools" id="tools">
     <div class="wrap">
       <div class="tools-head">
         <h2>지금 쓸 수 있는 도구</h2>
         <span class="tools-count">11개</span>
       </div>
 
-      <div class="tool-category">
-        <div class="tool-category-head">
-          <span class="tool-category-title">이미지</span>
-          <span class="tool-category-count">6개</span>
+      <!-- 카테고리 칩 + 검색 — 스크롤하면 위에 붙어(sticky) 목차 역할을 한다. 칩은 필터(그 종류만 남김),
+           검색은 이름·설명을 함께 찾는다. 둘 다 화면에서만 걸러내고 마크업은 그대로라, JS가 꺼져도 전부 보인다. -->
+      <div class="tool-nav" id="toolNav">
+        <div class="tool-chips" role="group" aria-label="도구 종류">
+          <button type="button" class="tool-chip" data-cat="all" aria-pressed="true">전체</button>
+          <button type="button" class="tool-chip" data-cat="image" aria-pressed="false">이미지</button>
+          <button type="button" class="tool-chip" data-cat="pdf" aria-pressed="false">PDF</button>
+          <button type="button" class="tool-chip" data-cat="sound" aria-pressed="false">사운드</button>
+          <button type="button" class="tool-chip" data-cat="video" aria-pressed="false">영상</button>
+          <button type="button" class="tool-chip" data-cat="text" aria-pressed="false">텍스트</button>
+          <button type="button" class="tool-chip" data-cat="survey" aria-pressed="false">설문</button>
         </div>
-        <div class="tool-grid">
-          <article class="tool-card">
-            <div class="tool-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-            </div>
-            <div class="tool-body">
-              <div class="tool-name">이미지 → PDF 변환기</div>
-              <p class="tool-desc">여러 사진을 순서대로 정리해서 PDF 한 개(또는 여러 개)로 만들어요.</p>
-            </div>
-            <a class="tool-cta" href="/image-to-pdf/" aria-label="이미지 → PDF 변환기 도구 열기">
-              도구 열기
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"></path></svg>
-            </a>
-          </article>
+        <label class="tool-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+          <input type="search" id="toolSearch" placeholder="도구 찾기" aria-label="도구 검색" autocomplete="off">
+          <button type="button" class="tool-search-clear" id="toolSearchClear" aria-label="검색어 지우기" hidden>✕</button>
+        </label>
+      </div>
+      <p class="tool-result" id="toolResult" aria-live="polite" hidden></p>
 
-          <article class="tool-card">
-            <div class="tool-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-            </div>
-            <div class="tool-body">
-              <div class="tool-name">이미지 형식 변환</div>
-              <p class="tool-desc">PNG·JPG·WEBP·BMP·GIF 등 9가지 형식으로 한 번에 바꿔요. AVIF·SVG도 올릴 수 있어요.</p>
-            </div>
-            <a class="tool-cta" href="/image-converter/" aria-label="이미지 형식 변환 도구 열기">
-              도구 열기
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"></path></svg>
-            </a>
-          </article>
+      <!-- 카테고리별 세로 구획을 없애고 한 그리드에 순서대로 둔다 — 카드 1장짜리 종류가 셋이라
+           구획마다 제목+여백이 반복되면 스크롤만 길어졌다. 종류는 위 칩(필터)과 카드 안 라벨로 안다.
+           순서: 이미지 → PDF → 사운드 → 영상 → 설문 → 텍스트 (칩 순서와 같게). -->
+      <div class="tool-grid" id="toolGrid">
+        <a class="tool-card" href="/image-to-pdf/" data-cat="image" aria-label="이미지 → PDF 변환기 도구 열기">
+          <div class="tool-head">
+            <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></div>
+            <div class="tool-name-row"><div class="tool-name">이미지 → PDF 변환기</div>
+            <span class="tool-cat">이미지</span></div>
+          </div>
+          <p class="tool-desc">여러 사진을 순서대로 정리해서 PDF 한 개(또는 여러 개)로 만들어요.</p>
+          <span class="tool-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"></path></svg></span>
+        </a>
+        <a class="tool-card" href="/image-converter/" data-cat="image" aria-label="이미지 형식 변환 도구 열기">
+          <div class="tool-head">
+            <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></div>
+            <div class="tool-name-row"><div class="tool-name">이미지 형식 변환</div>
+            <span class="tool-cat">이미지</span></div>
+          </div>
+          <p class="tool-desc">PNG·JPG·WEBP·BMP·GIF 등 9가지 형식으로 한 번에 바꿔요. AVIF·SVG도 올릴 수 있어요.</p>
+          <span class="tool-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"></path></svg></span>
+        </a>
+        <a class="tool-card" href="/image-compress/" data-cat="image" aria-label="이미지 용량 압축 도구 열기">
+          <div class="tool-head">
+            <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="14" y1="10" x2="21" y2="3"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg></div>
+            <div class="tool-name-row"><div class="tool-name">이미지 용량 압축</div>
+            <span class="tool-cat">이미지</span></div>
+          </div>
+          <p class="tool-desc">화질 단계별로 비교하면서 이미지 용량만 쏙 줄여요.</p>
+          <span class="tool-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"></path></svg></span>
+        </a>
+        <a class="tool-card" href="/pdf-editor/" data-cat="pdf" aria-label="PDF 편집기 도구 열기">
+          <div class="tool-head">
+            <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path><path d="M9 15h6M9 11h6"></path></svg></div>
+            <div class="tool-name-row"><div class="tool-name">PDF 편집기</div>
+            <span class="tool-cat">PDF</span></div>
+          </div>
+          <p class="tool-desc">PDF 합치기·분할·압축부터 순서변경·회전·복제·A4비율 변경·이미지 다운로드·삭제까지 한 번에 할 수 있어요.</p>
+          <span class="tool-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"></path></svg></span>
+        </a>
+        <a class="tool-card" href="/pdf-sign/" data-cat="pdf" aria-label="PDF 전자서명 도구 열기">
+          <div class="tool-head">
+            <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19h7"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L10 16l-4 1 1-4Z"></path></svg></div>
+            <div class="tool-name-row"><div class="tool-name">PDF 전자서명</div>
+            <span class="tool-cat">PDF</span></div>
+          </div>
+          <p class="tool-desc">그리거나 입력하거나 업로드한 서명을 PDF 위에 도장처럼 찍어요.</p>
+          <span class="tool-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"></path></svg></span>
+        </a>
+        <a class="tool-card" href="/sound-converter/" data-cat="sound" aria-label="사운드 형식 변환 도구 열기">
+          <div class="tool-head">
+            <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg></div>
+            <div class="tool-name-row"><div class="tool-name">사운드 형식 변환</div>
+            <span class="tool-cat">사운드</span></div>
+          </div>
+          <p class="tool-desc">WAV·MP3로 바로 바꾸고, 필요하면 OGG·FLAC까지 추가 변환해요.</p>
+          <span class="tool-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"></path></svg></span>
+        </a>
+        <a class="tool-card" href="/video-to-audio/" data-cat="sound" aria-label="영상에서 오디오 추출 도구 열기">
+          <div class="tool-head">
+            <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg></div>
+            <div class="tool-name-row"><div class="tool-name">영상에서 오디오 추출</div>
+            <span class="tool-cat">사운드</span></div>
+          </div>
+          <p class="tool-desc">영상 파일에서 소리만 뽑아내 WAV·MP3 등 오디오 파일로 저장해요.</p>
+          <span class="tool-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"></path></svg></span>
+        </a>
+        <a class="tool-card" href="/sound-editor/" data-cat="sound" aria-label="사운드 편집 도구 열기 (베타)">
+          <div class="tool-head">
+            <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><line x1="20" y1="4" x2="8.12" y2="15.88"></line><line x1="14.47" y1="14.48" x2="20" y2="20"></line><line x1="8.12" y1="8.12" x2="12" y2="12"></line></svg></div>
+            <div class="tool-name-row"><div class="tool-name">사운드 편집</div><span class="tool-badge-beta">베타</span></div>
+            <span class="tool-cat">사운드</span>
+          </div>
+          <p class="tool-desc">파형을 보며 자르고 이어 붙이고, 노이즈 제거·볼륨·속도 조절에 녹음까지 한 화면에서 해요.</p>
+          <span class="tool-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"></path></svg></span>
+        </a>
+        <a class="tool-card" href="/video-editor/" data-cat="video" aria-label="영상 편집 도구 열기 (베타)">
+          <div class="tool-head">
+            <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line></svg></div>
+            <div class="tool-name-row"><div class="tool-name">영상 편집</div><span class="tool-badge-beta">베타</span></div>
+            <span class="tool-cat">영상</span>
+          </div>
+          <p class="tool-desc">타임라인에서 자르고 이어 붙이고, 배경음악·자막·전환·색 보정을 얹어 MP4로 저장해요. 세로·정사각 비율로도 바꿔요.</p>
+          <span class="tool-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"></path></svg></span>
+        </a>
+        <a class="tool-card" href="/survey-dashboard/" data-cat="survey" aria-label="설문 대시보드 도구 열기">
+          <div class="tool-head">
+            <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"></path><rect x="7" y="12" width="3" height="6"></rect><rect x="12.5" y="8" width="3" height="10"></rect><rect x="18" y="5" width="3" height="13"></rect></svg></div>
+            <div class="tool-name-row"><div class="tool-name">설문 대시보드</div>
+            <span class="tool-cat">설문</span></div>
+          </div>
+          <p class="tool-desc">설문 응답 엑셀을 올리면 그래프와 카드로 자동 정리하고, 직접 설문 응답표도 만들 수 있어요.</p>
+          <span class="tool-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"></path></svg></span>
+        </a>
+        <a class="tool-card" href="/qr-code/" data-cat="text" aria-label="QR 코드 만들기·읽기 도구 열기">
+          <div class="tool-head">
+            <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="3" height="3" rx=".6"></rect><rect x="18" y="18" width="3" height="3" rx=".6"></rect></svg></div>
+            <div class="tool-name-row"><div class="tool-name">QR 코드 만들기·읽기</div>
+            <span class="tool-cat">텍스트</span></div>
+          </div>
+          <p class="tool-desc">링크나 글자를 QR 코드로 만들어 색·점 모양·아이콘까지 꾸며 PNG·SVG로 저장하고, 사진 속 QR 코드도 읽어요.</p>
+          <span class="tool-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"></path></svg></span>
+        </a>
+      </div>
 
-          <article class="tool-card">
-            <div class="tool-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="14" y1="10" x2="21" y2="3"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
-            </div>
+      <!-- 준비 중인 도구는 본문에서 빼서 접어둔다 — 쓸 수 있는 도구만 먼저 보이게. 예고는 여기서. -->
+      <div class="soon-panel" id="soonPanel">
+        <button class="notices-toggle soon-toggle" id="soonToggle" type="button" aria-expanded="false" aria-controls="soonContent">
+          <span class="notices-toggle-icon">▶</span> 준비 중인 도구 6개 보기
+        </button>
+        <div class="notices-content" id="soonContent">
+          <div class="notices-content-inner">
+            <div class="soon-grid">
+          <article class="soon-card" data-cat="image">
+            <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="3" width="13" height="13" rx="2" ry="2"></rect><path d="M5 8H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-1"></path></svg></div>
             <div class="tool-body">
-              <div class="tool-name">이미지 용량 압축</div>
-              <p class="tool-desc">화질 단계별로 비교하면서 이미지 용량만 쏙 줄여요.</p>
-            </div>
-            <a class="tool-cta" href="/image-compress/" aria-label="이미지 용량 압축 도구 열기">
-              도구 열기
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"></path></svg>
-            </a>
-          </article>
-
-          <article class="tool-card coming-soon">
-            <div class="tool-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="3" width="13" height="13" rx="2" ry="2"></rect><path d="M5 8H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-1"></path></svg>
-            </div>
-            <div class="tool-body">
-              <div class="tool-name-row">
-                <div class="tool-name">이미지 일괄 처리</div>
-                <span class="tool-badge-soon">준비 중</span>
-              </div>
+              <div class="tool-name-row"><div class="tool-name">이미지 일괄 처리</div><span class="tool-badge-soon">준비 중</span><span class="soon-cat">이미지</span></div>
               <p class="tool-desc">여러 이미지의 크기를 한 번에 맞추고 이름도 규칙대로 바꿔서 zip으로 받아요.</p>
             </div>
-            <button type="button" class="tool-cta tool-cta-disabled" disabled aria-label="이미지 일괄 처리 — 아직 준비 중이에요">Coming Soon</button>
           </article>
-
-          <article class="tool-card coming-soon">
-            <div class="tool-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"></path><path d="M21 8V5a2 2 0 0 0-2-2h-3"></path><path d="M3 16v3a2 2 0 0 0 2 2h3"></path><path d="M16 21h3a2 2 0 0 0 2-2v-3"></path></svg>
-            </div>
+          <article class="soon-card" data-cat="image">
+            <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"></path><path d="M21 8V5a2 2 0 0 0-2-2h-3"></path><path d="M3 16v3a2 2 0 0 0 2 2h3"></path><path d="M16 21h3a2 2 0 0 0 2-2v-3"></path></svg></div>
             <div class="tool-body">
-              <div class="tool-name-row">
-                <div class="tool-name">이미지 스케일 업</div>
-                <span class="tool-badge-soon">준비 중</span>
-              </div>
+              <div class="tool-name-row"><div class="tool-name">이미지 스케일 업</div><span class="tool-badge-soon">준비 중</span><span class="soon-cat">이미지</span></div>
               <p class="tool-desc">흐릿한 사진을 선명하게 다듬고, 확대해도 깨지지 않게 키워요.</p>
             </div>
-            <button type="button" class="tool-cta tool-cta-disabled" disabled aria-label="이미지 스케일 업 — 아직 준비 중이에요">Coming Soon</button>
           </article>
-
-          <article class="tool-card coming-soon">
-            <div class="tool-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.13 1L6 16a2 2 0 0 0 2 2h15"></path><path d="M1 6.13L16 6a2 2 0 0 1 2 2v15"></path></svg>
-            </div>
+          <article class="soon-card" data-cat="image">
+            <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.13 1L6 16a2 2 0 0 0 2 2h15"></path><path d="M1 6.13L16 6a2 2 0 0 1 2 2v15"></path></svg></div>
             <div class="tool-body">
-              <div class="tool-name-row">
-                <div class="tool-name">이미지 크롭·확장</div>
-                <span class="tool-badge-soon">준비 중</span>
-              </div>
+              <div class="tool-name-row"><div class="tool-name">이미지 크롭·확장</div><span class="tool-badge-soon">준비 중</span><span class="soon-cat">이미지</span></div>
               <p class="tool-desc">이미지를 자르고, 모서리를 둥글리고, 캔버스를 넓혀요.</p>
             </div>
-            <button type="button" class="tool-cta tool-cta-disabled" disabled aria-label="이미지 크롭·확장 — 아직 준비 중이에요">Coming Soon</button>
           </article>
-        </div>
-      </div>
-
-      <div class="tool-category">
-        <div class="tool-category-head">
-          <span class="tool-category-title">PDF</span>
-          <span class="tool-category-count">4개</span>
-        </div>
-        <div class="tool-grid">
-          <article class="tool-card">
-            <div class="tool-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path><path d="M9 15h6M9 11h6"></path></svg>
-            </div>
+          <article class="soon-card" data-cat="pdf">
+            <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"></circle><path d="M9.5 9h5"></path><path d="M5 20.5h14"></path><path d="M6.5 17.5h11"></path></svg></div>
             <div class="tool-body">
-              <div class="tool-name">PDF 편집기</div>
-              <p class="tool-desc">PDF 합치기·분할·압축부터 순서변경·회전·복제·A4비율 변경·이미지 다운로드·삭제까지 한 번에 할 수 있어요.</p>
-            </div>
-            <a class="tool-cta" href="/pdf-editor/" aria-label="PDF 편집기 도구 열기">
-              도구 열기
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"></path></svg>
-            </a>
-          </article>
-
-          <article class="tool-card">
-            <div class="tool-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19h7"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L10 16l-4 1 1-4Z"></path></svg>
-            </div>
-            <div class="tool-body">
-              <div class="tool-name">PDF 전자서명</div>
-              <p class="tool-desc">그리거나 입력하거나 업로드한 서명을 PDF 위에 도장처럼 찍어요.</p>
-            </div>
-            <a class="tool-cta" href="/pdf-sign/" aria-label="PDF 전자서명 도구 열기">
-              도구 열기
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"></path></svg>
-            </a>
-          </article>
-
-          <article class="tool-card coming-soon">
-            <div class="tool-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"></circle><path d="M9.5 9h5"></path><path d="M5 20.5h14"></path><path d="M6.5 17.5h11"></path></svg>
-            </div>
-            <div class="tool-body">
-              <div class="tool-name-row">
-                <div class="tool-name">PDF 워터마크·도장</div>
-                <span class="tool-badge-soon">준비 중</span>
-              </div>
+              <div class="tool-name-row"><div class="tool-name">PDF 워터마크·도장</div><span class="tool-badge-soon">준비 중</span><span class="soon-cat">PDF</span></div>
               <p class="tool-desc">PDF 모든 쪽에 워터마크 글자나 도장 이미지를 한 번에 넣어요.</p>
             </div>
-            <button type="button" class="tool-cta tool-cta-disabled" disabled aria-label="PDF 워터마크·도장 — 아직 준비 중이에요">Coming Soon</button>
           </article>
-
-          <article class="tool-card coming-soon">
-            <div class="tool-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 3 4 11 4 11 6"></polyline><line x1="7" y1="4" x2="7" y2="14"></line><line x1="5" y1="14" x2="9" y2="14"></line><rect x="13" y="9" width="9" height="9" rx="1.5"></rect><circle cx="15.8" cy="12" r="0.9"></circle><polyline points="22 16 19 13 13 18"></polyline></svg>
-            </div>
+          <article class="soon-card" data-cat="pdf">
+            <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 3 4 11 4 11 6"></polyline><line x1="7" y1="4" x2="7" y2="14"></line><line x1="5" y1="14" x2="9" y2="14"></line><rect x="13" y="9" width="9" height="9" rx="1.5"></rect><circle cx="15.8" cy="12" r="0.9"></circle><polyline points="22 16 19 13 13 18"></polyline></svg></div>
             <div class="tool-body">
-              <div class="tool-name-row">
-                <div class="tool-name">PDF 글자·이미지 고치기</div>
-                <span class="tool-badge-soon">준비 중</span>
-              </div>
+              <div class="tool-name-row"><div class="tool-name">PDF 글자·이미지 고치기</div><span class="tool-badge-soon">준비 중</span><span class="soon-cat">PDF</span></div>
               <p class="tool-desc">PDF 안의 글자를 고치고, 들어 있는 사진을 다른 이미지로 갈아끼워요.</p>
             </div>
-            <button type="button" class="tool-cta tool-cta-disabled" disabled aria-label="PDF 글자·이미지 고치기 — 아직 준비 중이에요">Coming Soon</button>
           </article>
-        </div>
-      </div>
-
-      <div class="tool-category">
-        <div class="tool-category-head">
-          <span class="tool-category-title">사운드</span>
-          <span class="tool-category-count">3개</span>
-        </div>
-        <div class="tool-grid">
-
-          <article class="tool-card">
-            <div class="tool-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
-            </div>
+          <article class="soon-card" data-cat="text">
+            <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="15" y2="12"></line><line x1="3" y1="18" x2="18" y2="18"></line></svg></div>
             <div class="tool-body">
-              <div class="tool-name">사운드 형식 변환</div>
-              <p class="tool-desc">WAV·MP3로 바로 바꾸고, 필요하면 OGG·FLAC까지 추가 변환해요.</p>
-            </div>
-            <a class="tool-cta" href="/sound-converter/" aria-label="사운드 형식 변환 도구 열기">
-              도구 열기
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"></path></svg>
-            </a>
-          </article>
-
-          <article class="tool-card">
-            <div class="tool-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
-            </div>
-            <div class="tool-body">
-              <div class="tool-name">영상에서 오디오 추출</div>
-              <p class="tool-desc">영상 파일에서 소리만 뽑아내 WAV·MP3 등 오디오 파일로 저장해요.</p>
-            </div>
-            <a class="tool-cta" href="/video-to-audio/" aria-label="영상에서 오디오 추출 도구 열기">
-              도구 열기
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"></path></svg>
-            </a>
-          </article>
-          <article class="tool-card">
-            <div class="tool-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><line x1="20" y1="4" x2="8.12" y2="15.88"></line><line x1="14.47" y1="14.48" x2="20" y2="20"></line><line x1="8.12" y1="8.12" x2="12" y2="12"></line></svg>
-            </div>
-            <div class="tool-body">
-              <div class="tool-name-row">
-                <div class="tool-name">사운드 편집</div>
-                <span class="tool-badge-beta">베타</span>
-              </div>
-              <p class="tool-desc">파형을 보며 자르고 이어 붙이고, 노이즈 제거·볼륨·속도 조절에 녹음까지 한 화면에서 해요.</p>
-            </div>
-            <a class="tool-cta" href="/sound-editor/" aria-label="사운드 편집 도구 열기">
-              도구 열기
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"></path></svg>
-            </a>
-          </article>
-        </div>
-      </div>
-
-      <div class="tool-category">
-        <div class="tool-category-head">
-          <span class="tool-category-title">영상</span>
-          <span class="tool-category-count">1개</span>
-        </div>
-        <div class="tool-grid">
-          <article class="tool-card">
-            <div class="tool-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line></svg>
-            </div>
-            <div class="tool-body">
-              <div class="tool-name-row">
-                <div class="tool-name">영상 편집</div>
-                <span class="tool-badge-beta">베타</span>
-              </div>
-              <p class="tool-desc">타임라인에서 자르고 이어 붙이고, 배경음악·자막·전환·색 보정을 얹어 MP4로 저장해요. 세로·정사각 비율로도 바꿔요.</p>
-            </div>
-            <a class="tool-cta" href="/video-editor/" aria-label="영상 편집 도구 열기 (베타)">
-              도구 열기
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"></path></svg>
-            </a>
-          </article>
-        </div>
-      </div>
-
-      <div class="tool-category">
-        <div class="tool-category-head">
-          <span class="tool-category-title">설문</span>
-          <span class="tool-category-count">1개</span>
-        </div>
-        <div class="tool-grid">
-          <article class="tool-card">
-            <div class="tool-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"></path><rect x="7" y="12" width="3" height="6"></rect><rect x="12.5" y="8" width="3" height="10"></rect><rect x="18" y="5" width="3" height="13"></rect></svg>
-            </div>
-            <div class="tool-body">
-              <div class="tool-name">설문 대시보드</div>
-              <p class="tool-desc">설문 응답 엑셀을 올리면 그래프와 카드로 자동 정리하고, 직접 설문 응답표도 만들 수 있어요.</p>
-            </div>
-            <a class="tool-cta" href="/survey-dashboard/" aria-label="설문 대시보드 도구 열기">
-              도구 열기
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"></path></svg>
-            </a>
-          </article>
-        </div>
-      </div>
-
-      <div class="tool-category">
-        <div class="tool-category-head">
-          <span class="tool-category-title">텍스트</span>
-          <span class="tool-category-count">2개</span>
-        </div>
-        <div class="tool-grid">
-          <article class="tool-card">
-            <div class="tool-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="3" height="3" rx=".6"></rect><rect x="18" y="18" width="3" height="3" rx=".6"></rect></svg>
-            </div>
-            <div class="tool-body">
-              <div class="tool-name">QR 코드 만들기·읽기</div>
-              <p class="tool-desc">링크나 글자를 QR 코드로 만들어 색·점 모양·아이콘까지 꾸며 PNG·SVG로 저장하고, 사진 속 QR 코드도 읽어요.</p>
-            </div>
-            <a class="tool-cta" href="/qr-code/" aria-label="QR 코드 만들기·읽기 도구 열기">
-              도구 열기
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"></path></svg>
-            </a>
-          </article>
-
-          <article class="tool-card coming-soon">
-            <div class="tool-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="15" y2="12"></line><line x1="3" y1="18" x2="18" y2="18"></line></svg>
-            </div>
-            <div class="tool-body">
-              <div class="tool-name-row">
-                <div class="tool-name">글자수 세기·텍스트 정리</div>
-                <span class="tool-badge-soon">준비 중</span>
-              </div>
+              <div class="tool-name-row"><div class="tool-name">글자수 세기·텍스트 정리</div><span class="tool-badge-soon">준비 중</span><span class="soon-cat">텍스트</span></div>
               <p class="tool-desc">글자·단어 수를 바로 세고, 줄바꿈과 공백을 깔끔하게 정리해요.</p>
             </div>
-            <button type="button" class="tool-cta tool-cta-disabled" disabled aria-label="글자수 세기·텍스트 정리 — 아직 준비 중이에요">Coming Soon</button>
           </article>
+            </div>
+            <p class="grow-note">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>
+              새로운 도구는 계속 추가해 나갈 예정이에요. 다음에 다시 들러주세요.
+            </p>
+          </div>
         </div>
       </div>
-
-      <p class="grow-note">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>
-        새로운 도구는 계속 추가해 나갈 예정이에요. 다음에 다시 들러주세요.
-      </p>
     </div>
   </section>
 
@@ -1482,7 +1439,7 @@
     <span class="footer-credit-mark">ⓒ 2026</span> <span class="footer-credit-name">써봄</span> · All rights reserved — 써봄의 이름, 디자인, 코드는 저작권으로 보호받으며 무단 복제·수정·재배포와 다른 사이트 게시를 금지합니다.<br>
     <span class="footer-credit-mark">ⓒ 2026</span> <span class="footer-credit-name">고윤태</span> · <a class="footer-credit-link" href="https://yuntaeko.com/" target="_blank" rel="noopener noreferrer">yuntaeko.com</a> — 정성을 담아 제작한 페이지입니다. 이용 허락·문의는 <a class="footer-credit-link" href="#feedback">의견 보내기</a>로 남겨 주세요.<br>
     <a class="footer-credit-link" href="/privacy/">개인정보처리방침</a> · <a class="footer-credit-link" href="/notice/">오픈소스 고지</a>
-    <span class="footer-updated">업데이트 · 2026. 9. 14.</span>
+    <span class="footer-updated">업데이트 · 2026. 9. 19.</span>
   </div>
 </footer>
 
@@ -1647,6 +1604,61 @@
     }
     wireToggle("feedbackPanel", "feedbackToggle");
     wireToggle("noticesPanel", "noticesToggle");
+    wireToggle("soonPanel", "soonToggle");
+  })();
+</script>
+
+<script>
+  // 도구 칩 필터 + 검색 — 마크업은 그대로 두고 hidden만 토글한다.
+  (function(){
+    var chips = Array.prototype.slice.call(document.querySelectorAll(".tool-chip"));
+    var input = document.getElementById("toolSearch");
+    var clearBtn = document.getElementById("toolSearchClear");
+    var result = document.getElementById("toolResult");
+    var cards = Array.prototype.slice.call(document.querySelectorAll("#toolGrid .tool-card"));
+    var soonCards = Array.prototype.slice.call(document.querySelectorAll(".soon-card"));
+    var soonPanel = document.getElementById("soonPanel"), soonToggle = document.getElementById("soonToggle");
+    if (!chips.length || !input) return;
+    var cat = "all", autoOpened = false;
+    soonToggle.addEventListener("click", function(){ autoOpened = false; });
+    function norm(t){ return String(t || "").toLowerCase().replace(/\s+/g, ""); }
+    function apply(){
+      var q = norm(input.value);
+      clearBtn.hidden = !q;
+      var shown = 0, soonShown = 0;
+      cards.forEach(function(card){
+        var ok = (cat === "all" || card.getAttribute("data-cat") === cat) && (!q || norm(card.textContent).indexOf(q) !== -1);
+        card.hidden = !ok; if (ok) shown++;
+      });
+      soonCards.forEach(function(card){
+        var ok = (cat === "all" || card.getAttribute("data-cat") === cat) && (!q || norm(card.textContent).indexOf(q) !== -1);
+        card.hidden = !ok; if (ok) soonShown++;
+      });
+      // 검색 중이거나 종류를 골랐을 땐 준비 중 패널도 펼쳐서 같이 보여준다(찾는 도구가 아직 준비 중일 수 있으니)
+      if ((q || cat !== "all") && soonShown && !soonPanel.classList.contains("open")){ soonPanel.classList.add("open"); soonToggle.setAttribute("aria-expanded", "true"); autoOpened = true; }
+      // 필터·검색을 다 지우면, 그때 자동으로 펼쳤던 패널은 다시 접는다(사용자가 직접 연 건 그대로)
+      if (!q && cat === "all" && autoOpened){ soonPanel.classList.remove("open"); soonToggle.setAttribute("aria-expanded", "false"); autoOpened = false; }
+      soonPanel.hidden = soonShown === 0 && (q !== "" || cat !== "all");
+      var msg = "";
+      if (q) msg = shown ? "\"" + input.value.trim() + "\" — 도구 " + shown + "개" + (soonShown ? " · 준비 중 " + soonShown + "개" : "") : "\"" + input.value.trim() + "\"에 맞는 도구가 " + (soonShown ? "아직 준비 중이에요." : "아직 없어요. 아래 의견 보내기로 요청해 주세요.");
+      result.textContent = msg; result.hidden = !msg;
+    }
+    chips.forEach(function(ch){
+      ch.addEventListener("click", function(){
+        cat = ch.getAttribute("data-cat");
+        chips.forEach(function(o){ o.setAttribute("aria-pressed", o === ch ? "true" : "false"); });
+        apply();
+        // 아래쪽에서 칩을 눌렀으면 결과 첫 줄이 보이도록 도구 섹션 위로 올린다
+        if (document.getElementById("toolNav").getBoundingClientRect().top <= 0) document.getElementById("tools").scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
+    input.addEventListener("input", apply);
+    input.addEventListener("keydown", function(e){ if (e.key === "Escape"){ input.value = ""; apply(); } });
+    clearBtn.addEventListener("click", function(){ input.value = ""; apply(); input.focus(); });
+    // "/" 키로 검색창 포커스(입력 중이 아닐 때)
+    document.addEventListener("keydown", function(e){
+      if (e.key === "/" && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement && document.activeElement.tagName)){ e.preventDefault(); input.focus(); }
+    });
   })();
 </script>
 
