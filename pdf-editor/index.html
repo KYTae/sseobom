@@ -1445,7 +1445,7 @@
       <span class="mark">ⓒ 2026</span> <span class="name">고윤태</span> · <a href="https://yuntaeko.com/" target="_blank" rel="noopener noreferrer">yuntaeko.com</a> — 정성을 담아 제작한 도구입니다. 이용 허락·문의는 <a href="/#feedback">의견 보내기</a>로 남겨 주세요.<br>
       <a href="/privacy/">개인정보처리방침</a> · <a href="/notice/">오픈소스 고지</a>
     </div>
-    <div class="updated">업데이트 · 2026. 9. 13.</div>
+    <div class="updated">업데이트 · 2026. 9. 19.</div>
   </footer>
 </div>
 
@@ -2893,9 +2893,7 @@
     setBusy(true, "페이지를 이미지로 만드는 중...");
     try{
       const zip = new JSZip();
-      let baseName = (filenameInput.value || "합친문서").trim();
-      if (!baseName) baseName = "합친문서";
-      baseName = baseName.replace(/\.pdf$/i, "");
+      const baseName = currentBaseName();
       // 파일 탐색기에서 1, 10, 11, 2... 로 섞이지 않도록 자리수를 맞춘다.
       // 기준은 고른 장수가 아니라 전체 장수다 — 12장 중 2·5·11만 골랐을 때 고른 장수(3)로
       // 자리를 잡으면 _2, _5, _11이 되어 다시 순서가 섞인다.
@@ -3197,9 +3195,7 @@
       const bytes = await outDoc.save();
       const blob = new Blob([bytes], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
-      let name = (filenameInput.value || "합친문서").trim();
-      if (!name) name = "합친문서";
-      name = name.replace(/\.pdf$/i, "");
+      const name = currentBaseName();
       // 압축 여부는 "압축 다운로드를 시작했어요" 완료 문구로만 알려준다 — 사용자가 직접 지정한
       // 파일명 뒤에 "_압축"을 임의로 덧붙이지 않는다.
       const a = document.createElement("a");
@@ -3304,9 +3300,7 @@
     setBusy(true, "분할된 PDF를 만드는 중...");
     try{
       const zip = new JSZip();
-      let baseName = (filenameInput.value || "합친문서").trim();
-      if (!baseName) baseName = "합친문서";
-      baseName = baseName.replace(/\.pdf$/i, "");
+      const baseName = currentBaseName();
 
       // "편집한 PDF 다운로드" 옆의 압축 체크박스는 분할 저장에도 그대로 적용된다 — 압축은
       // appendPageToDoc 안에서 사진/스캔 이미지를 다시 압축하는 처리라, 분할이냐 아니냐와
@@ -3527,10 +3521,20 @@
   // 공유할 때는 그때의 칸 값으로 이름을 다시 만든다 — 다운로드 버튼도 누를 때마다 칸을
   // 읽으므로 둘이 항상 같은 이름이 된다. 페이지 이미지(PNG)는 원본 파일 이름에서 나오므로
   // 그대로 둔다(rename 없음).
-  function currentBaseName(){
-    let base = (filenameInput.value || "합친문서").trim();
+  // 파일명에 쓸 수 없는 글자는 브라우저가 알아서 "_"로 바꿔 저장한다. 그런데 우리 완료
+  // 문구는 바꾸기 전 이름을 그대로 읽어 줘서, 화면은 "a/b:c.pdf"라는데 받은 파일은
+  // "a_b_c.pdf"가 된다. QR 도구는 이미 같은 정리를 하고 있으니 여기서도 먼저 정리해서,
+  // 지정하는 이름과 안내하는 이름을 하나로 맞춘다.
+  function cleanBaseName(raw){
+    let base = (raw || "합친문서").trim();
     if (!base) base = "합친문서";
-    return base.replace(/\.pdf$/i, "");
+    base = base.replace(/\.pdf$/i, "").replace(/[\\/:*?"<>|]/g, "_").trim();
+    // 점만 남는 등 실질적으로 빈 이름이 되는 경우까지 막는다(".." → "...pdf"가 됐었다).
+    if (!base.replace(/^\.+$/, "")) base = "합친문서";
+    return base;
+  }
+  function currentBaseName(){
+    return cleanBaseName(filenameInput.value);
   }
   let lastResult = null; // { blob, name, rename }
   function setLastResult(blob, name, rename){
@@ -3624,8 +3628,15 @@
         resolve(result);
       }
       function onKey(e){
-        if (e.key === "Escape"){ e.preventDefault(); close(false); }
-        else if (e.key === "Enter"){ e.preventDefault(); close(true); }
+        if (e.key === "Escape"){ e.preventDefault(); close(false); return; }
+        if (e.key !== "Enter") return;
+        // 창 안의 버튼에 포커스가 있으면 브라우저가 알아서 그 버튼을 누른다(Enter·Space 둘 다).
+        // 여기서 가로채 close(true)를 부르면 **"취소"를 골라 놓고 Enter를 친 사람에게도
+        // "확인"이 되어 버린다** — 삭제 확인창에서는 고른 페이지가 그대로 지워진다.
+        // (Space는 정상이었다. Enter만 이 핸들러에 가로채였다.)
+        // 포커스가 창 밖으로 빠진 예외적인 경우에만 예전처럼 확인으로 받는다.
+        if (document.activeElement === cancelBtn || document.activeElement === okBtn) return;
+        e.preventDefault(); close(true);
       }
       cancelBtn.addEventListener("click", () => close(false));
       okBtn.addEventListener("click", () => close(true));
