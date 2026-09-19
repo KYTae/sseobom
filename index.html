@@ -422,7 +422,15 @@
   .soon-card .tool-icon svg{ width:15px; height:15px; }
   .soon-card .tool-name{ font-size:13px; color:var(--text-secondary); }
   .soon-card .tool-desc{ font-size:11.5px; color:var(--text-muted); }
-  .soon-cat{ font-size:10.5px; color:var(--text-muted); }
+  /* 종류 라벨은 공개 카드(.tool-cat)와 같은 자리 — 카드 왼쪽 아래. 예전에는 이름 옆에
+     인라인으로 붙어 있어서 "PDF 워터마크·도장"처럼 이름이 긴 카드에서는 라벨만 다음 줄로
+     떨어져 이름·배지·라벨이 제각각 흩어져 보였다. */
+  .soon-card{ position:relative; padding-bottom:26px; }
+  .soon-cat{
+    position:absolute; left:12px; bottom:8px;
+    font-size:10.5px; font-weight:600; letter-spacing:.02em;
+    color:var(--text-muted);
+  }
   .soon-panel .grow-note{ margin-top:14px; }
 
 
@@ -815,6 +823,11 @@
   }
   .tool-cta:hover{ filter:brightness(1.07); }
   .tool-cta:active{ transform:scale(.98); }
+  /* 이 줄이 없으면 화살표 SVG가 제 크기를 못 찾아 버튼을 세로로 늘려 버린다 —
+     "보내기" 세 글자가 한 글자씩 줄바꿈되고 화살표만 커졌다(실측 77×93px).
+     도구 카드가 .tool-cta를 안 쓰게 되면서 같이 지워졌는데, 의견 보내기 제출 버튼은
+     아직 이 클래스를 쓴다. flex:0 0 auto로 줄어들지도 않게 못을 박는다. */
+  .tool-cta svg{ width:14px; height:14px; flex:0 0 auto; }
   .feedback-submit{
     align-self:flex-start;
     border:none; cursor:pointer;
@@ -867,6 +880,8 @@
        화살표는 터치에선 호버가 없어 안 보이니 자리도 비운다. */
     .tool-card{ padding-bottom:12px; }
     .tool-cat{ left:auto; right:14px; bottom:auto; top:19px; }
+    .soon-card{ padding-bottom:10px; }
+    .soon-cat{ position:static; margin-left:2px; }
     .tool-head{ padding-right:40px; }
     .tool-arrow{ display:none; }
   }
@@ -1017,7 +1032,7 @@
             <div class="tool-name-row"><div class="tool-name">PDF 편집기</div>
             <span class="tool-cat">PDF</span></div>
           </div>
-          <p class="tool-desc">PDF 합치기·분할·압축부터 순서변경·회전·복제·A4비율 변경·이미지 다운로드·삭제까지 한 번에 할 수 있어요.</p>
+          <p class="tool-desc">PDF를 합치고 나누고, 순서변경·회전·복제·삭제를 여러 장 한 번에 하고, 페이지를 이미지로도 받아요.</p>
           <span class="tool-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"></path></svg></span>
         </a>
         <a class="tool-card" href="/pdf-sign/" data-cat="pdf" aria-label="PDF 전자서명 도구 열기">
@@ -1096,45 +1111,51 @@
           <article class="soon-card" data-cat="image">
             <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="3" width="13" height="13" rx="2" ry="2"></rect><path d="M5 8H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-1"></path></svg></div>
             <div class="tool-body">
-              <div class="tool-name-row"><div class="tool-name">이미지 일괄 처리</div><span class="tool-badge-soon">준비 중</span><span class="soon-cat">이미지</span></div>
+              <div class="tool-name-row"><div class="tool-name">이미지 일괄 처리</div><span class="tool-badge-soon">준비 중</span></div>
               <p class="tool-desc">여러 이미지의 크기를 한 번에 맞추고 이름도 규칙대로 바꿔서 zip으로 받아요.</p>
             </div>
-          </article>
+          <span class="soon-cat">이미지</span>
+      </article>
           <article class="soon-card" data-cat="image">
             <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"></path><path d="M21 8V5a2 2 0 0 0-2-2h-3"></path><path d="M3 16v3a2 2 0 0 0 2 2h3"></path><path d="M16 21h3a2 2 0 0 0 2-2v-3"></path></svg></div>
             <div class="tool-body">
-              <div class="tool-name-row"><div class="tool-name">이미지 스케일 업</div><span class="tool-badge-soon">준비 중</span><span class="soon-cat">이미지</span></div>
+              <div class="tool-name-row"><div class="tool-name">이미지 스케일 업</div><span class="tool-badge-soon">준비 중</span></div>
               <p class="tool-desc">흐릿한 사진을 선명하게 다듬고, 확대해도 깨지지 않게 키워요.</p>
             </div>
-          </article>
+          <span class="soon-cat">이미지</span>
+      </article>
           <article class="soon-card" data-cat="image">
             <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.13 1L6 16a2 2 0 0 0 2 2h15"></path><path d="M1 6.13L16 6a2 2 0 0 1 2 2v15"></path></svg></div>
             <div class="tool-body">
-              <div class="tool-name-row"><div class="tool-name">이미지 크롭·확장</div><span class="tool-badge-soon">준비 중</span><span class="soon-cat">이미지</span></div>
+              <div class="tool-name-row"><div class="tool-name">이미지 크롭·확장</div><span class="tool-badge-soon">준비 중</span></div>
               <p class="tool-desc">이미지를 자르고, 모서리를 둥글리고, 캔버스를 넓혀요.</p>
             </div>
-          </article>
+          <span class="soon-cat">이미지</span>
+      </article>
           <article class="soon-card" data-cat="pdf">
             <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"></circle><path d="M9.5 9h5"></path><path d="M5 20.5h14"></path><path d="M6.5 17.5h11"></path></svg></div>
             <div class="tool-body">
-              <div class="tool-name-row"><div class="tool-name">PDF 워터마크·도장</div><span class="tool-badge-soon">준비 중</span><span class="soon-cat">PDF</span></div>
+              <div class="tool-name-row"><div class="tool-name">PDF 워터마크·도장</div><span class="tool-badge-soon">준비 중</span></div>
               <p class="tool-desc">PDF 모든 쪽에 워터마크 글자나 도장 이미지를 한 번에 넣어요.</p>
             </div>
-          </article>
+          <span class="soon-cat">PDF</span>
+      </article>
           <article class="soon-card" data-cat="pdf">
             <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 3 4 11 4 11 6"></polyline><line x1="7" y1="4" x2="7" y2="14"></line><line x1="5" y1="14" x2="9" y2="14"></line><rect x="13" y="9" width="9" height="9" rx="1.5"></rect><circle cx="15.8" cy="12" r="0.9"></circle><polyline points="22 16 19 13 13 18"></polyline></svg></div>
             <div class="tool-body">
-              <div class="tool-name-row"><div class="tool-name">PDF 글자·이미지 고치기</div><span class="tool-badge-soon">준비 중</span><span class="soon-cat">PDF</span></div>
+              <div class="tool-name-row"><div class="tool-name">PDF 글자·이미지 고치기</div><span class="tool-badge-soon">준비 중</span></div>
               <p class="tool-desc">PDF 안의 글자를 고치고, 들어 있는 사진을 다른 이미지로 갈아끼워요.</p>
             </div>
-          </article>
+          <span class="soon-cat">PDF</span>
+      </article>
           <article class="soon-card" data-cat="text">
             <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="15" y2="12"></line><line x1="3" y1="18" x2="18" y2="18"></line></svg></div>
             <div class="tool-body">
-              <div class="tool-name-row"><div class="tool-name">글자수 세기·텍스트 정리</div><span class="tool-badge-soon">준비 중</span><span class="soon-cat">텍스트</span></div>
+              <div class="tool-name-row"><div class="tool-name">글자수 세기·텍스트 정리</div><span class="tool-badge-soon">준비 중</span></div>
               <p class="tool-desc">글자·단어 수를 바로 세고, 줄바꿈과 공백을 깔끔하게 정리해요.</p>
             </div>
-          </article>
+          <span class="soon-cat">텍스트</span>
+      </article>
             </div>
             <p class="grow-note">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>
@@ -1156,11 +1177,28 @@
           <button class="notices-toggle" id="noticesToggle" type="button" aria-expanded="false" aria-controls="noticesContent">
             <span class="notices-toggle-icon">▶</span> 공지사항 보기
           </button>
-          <span class="notices-latest-hint">최근 공지 2026.09.16</span>
+          <span class="notices-latest-hint">최근 공지 2026.09.19</span>
         </div>
         <div class="notices-content" id="noticesContent">
           <div class="notices-content-inner">
             <ul class="notice-list">
+              <li class="notice-item">
+                <div class="notice-marker"><span class="notice-dot"></span></div>
+                <div class="notice-card">
+                  <div class="notice-meta">
+                    <span class="notice-date">2026.09.19</span>
+                    <span class="notice-tag notice-tag-update">개선</span>
+                  </div>
+                  <p class="notice-text">PDF 편집기에 "여러 장 한 번에 고르기"와 이미지 zip 저장을 더하고, QR 코드 도구가 비스듬히 찍힌 사진 속 QR도 읽도록 개선했습니다.</p>
+                  <ul class="notice-sublist">
+                    <li>PDF 편집기 — 페이지를 여러 장 골라 한 번에 회전·복제·삭제할 수 있습니다. 전체·홀수·짝수·반전 버튼이나 "3-15, 40" 같은 범위 입력으로 고를 수 있고, 카드를 누르거나 Shift를 누른 채 눌러 구간으로도 고릅니다.</li>
+                    <li>PDF 편집기 — 페이지를 한 장씩 이미지로 저장하던 것에 더해, 전체 또는 고른 페이지를 이미지 zip 하나로 받을 수 있습니다. 파일 이름에 순서 번호가 붙어 탐색기에서도 순서대로 정렬됩니다.</li>
+                    <li>PDF 편집기 — 페이지를 골라 둔 상태에서 저장 버튼을 누르면 고른 페이지만 받을지 전체를 받을지 한 번 물어봅니다.</li>
+                    <li>QR 코드 — 비스듬히 찍힌 사진 속 QR도 반듯하게 펴서 읽습니다. 아래 서명에 글꼴 4가지와 앞 글머리 점을 고를 수 있고, 옵션이 열리고 닫힐 때 부드럽게 움직입니다. 휴대폰처럼 좁은 화면에서는 옵션을 만지는 동안 작은 미리보기가 위에 따라붙습니다.</li>
+                    <li>두 도구 모두 키보드와 스크린 리더로 쓰기 편하도록 다듬었습니다. 버튼을 눌러도 키보드 포커스가 그 자리에 남고, 저장·삭제 결과를 소리로도 알려주며, 확인창에서 "취소"를 고르고 Enter를 눌렀을 때 실제로 취소되도록 고쳤습니다.</li>
+                  </ul>
+                </div>
+              </li>
               <li class="notice-item">
                 <div class="notice-marker"><span class="notice-dot"></span></div>
                 <div class="notice-card">
