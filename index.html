@@ -881,7 +881,16 @@
     .tool-card{ padding-bottom:12px; }
     .tool-cat{ left:auto; right:14px; bottom:auto; top:19px; }
     .soon-card{ padding-bottom:10px; }
-    .soon-cat{ position:static; margin-left:2px; }
+    /* 좁은 화면에서는 라벨이 카드(flex)의 한 칸이 된다. 기본값(flex:0 1 auto)이라
+       설명 글에 밀려 폭이 15~31px까지 줄었고, "이미지"가 "이미 / 지"로 쪼개졌다
+       (320~430px 전 구간에서 4개 라벨이 두 줄, 실측). 줄어들지 않게 못을 박는다. */
+    .soon-cat{
+      position:static;
+      flex:0 0 auto;
+      white-space:nowrap;
+      margin-left:auto;
+      padding-top:1px;
+    }
     .tool-head{ padding-right:40px; }
     .tool-arrow{ display:none; }
   }
