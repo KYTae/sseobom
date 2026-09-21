@@ -949,7 +949,8 @@
   .tc-ctrl input[type=range], body.workbench .inspector-card .tc-ctrl input[type=range]{ flex:1 1 auto !important; width:auto !important; min-width:0; accent-color:var(--accent); }
   .tc-ctrl .nice-select, .tc-ctrl .nice-select-btn{ width:100%; max-width:100%; }
   .tc-ctrl .nice-select-btn .nice-select-text{ flex:1 1 auto; text-align:left; }
-  .tc-ctrl input[type=color]{ width:44px; height:30px; padding:0; border:1px solid var(--card-border); border-radius:8px; background:var(--bg); cursor:pointer; }
+  .tc-ctrl input[type=color]{ width:44px; height:30px; padding:0; border:1px solid var(--card-border); border-radius:8px; background:var(--bg); cursor:pointer; transition:box-shadow .15s ease, border-color .15s ease; }
+  .tc-ctrl input[type=color]:hover, .tc-ctrl input[type=color]:focus-visible{ border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-dim); outline:none; }
   .tc-unit, .tc-ctrl .val{ font-size:11.5px; color:var(--text-dim); flex:none; }
   .tc-toggle-wrap{ display:flex; width:100%; }
   .tc-toggle-wrap button{ width:100%; padding:6px 8px; font-size:12px; }
@@ -4339,7 +4340,9 @@
   $("aspectSeg").addEventListener("click", function(e){ var b = e.target.closest("button"); if (!b) return; beginEdit(); project.aspect = b.getAttribute("data-aspect"); if (project.aspect === "custom"){ if (!project.customW) project.customW = 16; if (!project.customH) project.customH = 9; } commitEdit("화면 비율 " + (project.aspect === "auto" ? "자동" : project.aspect === "custom" ? project.customW + ":" + project.customH : project.aspect)); renderProject(); ensurePreviewSize(); renderAll(); if (project.aspect === "custom") $("customAspectW").focus(); });
   $("bgSeg").addEventListener("click", function(e){ var b = e.target.closest("button"); if (!b) return; beginEdit(); var v = b.getAttribute("data-bg");
     if (v === "blur") project.bgMode = "blur"; else { project.bgMode = "color"; project.bg = v === "white" ? "#ffffff" : v === "black" ? "#000000" : $("bgColor").value; }
-    commitEdit("배경 " + (v === "blur" ? "블러" : v === "white" ? "흰색" : v === "black" ? "검정" : "색")); renderProject(); drawPreviewFrame(); });
+    commitEdit("배경 " + (v === "blur" ? "블러" : v === "white" ? "흰색" : v === "black" ? "검정" : "색")); renderProject(); drawPreviewFrame();
+    // "색 선택"은 눌러도 색이 바뀌지 않으면 아무 반응이 없어 보이므로, 바로 색 고르기 창을 연다
+    if (v === "custom"){ var ci = $("bgColor"); try { ci.focus(); ci.click(); } catch(err){} } });
   $("bgColor").addEventListener("input", function(){ beginEdit(); project.bgMode = "color"; project.bg = this.value; renderProject(); drawPreviewFrame(); });
   $("bgColor").addEventListener("change", function(){ commitEdit("배경 색"); });
 
