@@ -52,7 +52,7 @@
 <meta name="twitter:image" content="https://sseobom.kr/video-editor-og.png?v=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Nanum+Pen+Script&family=Nanum+Brush+Script&family=Gaegu:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&family=Nanum+Gothic:wght@400;700&family=Gothic+A1:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;700&family=Gowun+Dodum&family=Sunflower:wght@300;500;700&family=Nanum+Gothic+Coding:wght@400;700&family=Gowun+Batang:wght@400;700&family=Noto+Serif+KR:wght@400;700&family=Nanum+Myeongjo:wght@400;700&family=Song+Myung&family=Hahmlet:wght@400;700&family=Diphylleia&family=Grandiflora+One&family=Black+Han+Sans&family=Do+Hyeon&family=Jua&family=Gugi&family=Gasoek+One&family=Bagel+Fat+One&family=Moirai+One&family=Orbit&family=Stylish&family=Dongle:wght@400;700&family=Yeon+Sung&family=Nanum+Pen+Script&family=Nanum+Brush+Script&family=Gaegu:wght@400;700&family=Hi+Melody&family=Poor+Story&family=Gamja+Flower&family=East+Sea+Dokdo&family=Kirang+Haerang&family=Single+Day&family=Cute+Font&family=Black+And+White+Picture&family=Bebas+Neue&family=Anton&family=Oswald:wght@400;700&family=Montserrat:wght@400;700&family=Poppins:wght@400;700&family=Righteous&family=Bangers&family=Abril+Fatface&family=Playfair+Display:wght@400;700&family=Merriweather:wght@400;700&family=Roboto+Slab:wght@400;700&family=Fredoka:wght@400;700&family=Comfortaa:wght@400;700&family=Press+Start+2P&family=Lobster&family=Pacifico&family=Dancing+Script:wght@400;700&family=Caveat:wght@400;700&family=Permanent+Marker&family=Satisfy&family=Great+Vibes&display=swap" rel="stylesheet">
 <style>
   .sb-2026-kyt{ --origin:"sseobom.kr"; }
   :root{
@@ -640,7 +640,8 @@
     touch-action:pan-x;
   }
   .timeline-content{ position:relative; min-width:100%; }
-  .tl-ruler{ position:relative; height:26px; cursor:pointer; border-bottom:1px solid var(--card-border); }
+  .tl-ruler{ position:sticky; top:0; z-index:5; height:26px; cursor:pointer; border-bottom:1px solid var(--card-border); background:var(--bg); }
+  .tl-gutter-cell.ruler-cell{ position:sticky; top:0; z-index:5; background:var(--bg); }
   .tl-ruler canvas{ display:block; width:100%; height:100%; }
   .tl-lane{ position:relative; height:74px; border-bottom:1px solid var(--card-border); }
   .tl-lane.audio-lane{ height:40px; }
@@ -656,10 +657,12 @@
   .tclip .clip-edge::after{ content:""; position:absolute; top:25%; bottom:25%; width:3px; border-radius:2px; background:rgba(0,0,0,.25); left:2px; }
   .tclip .clip-edge.right::after{ left:auto; right:2px; }
   .tl-hint{ font-size:12px; color:var(--text-dim); margin:8px 0 0; }
+  /* 클립은 각진 상자 + 1px 테두리(box-sizing:border-box) — 이어 붙은 클립은 틈 없이 맞닿고, 경계는 얇은 선 하나로만 보인다(프리미어와 같음) */
   .clip{
     position:absolute; top:6px; bottom:6px;
-    border-radius:8px;
-    border:2px solid var(--clip-color, var(--accent));
+    box-sizing:border-box;
+    border-radius:0;
+    border:1px solid var(--clip-color, var(--accent));
     background:#111;
     overflow:hidden;
     cursor:grab;
@@ -668,7 +671,7 @@
     animation:clipIn .25s ease both;
   }
   .clip.no-anim{ transition:none; animation:none; }
-  .clip.selected{ box-shadow:0 0 0 3px var(--accent-dim), 0 0 0 1px var(--clip-color, var(--accent)); }
+  .clip.selected{ border-color:#fff; box-shadow:inset 0 0 0 1px #fff, 0 0 0 1px rgba(0,0,0,.35); z-index:3; }
   .clip.dragging{ cursor:grabbing; opacity:.85; z-index:5; transition:none; animation:none; box-shadow:0 8px 24px rgba(0,0,0,.35); }
   .clip.trimming{ animation:none; transition:none; }
   .clip.muted-clip{ opacity:.7; }
@@ -681,7 +684,8 @@
   .clip .clip-edge.right::after{ left:auto; right:3px; }
   .vaclip{
     position:absolute; top:4px; bottom:4px;
-    border-radius:6px;
+    box-sizing:border-box;
+    border-radius:0;
     background:rgba(127,127,127,.12);
     border:1px solid var(--card-border);
     overflow:hidden; cursor:pointer;
@@ -691,15 +695,16 @@
   }
   .vaclip canvas{ position:absolute; inset:0; width:100%; height:100%; opacity:.7; pointer-events:none; }
   .vaclip span{ position:relative; }
-  .vaclip.selected{ box-shadow:0 0 0 3px var(--accent-dim); border-color:var(--accent); }
+  .vaclip.selected{ box-shadow:inset 0 0 0 1px var(--accent); border-color:var(--accent); z-index:3; }
   .vaclip.muted{ opacity:.45; }
   .vaclip.muted canvas{ opacity:.25; }
   .clip.image-clip{ border-style:dashed; }
   .aclip{
     position:absolute; top:5px; bottom:5px;
-    border-radius:7px;
+    box-sizing:border-box;
+    border-radius:0;
     background:var(--accent2-dim);
-    border:1.5px solid var(--accent2);
+    border:1px solid var(--accent2);
     color:var(--accent2);
     font-size:11px; font-weight:700;
     padding:0 8px; display:flex; align-items:center; gap:6px;
@@ -710,7 +715,7 @@
   }
   .aclip canvas{ position:absolute; inset:0; width:100%; height:100%; opacity:.45; pointer-events:none; }
   .aclip span{ position:relative; }
-  .aclip.selected{ box-shadow:0 0 0 3px var(--accent2-dim); }
+  .aclip.selected{ box-shadow:inset 0 0 0 1px var(--accent2); background:var(--accent2); color:#fff; z-index:3; }
   .aclip.dragging, .tclip.dragging{ cursor:grabbing; opacity:.85; transition:none; z-index:5; }
   .aclip .clip-edge{ position:absolute; top:0; bottom:0; width:8px; cursor:ew-resize; z-index:2; }
   .aclip .clip-edge.left{ left:0; } .aclip .clip-edge.right{ right:0; }
@@ -718,9 +723,10 @@
   .aclip .clip-edge.right::after{ left:auto; right:2px; }
   .tclip{
     position:absolute; top:4px; bottom:4px;
-    border-radius:6px;
+    box-sizing:border-box;
+    border-radius:0;
     background:var(--warn-dim);
-    border:1.5px solid var(--warn);
+    border:1px solid var(--warn);
     color:var(--warn);
     font-size:11px; font-weight:700;
     padding:0 8px; display:flex; align-items:center;
@@ -728,7 +734,7 @@
     cursor:pointer;
     animation:clipIn .25s ease both;
   }
-  .tclip.selected{ box-shadow:0 0 0 3px var(--warn-dim); }
+  .tclip.selected{ box-shadow:inset 0 0 0 1px var(--warn); background:var(--warn); color:#fff; z-index:3; }
   .tl-selection{ position:absolute; top:0; bottom:0; background:rgba(124,92,209,.16); border-left:1.5px solid var(--accent2); border-right:1.5px solid var(--accent2); pointer-events:none; z-index:4; }
   .tl-selection[hidden]{ display:none; }
   /* ---- 프리미어식 디테일: 스냅선 · 면도칼 커트선 · 끌기 툴팁 · 눈금자 시각 · 가장자리 강조 ---- */
@@ -771,6 +777,11 @@
   .frame-outline[hidden]{ display:none; }
   .frame-tag{ position:absolute; left:6px; top:6px; font-size:10.5px; font-weight:700; color:#fff; background:rgba(0,0,0,.55); padding:2px 7px; border-radius:999px; white-space:nowrap; }
   .tf-ghost{ position:absolute; box-sizing:border-box; border:1.5px dashed rgba(79,147,232,.75); pointer-events:none; z-index:2; }
+  /* 미리보기 스냅 안내선 — 출력 화면의 가장자리·중심에 붙을 때 */
+  .tf-guide{ position:absolute; pointer-events:none; z-index:4; background:#ff5c8a; box-shadow:0 0 0 1px rgba(0,0,0,.35); }
+  .tf-guide.v{ width:1px; top:0; bottom:0; }
+  .tf-guide.h{ height:1px; left:0; right:0; }
+  .tf-guide[hidden]{ display:none; }
   .tf-ghost[hidden]{ display:none; }
   .tf-ghost-tag{ position:absolute; left:50%; top:4px; transform:translateX(-50%); font-size:10.5px; font-weight:700; color:#fff; background:rgba(42,120,214,.85); padding:2px 8px; border-radius:999px; white-space:nowrap; }
   .tf-handle{ position:absolute; width:12px; height:12px; background:#fff; border:1.5px solid var(--accent); border-radius:3px; box-sizing:border-box; z-index:2; }
@@ -865,6 +876,52 @@
   .empty-list{ font-size:12.5px; color:var(--text-dim); padding:8px 2px; }
   .empty-list[hidden]{ display:none; }
 
+  /* ---- 구역형 카드(클립·소리·자막·화면 공통) ---- */
+  .tc-card{ background:var(--bg); border:1px solid var(--card-border); border-radius:12px; padding:10px 12px 12px; font-size:12.5px; }
+  .tc-card .item-head{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:2px; }
+  .tc-card .item-title{ font-weight:700; font-size:13.5px; flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .tc-card .tc-time{ flex:1 1 100%; font-size:11.5px; color:var(--text-dim); font-variant-numeric:tabular-nums; }
+  .tc-sec.first{ margin-top:4px; padding-top:0; border-top:none; }
+  .tc-sec[hidden], .tc-field[hidden], .tc-grid[hidden]{ display:none; }
+  .tc-btns{ display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .tc-btns button{ padding:6px 11px; font-size:12px; }
+  .tc-btns button.danger:hover{ border-color:var(--danger); color:var(--danger); }
+  .tc-panel-btns{ margin:10px 0 4px; }
+  /* 구역형 카드의 세그먼트: 폭이 좁으면 줄바꿈되도록 미끄러지는 pill 대신 고정 강조를 쓴다(잘림 방지) */
+  .seg-mini.tc-seg, .tc-seg{ display:grid; grid-template-columns:repeat(auto-fit, minmax(88px, 1fr)); gap:2px; width:100%; margin-bottom:8px; border-radius:12px; padding:3px; }
+  .tc-seg::before{ display:none; }
+  .seg-mini.tc-seg > button, .tc-seg > button{ width:100%; min-width:0; padding:6px 6px; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; border-radius:9px; }
+  .seg-mini.tc-seg > button.active, .tc-seg > button.active{ background:var(--card); box-shadow:0 1px 3px rgba(0,0,0,.14); }
+  .tc-ctrl > .tc-seg{ margin-bottom:0; }
+  .tc-field.span-2{ grid-column:span 2; }
+  .tc-spacer{ visibility:hidden; }
+  .tc-ctrl select.export-select{ width:100%; }
+  .tc-ctrl .nice-select{ width:100%; }
+  .tc-badge.audio{ color:var(--accent2); background:var(--accent2-dim); }
+  .tc-hint .val{ color:var(--text); font-weight:600; }
+  #clipProps.tc-card{ margin-top:0; }
+  /* 예전 .clip-props label / .panel-row label 규칙(인라인·110px 슬라이더)보다 우선 */
+  .clip-props .tc-field, .tab-panel .tc-field, .item-card .tc-field{ display:flex !important; flex-direction:column; align-items:stretch; gap:3px; color:var(--text); flex:none; min-width:0; }
+  .clip-props .tc-ctrl, .tab-panel .tc-ctrl{ display:flex; align-items:center; gap:4px; }
+  .clip-props .tc-ctrl input[type=range], .tab-panel .tc-ctrl input[type=range], .item-card .tc-ctrl input[type=range]{ width:auto !important; flex:1 1 auto !important; min-width:0; }
+  .clip-props .tc-ctrl .val, .tab-panel .tc-ctrl .val{ min-width:40px; text-align:right; font-variant-numeric:tabular-nums; color:var(--text); font-size:12px; }
+  .tc-label{ text-align:left; }
+  .clip-props .tc-ctrl input[type=number], .tab-panel .tc-ctrl input[type=number]{ width:100%; }
+  .inspector-card .clip-props{ display:block; gap:0; }
+  @media (max-width:520px){ .tc-trans.cols-4{ grid-template-columns:2fr 1fr; } .tc-spacer{ display:none; } }
+  /* ---- 자막 목록 칩(고른 자막만 카드로 펼침) ---- */
+  .tc-picker{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+  .tc-chip{ display:inline-flex; align-items:center; gap:6px; max-width:100%; padding:5px 10px 5px 6px; border-radius:999px; border:1px solid var(--card-border); background:var(--bg); color:var(--text-dim); font-family:inherit; font-size:12px; cursor:pointer; transition:border-color .12s ease, color .12s ease, background .12s ease; }
+  .tc-chip:hover{ border-color:var(--warn); color:var(--text); }
+  .tc-chip.active{ border-color:var(--warn); background:var(--warn-dim); color:var(--text); }
+  .tc-chip-badge{ font-size:10px; font-weight:800; color:var(--warn); background:var(--card); border:1px solid var(--warn-dim); padding:1px 6px; border-radius:999px; }
+  .tc-chip.active .tc-chip-badge{ background:var(--warn); color:#fff; border-color:var(--warn); }
+  .tc-chip-text{ max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .tc-chip.audio:hover, .tc-chip.audio.active{ border-color:var(--accent2); }
+  .tc-chip.audio.active{ background:var(--accent2-dim); }
+  .tc-chip.audio .tc-chip-badge{ color:var(--accent2); border-color:var(--accent2-dim); }
+  .tc-chip.audio.active .tc-chip-badge{ background:var(--accent2); color:#fff; border-color:var(--accent2); }
+  .tc-chip-time{ font-size:11px; opacity:.75; font-variant-numeric:tabular-nums; }
   /* ---- 자막 카드(구역형) ---- */
   .text-card .item-head{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
   .text-card .item-title{ display:inline-flex; align-items:center; gap:6px; font-size:13.5px; flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -984,6 +1041,9 @@
   .nice-select-option:hover, .nice-select-option.focused{ background:var(--accent-dim); color:var(--text); }
   .nice-select-option[aria-selected="true"]{ color:var(--accent); font-weight:700; }
   .nice-select-option .nice-select-check{ width:14px; height:14px; flex:none; opacity:0; transition:opacity .12s ease; }
+  .nice-select-group{ font-size:10.5px; font-weight:800; color:var(--accent); letter-spacing:.06em; padding:8px 12px 3px; margin-top:2px; border-top:1px solid var(--card-border); }
+  .nice-select-group:first-child{ border-top:none; margin-top:0; }
+  .nice-select-menu.font-menu{ max-height:min(480px, 70vh); min-width:240px; }
   .nice-select-option[aria-selected="true"] .nice-select-check{ opacity:1; }
 
   @media (prefers-reduced-motion: reduce){
@@ -1082,7 +1142,6 @@
     body.workbench .inspector-card .panel-row > label:has(> .seg-mini){ grid-template-columns:72px minmax(0,1fr); flex:1 1 100%; }
     body.workbench .inspector-card .panel-row > label > .seg-mini{ display:flex; width:100%; }
     body.workbench .inspector-card .panel-row > label > .seg-mini > button{ flex:1 1 auto; padding:6px 6px; white-space:nowrap; font-size:12.5px; }
-    body.workbench .inspector-card #screenPanel .panel-row .val, body.workbench .inspector-card #screenPanel .panel-row input[type=color]{ margin-left:80px; }
     /* 클립 속성은 한 줄 한 항목(슬라이더가 길어야 다루기 쉬움) — 버튼들은 그룹 끝에 모아 한 줄로 */
     body.workbench .inspector-card .cp-row > label{ flex:1 1 100%; }
     body.workbench .inspector-card .cp-row > .cp-group-title{ order:-2; }
@@ -1329,6 +1388,8 @@
       <div class="preview-stage is-empty" id="previewStage">
         <canvas id="previewCanvas" width="640" height="360"></canvas>
         <div class="frame-outline" id="frameOutline" hidden aria-hidden="true"><span class="frame-tag" id="frameTag">출력 화면</span></div>
+        <div class="tf-guide v" id="tfGuideV" hidden aria-hidden="true"></div>
+        <div class="tf-guide h" id="tfGuideH" hidden aria-hidden="true"></div>
         <div class="tf-ghost" id="tfGhost" hidden aria-hidden="true"><span class="tf-ghost-tag">잘려서 안 보이는 원본 부분</span></div>
         <div class="transform-box" id="transformBox" hidden aria-label="클립 변형 — 끌어서 이동, 모서리로 크기, 위 손잡이로 회전, 변으로 크롭, 더블클릭 = 초기화">
           <div class="tf-handle corner" data-h="nw"></div><div class="tf-handle corner" data-h="ne"></div><div class="tf-handle corner" data-h="sw"></div><div class="tf-handle corner" data-h="se"></div>
@@ -1362,25 +1423,34 @@
       <div class="inspector-body" id="inspectorBody">
       <div class="tab-panel" id="clipPanel">
         <div class="empty-list" id="clipEmpty">타임라인에서 클립을 고르면 여기에 화면·색·전환·소리 속성이 나와요. 미리보기를 보면서 바로 조절할 수 있어요.</div>
-      <div class="clip-props" id="clipProps" hidden>
-        <div class="cp-row">
-          <span class="cp-name" id="cpName">클립</span>
-          <span class="cp-val" id="cpDur"></span>
-          <label id="cpSpeedLabel">속도 <input type="range" id="cpSpeed" min="0" max="6" step="1" value="2"><span class="cp-val" id="cpSpeedVal">1×</span></label>
+      <div class="clip-props tc-card" id="clipProps" hidden>
+        <div class="item-head">
+          <span class="item-title" id="cpName">클립</span>
+          <span class="tc-time" id="cpDur"></span>
         </div>
-        <div class="cp-row">
-          <span class="cp-group-title">화면</span>
-          <button type="button" id="cpFitBtn" title="화면에 맞춤(여백) ↔ 채움(잘림)">화면 맞춤 ✓</button>
-          <label>크기 <input type="range" id="cpScale" min="10" max="400" step="1" value="100"><span class="cp-val" id="cpScaleVal">100%</span></label>
-          <label>회전 <input type="range" id="cpRot" min="-180" max="180" step="1" value="0"><span class="cp-val" id="cpRotVal">0°</span></label>
-          <label>불투명 <input type="range" id="cpOpacity" min="0" max="100" step="1" value="100"><span class="cp-val" id="cpOpacityVal">100%</span></label>
-          <button type="button" id="cpAutoCropBtn" title="영상 가장자리의 검은 띠(레터박스·필러박스)를 찾아 그만큼 잘라내요">검은 여백 자동 자르기</button>
-          <button type="button" id="cpResetTfBtn">위치·크기 초기화</button>
-          <span class="cp-hint">파란 상자 = 이 클립이 화면에 그려지는 부분. 상자를 끌어 옮기고 모서리·변·회전 손잡이로 바꿔요.</span>
+        <div class="tc-sec">
+          <div class="tc-sec-title">재생</div>
+          <div class="tc-grid cols-1">
+            <label class="tc-field tc-range" id="cpSpeedLabel"><span class="tc-label">속도</span><span class="tc-ctrl"><input type="range" id="cpSpeed" min="0" max="6" step="1" value="2"><span class="val" id="cpSpeedVal">1×</span></span></label>
+          </div>
         </div>
-        <div class="cp-row" id="cpFxGroup">
-          <span class="cp-group-title">색</span>
-          <span class="seg-mini" id="cpFxPreset" role="group" aria-label="색 보정 프리셋">
+        <div class="tc-sec">
+          <div class="tc-sec-title">화면</div>
+          <div class="tc-grid cols-1">
+            <label class="tc-field tc-range"><span class="tc-label">크기</span><span class="tc-ctrl"><input type="range" id="cpScale" min="10" max="400" step="1" value="100"><span class="val" id="cpScaleVal">100%</span></span></label>
+            <label class="tc-field tc-range"><span class="tc-label">회전</span><span class="tc-ctrl"><input type="range" id="cpRot" min="-180" max="180" step="1" value="0"><span class="val" id="cpRotVal">0°</span></span></label>
+            <label class="tc-field tc-range"><span class="tc-label">불투명</span><span class="tc-ctrl"><input type="range" id="cpOpacity" min="0" max="100" step="1" value="100"><span class="val" id="cpOpacityVal">100%</span></span></label>
+          </div>
+          <div class="tc-btns">
+            <button type="button" id="cpFitBtn" title="화면에 맞춤(여백) ↔ 채움(잘림)">화면 맞춤 ✓</button>
+            <button type="button" id="cpAutoCropBtn" title="영상 가장자리의 검은 띠(레터박스·필러박스)를 찾아 그만큼 잘라내요">검은 여백 자동 자르기</button>
+            <button type="button" id="cpResetTfBtn">위치·크기 초기화</button>
+          </div>
+          <div class="tc-hint">파란 상자 = 이 클립이 화면에 그려지는 부분. 상자를 끌어 옮기고 모서리·변·회전 손잡이로 바꿔요.</div>
+        </div>
+        <div class="tc-sec" id="cpFxGroup">
+          <div class="tc-sec-title">색</div>
+          <span class="seg-mini tc-seg" id="cpFxPreset" role="group" aria-label="색 보정 프리셋">
             <button type="button" class="active" data-preset="none">없음</button>
             <button type="button" data-preset="bw">흑백</button>
             <button type="button" data-preset="sepia">세피아</button>
@@ -1389,70 +1459,92 @@
             <button type="button" data-preset="faded">차분</button>
             <button type="button" data-preset="cinema">시네마</button>
           </span>
-          <label>밝기 <input type="range" id="cpFxBright" min="-100" max="100" step="1" value="0"><span class="cp-val" id="cpFxBrightVal">0</span></label>
-          <label>대비 <input type="range" id="cpFxContrast" min="-100" max="100" step="1" value="0"><span class="cp-val" id="cpFxContrastVal">0</span></label>
-          <label>채도 <input type="range" id="cpFxSat" min="-100" max="100" step="1" value="0"><span class="cp-val" id="cpFxSatVal">0</span></label>
-          <label>색온도 <input type="range" id="cpFxTemp" min="-100" max="100" step="1" value="0"><span class="cp-val" id="cpFxTempVal">0</span></label>
-          <label>비네트 <input type="range" id="cpFxVignette" min="0" max="100" step="1" value="0"><span class="cp-val" id="cpFxVignetteVal">0</span></label>
-          <button type="button" id="cpFxResetBtn">색 초기화</button>
-          <button type="button" id="cpFxApplyAllBtn" title="이 클립의 색 보정을 타임라인의 모든 영상·이미지 클립에 똑같이 적용해요">모든 클립에 적용</button>
-          <span class="cp-hint" id="cpFxHint">색온도는 왼쪽이 차갑게(파랑), 오른쪽이 따뜻하게(주황)예요. 미리보기와 저장 영상에 똑같이 들어가요.</span>
+          <div class="tc-grid cols-1">
+            <label class="tc-field tc-range"><span class="tc-label">밝기</span><span class="tc-ctrl"><input type="range" id="cpFxBright" min="-100" max="100" step="1" value="0"><span class="val" id="cpFxBrightVal">0</span></span></label>
+            <label class="tc-field tc-range"><span class="tc-label">대비</span><span class="tc-ctrl"><input type="range" id="cpFxContrast" min="-100" max="100" step="1" value="0"><span class="val" id="cpFxContrastVal">0</span></span></label>
+            <label class="tc-field tc-range"><span class="tc-label">채도</span><span class="tc-ctrl"><input type="range" id="cpFxSat" min="-100" max="100" step="1" value="0"><span class="val" id="cpFxSatVal">0</span></span></label>
+            <label class="tc-field tc-range"><span class="tc-label">색온도 (파랑 ↔ 주황)</span><span class="tc-ctrl"><input type="range" id="cpFxTemp" min="-100" max="100" step="1" value="0"><span class="val" id="cpFxTempVal">0</span></span></label>
+            <label class="tc-field tc-range"><span class="tc-label">비네트</span><span class="tc-ctrl"><input type="range" id="cpFxVignette" min="0" max="100" step="1" value="0"><span class="val" id="cpFxVignetteVal">0</span></span></label>
+          </div>
+          <div class="tc-btns">
+            <button type="button" id="cpFxResetBtn">색 초기화</button>
+            <button type="button" id="cpFxApplyAllBtn" title="이 클립의 색 보정을 타임라인의 모든 영상·이미지 클립에 똑같이 적용해요">모든 클립에 적용</button>
+          </div>
+          <div class="tc-hint" id="cpFxHint">색온도는 왼쪽이 차갑게(파랑), 오른쪽이 따뜻하게(주황)예요. 미리보기와 저장 영상에 똑같이 들어가요.</div>
         </div>
-        <div class="cp-row">
-          <span class="cp-group-title">전환</span>
-          <label>시작 <select class="export-select" id="cpTransIn" aria-label="시작 전환 효과"><option value="none">없음</option><option value="fade">디졸브(겹치며)</option><option value="fadeblack">검은 화면에서</option><option value="slide">밀기</option><option value="zoom">확대</option></select></label>
-          <label><input type="number" id="cpTransInDur" min="0.1" max="5" step="0.1" value="0.5" aria-label="시작 전환 길이"> 초</label>
-          <label>끝 <select class="export-select" id="cpTransOut" aria-label="끝 페이드"><option value="none">없음</option><option value="fadeblack">배경으로 페이드</option></select></label>
-          <label><input type="number" id="cpTransOutDur" min="0.1" max="5" step="0.1" value="0.5" aria-label="끝 페이드 길이"> 초</label>
-          <span class="cp-hint" id="cpTransHint"></span>
+        <div class="tc-sec">
+          <div class="tc-sec-title">전환</div>
+          <div class="tc-grid cols-4 tc-trans">
+            <label class="tc-field span-2"><span class="tc-label">시작 전환</span><span class="tc-ctrl"><select class="export-select" id="cpTransIn" aria-label="시작 전환 효과"><option value="none">없음</option><option value="fade">디졸브(겹치며)</option><option value="fadeblack">검은 화면에서</option><option value="slide">밀기</option><option value="zoom">확대</option></select></span></label>
+            <label class="tc-field"><span class="tc-label">길이</span><span class="tc-ctrl"><input type="number" id="cpTransInDur" min="0.1" max="5" step="0.1" value="0.5" aria-label="시작 전환 길이"><span class="tc-unit">초</span></span></label>
+            <span class="tc-field tc-spacer" aria-hidden="true"></span>
+            <label class="tc-field span-2"><span class="tc-label">끝 페이드</span><span class="tc-ctrl"><select class="export-select" id="cpTransOut" aria-label="끝 페이드"><option value="none">없음</option><option value="fadeblack">배경으로 페이드</option></select></span></label>
+            <label class="tc-field"><span class="tc-label">길이</span><span class="tc-ctrl"><input type="number" id="cpTransOutDur" min="0.1" max="5" step="0.1" value="0.5" aria-label="끝 페이드 길이"><span class="tc-unit">초</span></span></label>
+          </div>
+          <div class="tc-hint" id="cpTransHint"></div>
         </div>
-        <div class="cp-row" id="cpAudioGroup">
-          <span class="cp-group-title">소리</span>
-          <label>볼륨 <input type="range" id="cpVolume" min="0" max="200" step="5" value="100"><span class="cp-val" id="cpVolumeVal">100%</span></label>
-          <button type="button" class="toggle-btn" id="cpMuteBtn" aria-pressed="false">음소거</button>
-          <button type="button" id="cpDetachAudioBtn" title="영상에 들어 있는 소리를 배경음악 레인으로 떼어내요 — 따로 옮기고 자를 수 있어요">오디오 분리</button>
-          <button type="button" id="cpRemoveAudioBtn" class="danger" title="이 클립의 소리를 완전히 지워요(영상만 남음)">오디오 지우기</button>
+        <div class="tc-sec" id="cpAudioGroup">
+          <div class="tc-sec-title">소리</div>
+          <div class="tc-grid cols-1">
+            <label class="tc-field tc-range"><span class="tc-label">볼륨</span><span class="tc-ctrl"><input type="range" id="cpVolume" min="0" max="200" step="5" value="100"><span class="val" id="cpVolumeVal">100%</span></span></label>
+          </div>
+          <div class="tc-btns">
+            <button type="button" class="toggle-btn" id="cpMuteBtn" aria-pressed="false">음소거</button>
+            <button type="button" id="cpDetachAudioBtn" title="영상에 들어 있는 소리를 배경음악 레인으로 떼어내요 — 따로 옮기고 자를 수 있어요">오디오 분리</button>
+            <button type="button" id="cpRemoveAudioBtn" class="danger" title="이 클립의 소리를 완전히 지워요(영상만 남음)">오디오 지우기</button>
+          </div>
         </div>
       </div>
       </div>
       <div class="tab-panel" id="screenPanel" hidden>
-        <div class="panel-row">
-          <label>비율
-            <span class="seg-mini" id="aspectSeg">
-              <button type="button" class="active" data-aspect="auto">자동(첫 영상)</button>
+        <div class="tc-card">
+          <div class="tc-sec first">
+            <div class="tc-sec-title">비율</div>
+            <span class="seg-mini tc-seg" id="aspectSeg">
+              <button type="button" class="active" data-aspect="auto" title="첫 영상의 크기를 그대로">자동</button>
               <button type="button" data-aspect="16:9">16:9</button>
               <button type="button" data-aspect="9:16">9:16 세로</button>
               <button type="button" data-aspect="1:1">1:1</button>
               <button type="button" data-aspect="4:5">4:5</button>
               <button type="button" data-aspect="custom">직접</button>
             </span>
-          </label>
-          <span class="val" id="projectSizeText"></span>
-          <label id="customAspectRow" hidden>비율 직접 <input type="number" id="customAspectW" min="1" max="100" step="1" value="16" aria-label="가로 비율"> : <input type="number" id="customAspectH" min="1" max="100" step="1" value="9" aria-label="세로 비율"></label>
+            <div class="tc-grid cols-3" id="customAspectRow" hidden>
+              <label class="tc-field"><span class="tc-label">가로 비율</span><span class="tc-ctrl"><input type="number" id="customAspectW" min="1" max="100" step="1" value="16" aria-label="가로 비율"></span></label>
+              <label class="tc-field"><span class="tc-label">세로 비율</span><span class="tc-ctrl"><input type="number" id="customAspectH" min="1" max="100" step="1" value="9" aria-label="세로 비율"></span></label>
+            </div>
+            <div class="tc-hint"><span class="val" id="projectSizeText"></span></div>
+          </div>
+          <div class="tc-sec">
+            <div class="tc-sec-title">배경 (남는 자리)</div>
+            <div class="tc-grid cols-1 tc-bg-grid">
+              <span class="tc-field"><span class="tc-label">채우기</span><span class="tc-ctrl"><span class="seg-mini tc-seg" id="bgSeg">
+                <button type="button" class="active" data-bg="black">검정</button>
+                <button type="button" data-bg="white">흰색</button>
+                <button type="button" data-bg="custom">색 선택</button>
+                <button type="button" data-bg="blur" title="영상을 확대해 흐리게 깐 배경">블러</button>
+              </span></span></span>
+              <label class="tc-field"><span class="tc-label">배경색</span><span class="tc-ctrl"><input type="color" id="bgColor" value="#000000" aria-label="배경 색"></span></label>
+            </div>
+            <div class="tc-hint">9:16을 고르면 쇼츠·릴스용 세로 화면이 돼요. 가로 영상은 위아래에 배경이 생기는데, 클립을 선택해 "화면 채움"을 누르거나 미리보기에서 키우면 꽉 채울 수 있어요.</div>
+          </div>
         </div>
-        <div class="panel-row">
-          <label>배경
-            <span class="seg-mini" id="bgSeg">
-              <button type="button" class="active" data-bg="black">검정</button>
-              <button type="button" data-bg="white">흰색</button>
-              <button type="button" data-bg="custom">색 선택</button>
-              <button type="button" data-bg="blur">블러(영상 확대)</button>
-            </span>
-          </label>
-          <input type="color" id="bgColor" value="#000000" aria-label="배경 색">
-        </div>
-        <p class="panel-note">9:16을 고르면 쇼츠·릴스용 세로 화면이 돼요. 가로 영상은 위아래에 배경이 생기는데, 클립을 선택해 "화면 채움"을 누르거나 미리보기에서 키우면 꽉 채울 수 있어요.</p>
       </div>
       <div class="tab-panel" id="audioPanel">
-        <div class="panel-row">
-          <span style="font-weight:700;">원본 소리</span>
-          <label>볼륨 <input type="range" id="origVolume" min="0" max="200" step="5" value="100"><span class="val" id="origVolumeVal">100%</span></label>
-          <button type="button" class="toggle-btn" id="origMuteBtn" aria-pressed="false">전체 음소거</button>
-          <label>페이드 인 <input type="number" id="fadeIn" min="0" max="30" step="0.5" value="0"> 초</label>
-          <label>페이드 아웃 <input type="number" id="fadeOut" min="0" max="30" step="0.5" value="0"> 초</label>
+        <div class="tc-card">
+          <div class="item-head"><span class="item-title">원본 소리 (전체)</span></div>
+          <div class="tc-sec first">
+            <div class="tc-grid cols-1">
+              <label class="tc-field tc-range"><span class="tc-label">볼륨</span><span class="tc-ctrl"><input type="range" id="origVolume" min="0" max="200" step="5" value="100"><span class="val" id="origVolumeVal">100%</span></span></label>
+            </div>
+            <div class="tc-grid cols-3">
+              <span class="tc-field"><span class="tc-label">음소거</span><span class="tc-ctrl"><span class="tc-toggle-wrap"><button type="button" class="toggle-btn" id="origMuteBtn" aria-pressed="false">전체 음소거</button></span></span></span>
+              <label class="tc-field"><span class="tc-label">페이드 인</span><span class="tc-ctrl"><input type="number" id="fadeIn" min="0" max="30" step="0.5" value="0"><span class="tc-unit">초</span></span></label>
+              <label class="tc-field"><span class="tc-label">페이드 아웃</span><span class="tc-ctrl"><input type="number" id="fadeOut" min="0" max="30" step="0.5" value="0"><span class="tc-unit">초</span></span></label>
+            </div>
+            <div class="tc-hint">클립마다 따로 볼륨·음소거를 정하려면 타임라인에서 클립을 선택한 뒤 클립 탭의 소리 항목을 써요. 페이드는 완성본 전체의 처음·끝에 걸려요.</div>
+          </div>
         </div>
-        <p class="panel-note">클립마다 따로 볼륨·음소거를 정하려면 타임라인에서 클립을 선택한 뒤 클립 탭의 소리 항목을 써요. 페이드는 완성본 전체의 처음·끝에 걸려요.</p>
-        <div class="panel-row">
+        <div class="tc-btns tc-panel-btns">
           <button type="button" id="addAudioBtn2">+ 배경음악·목소리 추가</button>
           <button type="button" id="exportAudioOnlyBtn">오디오만 WAV로 저장</button>
         </div>
@@ -1777,7 +1869,9 @@
   function isWorkbench(){ return document.body.classList.contains("workbench") && window.innerWidth >= WB_MIN; }
   function syncWbTop(){ document.documentElement.style.setProperty("--wb-top", $("topBar").getBoundingClientRect().height + "px"); }
   function enterWorkbench(firstName){
-    document.body.classList.add("workbench");
+    // 좁은 창(휴대폰 등)에서 열었으면 작업대로 들어가지 않고 세로 배치로 둔다 — 창이 1100px 이상으로 넓어지면 그때 자동 진입
+    if (window.innerWidth < WB_MIN){ if (window.__wbDeferEnter) window.__wbDeferEnter(); }
+    else document.body.classList.add("workbench");
     $("wbBar").hidden = false; $("wbTools").hidden = false;
     helpDrawerClose.hidden = false;
     if (firstName) $("wbFile").textContent = firstName;
@@ -1867,6 +1961,7 @@
       gate.hidden = !(document.body.classList.contains("workbench") && narrow);
     }
     $("wbNarrowContinue").addEventListener("click", function(){ optOut = true; document.body.classList.remove("workbench"); gate.hidden = true; });
+    window.__wbDeferEnter = function(){ optOut = true; };
     window.addEventListener("resize", update);
     window.__wbGateUpdate = update;
   })();
@@ -1898,13 +1993,16 @@
     async function vdec(codec){ try { var r = await VideoDecoder.isConfigSupported({ codec: codec, codedWidth: 1280, codedHeight: 720 }); return !!r.supported; } catch(e){ return false; } }
     async function aenc(codec){ if (!support.audioEncoder) return false; try { var r = await AudioEncoder.isConfigSupported({ codec: codec, sampleRate: 48000, numberOfChannels: 2, bitrate: 128000 }); return !!r.supported; } catch(e){ return false; } }
     async function adec(codec){ try { var r = await AudioDecoder.isConfigSupported({ codec: codec, sampleRate: 48000, numberOfChannels: 2 }); return !!r.supported; } catch(e){ return false; } }
-    var r = await Promise.all([venc("avc1.640028"), venc("hvc1.1.6.L120.B0"), venc("vp09.00.40.08"), venc("av01.0.08M.08"), aenc("mp4a.40.2"), aenc("opus"),
+    // H.264는 프로파일·가속 방식에 따라 되는 조합이 다르다 — High → Main → Baseline, 하드웨어/소프트웨어 순으로 처음 되는 것을 쓴다
+    async function vencAny(list){ for (var i = 0; i < list.length; i++){ for (var j = 0; j < 2; j++){ try { var cfg = { codec: list[i], width: 1280, height: 720, bitrate: 4e6, framerate: 30 }; if (j === 1) cfg.hardwareAcceleration = "prefer-software"; var rr = await VideoEncoder.isConfigSupported(cfg); if (rr.supported) return { codec: list[i], hw: j === 0 ? "no-preference" : "prefer-software" }; } catch(e){} } } return null; }
+    var H264_LIST = ["avc1.640028", "avc1.64001f", "avc1.4d0028", "avc1.4d001f", "avc1.42e028", "avc1.42e01f", "avc1.42001f"];
+    var r = await Promise.all([vencAny(H264_LIST), venc("hvc1.1.6.L120.B0"), venc("vp09.00.40.08"), venc("av01.0.08M.08"), aenc("mp4a.40.2"), aenc("opus"),
                                vdec("avc1.640028"), vdec("hvc1.1.6.L120.B0"), vdec("vp09.00.40.08"), vdec("av01.0.08M.08"), adec("mp4a.40.2"), adec("opus")]);
-    support.h264Enc = r[0]; support.hevcEnc = r[1]; support.vp9Enc = r[2]; support.av1Enc = r[3]; support.aacEnc = r[4]; support.opusEnc = r[5];
+    support.h264Enc = !!r[0]; support.h264Codec = r[0] ? r[0].codec : null; support.h264Hw = r[0] ? r[0].hw : null; support.hevcEnc = r[1]; support.vp9Enc = r[2]; support.av1Enc = r[3]; support.aacEnc = r[4]; support.opusEnc = r[5];
     support.h264Dec = r[6]; support.hevcDec = r[7]; support.vp9Dec = r[8]; support.av1Dec = r[9]; support.aacDec = r[10]; support.opusDec = r[11];
     return support;
   }
-  function mp4VideoCodec(){ if (support.h264Enc) return { enc: "avc1.640028", mux: "avc", label: "H.264" }; if (support.hevcEnc) return { enc: "hvc1.1.6.L120.B0", mux: "hevc", label: "H.265" }; if (support.vp9Enc) return { enc: "vp09.00.40.08", mux: "vp9", label: "VP9" }; if (support.av1Enc) return { enc: "av01.0.08M.08", mux: "av1", label: "AV1" }; return null; }
+  function mp4VideoCodec(){ if (support.h264Enc) return { enc: support.h264Codec || "avc1.640028", mux: "avc", label: "H.264", hw: support.h264Hw }; if (support.hevcEnc) return { enc: "hvc1.1.6.L120.B0", mux: "hevc", label: "H.265" }; if (support.vp9Enc) return { enc: "vp09.00.40.08", mux: "vp9", label: "VP9" }; if (support.av1Enc) return { enc: "av01.0.08M.08", mux: "av1", label: "AV1" }; return null; }
   function webmVideoCodec(){ if (support.vp9Enc) return { enc: "vp09.00.40.08", mux: "V_VP9", label: "VP9" }; if (support.av1Enc) return { enc: "av01.0.08M.08", mux: "V_AV1", label: "AV1" }; return null; }
   function mp4AudioCodec(){ if (support.aacEnc) return { enc: "mp4a.40.2", mux: "aac", label: "AAC" }; if (support.opusEnc) return { enc: "opus", mux: "opus", label: "Opus" }; return null; }
   function webmAudioCodec(){ if (support.opusEnc) return { enc: "opus", mux: "A_OPUS", label: "Opus" }; return null; }
@@ -1930,8 +2028,10 @@
   function fxIsDefault(fx){ return !fx || (fx.preset === "none" && !fx.bright && !fx.contrast && !fx.sat && !fx.temp && !fx.vignette); }
   var FX_PRESETS = [["none", "없음"], ["bw", "흑백"], ["sepia", "세피아"], ["vivid", "선명"], ["vintage", "빈티지"], ["faded", "차분"], ["cinema", "시네마"]];
   // 자막 스타일 기본값 — 예전 자막(필드 없음)도 같은 모양으로 그려지도록 여기서 채운다
-  var TEXT_FONTS = [["sans", "고딕(기본)", "system-ui, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif"], ["serif", "명조", "'Gowun Batang', 'Apple SD Gothic Neo', serif"], ["pen", "손글씨", "'Nanum Pen Script', cursive"], ["brush", "붓글씨", "'Nanum Brush Script', cursive"], ["cute", "귀여운", "'Gaegu', cursive"]];
-  function textFontFamily(key){ for (var i = 0; i < TEXT_FONTS.length; i++) if (TEXT_FONTS[i][0] === key) return TEXT_FONTS[i][2]; return TEXT_FONTS[0][2]; }
+  // 자막 글꼴 — 첫 항목만 시스템 글꼴, 나머지는 Google Fonts(head의 link에 같은 목록이 있어야 한다: build.py)
+  var TEXT_FONTS = [["__g1", "한글 · 고딕"], ["sans", "고딕(기본)", "system-ui, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif"], ["notosans", "노토 산스", "'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif"], ["nanumgothic", "나눔고딕", "'Nanum Gothic', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif"], ["gothica1", "고딕 A1", "'Gothic A1', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif"], ["ibmplex", "IBM 플렉스 산스", "'IBM Plex Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif"], ["gowundodum", "고운 돋움", "'Gowun Dodum', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif"], ["sunflower", "해바라기", "'Sunflower', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif"], ["nanumcoding", "나눔고딕 코딩", "'Nanum Gothic Coding', monospace"], ["__g2", "한글 · 명조"], ["serif", "고운 바탕", "'Gowun Batang', 'Apple SD Gothic Neo', serif"], ["notoserif", "노토 세리프", "'Noto Serif KR', serif"], ["nanummyeongjo", "나눔명조", "'Nanum Myeongjo', serif"], ["songmyung", "송명", "'Song Myung', serif"], ["hahmlet", "함렛", "'Hahmlet', serif"], ["diphylleia", "디필레이아", "'Diphylleia', serif"], ["grandiflora", "그랑디플로라", "'Grandiflora One', serif"], ["__g3", "한글 · 제목·굵은"], ["blackhan", "검은고딕", "'Black Han Sans', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif"], ["dohyeon", "도현", "'Do Hyeon', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif"], ["jua", "주아", "'Jua', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif"], ["gugi", "구기", "'Gugi', cursive"], ["gasoek", "가석", "'Gasoek One', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif"], ["bagel", "베이글 팻", "'Bagel Fat One', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif"], ["moirai", "모이라이", "'Moirai One', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif"], ["orbit", "오빗", "'Orbit', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif"], ["stylish", "스타일리시", "'Stylish', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif"], ["dongle", "동글", "'Dongle', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif"], ["yeonsung", "연성", "'Yeon Sung', cursive"], ["__g4", "한글 · 손글씨·장식"], ["pen", "나눔 손글씨 펜", "'Nanum Pen Script', cursive"], ["brush", "나눔 손글씨 붓", "'Nanum Brush Script', cursive"], ["cute", "개구", "'Gaegu', cursive"], ["himelody", "하이멜로디", "'Hi Melody', cursive"], ["poorstory", "푸어스토리", "'Poor Story', cursive"], ["gamja", "감자꽃", "'Gamja Flower', cursive"], ["dokdo", "동해독도", "'East Sea Dokdo', cursive"], ["kirang", "기랑해랑", "'Kirang Haerang', cursive"], ["singleday", "싱글데이", "'Single Day', cursive"], ["cutefont", "큐트 폰트", "'Cute Font', cursive"], ["bwpicture", "흑백 사진", "'Black And White Picture', cursive"], ["__g5", "영문 · 제목"], ["bebas", "Bebas Neue", "'Bebas Neue', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif"], ["anton", "Anton", "'Anton', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif"], ["oswald", "Oswald", "'Oswald', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif"], ["montserrat", "Montserrat", "'Montserrat', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif"], ["poppins", "Poppins", "'Poppins', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif"], ["righteous", "Righteous", "'Righteous', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif"], ["bangers", "Bangers", "'Bangers', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif"], ["abril", "Abril Fatface", "'Abril Fatface', serif"], ["playfair", "Playfair Display", "'Playfair Display', serif"], ["merriweather", "Merriweather", "'Merriweather', serif"], ["robotoslab", "Roboto Slab", "'Roboto Slab', serif"], ["fredoka", "Fredoka", "'Fredoka', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif"], ["comfortaa", "Comfortaa", "'Comfortaa', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif"], ["pressstart", "Press Start 2P", "'Press Start 2P', monospace"], ["__g6", "영문 · 손글씨"], ["lobster", "Lobster", "'Lobster', cursive"], ["pacifico", "Pacifico", "'Pacifico', cursive"], ["dancing", "Dancing Script", "'Dancing Script', cursive"], ["caveat", "Caveat", "'Caveat', cursive"], ["marker", "Permanent Marker", "'Permanent Marker', cursive"], ["satisfy", "Satisfy", "'Satisfy', cursive"], ["greatvibes", "Great Vibes", "'Great Vibes', cursive"]];
+  function textFontFamily(key){ for (var i = 0; i < TEXT_FONTS.length; i++) if (TEXT_FONTS[i][0] === key && TEXT_FONTS[i][2]) return TEXT_FONTS[i][2]; return TEXT_FONTS[1][2]; }
+  function textFontLabel(key){ for (var i = 0; i < TEXT_FONTS.length; i++) if (TEXT_FONTS[i][0] === key) return TEXT_FONTS[i][1]; return ""; }
   function normalizeText(t){
     if (t.font == null) t.font = "sans";
     if (t.weight == null) t.weight = 700;
@@ -2402,10 +2502,12 @@
     d.appendChild(le); d.appendChild(re);
     return d;
   }
+  // 클립 자리: 시작·끝을 각각 px로 반올림해 붙어 있는 클립끼리 1px도 안 벌어지게(폭을 따로 반올림하면 틈이 생긴다)
+  function spanPx(startSec, endSec){ var l = Math.round(startSec * pxPerSec()), r = Math.round(endSec * pxPerSec()); return { left: l, width: Math.max(6, r - l) }; }
   function paintClip(c, d){
     var src = sourceOf(c.srcId);
-    var w = Math.max(8, Math.round(clipDur(c) * pxPerSec()) - 3);
-    var h = laneHeight("video") - 12 - 4;
+    var w = spanPx(c.startSec, clipEnd(c)).width;
+    var h = laneHeight("video") - 12 - 2;
     var cv = d.querySelector("canvas");
     var dpr = Math.min(2, window.devicePixelRatio || 1);
     cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
@@ -2453,8 +2555,8 @@
       if (!d){ d = makeClipEl(c); clipEls[c.id] = d; }
       var host = laneEl("video", c.lane);
       if (host && d.parentNode !== host) host.appendChild(d);
-      d.style.left = Math.round(c.startSec * pps) + "px";
-      d.style.width = Math.max(8, Math.round(clipDur(c) * pps) - 3) + "px";
+      var sp = spanPx(c.startSec, clipEnd(c));
+      d.style.left = sp.left + "px"; d.style.width = sp.width + "px";
       d.classList.toggle("selected", c.id === selectedClipId);
       d.classList.toggle("muted-clip", !!c.mute);
       d.setAttribute("aria-label", (sourceOf(c.srcId) || {}).name + " 클립, V" + (c.lane + 1) + ", " + formatTime(c.startSec) + "부터 " + formatTime(clipDur(c)) + (c.id === selectedClipId ? ", 선택됨" : ""));
@@ -2471,8 +2573,8 @@
       var ve = vaEls[vc.id];
       if (!ve){ ve = el("div", "vaclip"); ve.setAttribute("data-clip-id", vc.id); ve.setAttribute("role", "button"); ve.tabIndex = 0; var vcv = document.createElement("canvas"); ve.appendChild(vcv); ve.appendChild(el("span")); vaEls[vc.id] = ve; }
       if (ve.parentNode !== vhost) vhost.appendChild(ve);
-      var vw = Math.max(8, Math.round(clipDur(vc) * pps) - 3);
-      ve.style.left = Math.round(vc.startSec * pps) + "px"; ve.style.width = vw + "px";
+      var vsp = spanPx(vc.startSec, clipEnd(vc)), vw = vsp.width;
+      ve.style.left = vsp.left + "px"; ve.style.width = vw + "px";
       ve.classList.toggle("selected", vc.id === selectedClipId);
       ve.classList.toggle("muted", !!vc.mute);
       ve.querySelector("span").textContent = vc.mute ? "🔇 " + Math.round(vc.volume * 100) + "%" : "♪ " + Math.round(vc.volume * 100) + "%";
@@ -2488,8 +2590,8 @@
       if (!ad){ ad = el("div", "aclip"); ad.setAttribute("data-audio-id", a.id); ad.setAttribute("role", "button"); ad.tabIndex = 0; var acv = document.createElement("canvas"); ad.appendChild(acv); ad.appendChild(el("span")); var al = el("div", "clip-edge left"), ar = el("div", "clip-edge right"); al.setAttribute("data-edge", "left"); ar.setAttribute("data-edge", "right"); ad.appendChild(al); ad.appendChild(ar); aclipEls[a.id] = ad; }
       var ahost = laneEl("audio", a.lane);
       if (ahost && ad.parentNode !== ahost) ahost.appendChild(ad);
-      var aw = Math.max(8, Math.round(audioClipDur(a) * pps) - 2);
-      ad.style.left = Math.round(a.startSec * pps) + "px";
+      var asp = spanPx(a.startSec, a.startSec + audioClipDur(a)), aw = asp.width;
+      ad.style.left = asp.left + "px";
       ad.style.width = aw + "px";
       ad.classList.toggle("selected", a.id === selectedAudioId);
       ad.querySelector("span").textContent = "♪ " + a.name + (a.loop ? " (반복)" : "") + " · " + Math.round(a.volume * 100) + "%";
@@ -2505,8 +2607,8 @@
       if (!td){ td = el("div", "tclip"); td.setAttribute("data-text-id", t.id); td.setAttribute("role", "button"); td.tabIndex = 0; td.appendChild(el("span")); var tl = el("div", "clip-edge left"), tr = el("div", "clip-edge right"); tl.setAttribute("data-edge", "left"); tr.setAttribute("data-edge", "right"); td.appendChild(tl); td.appendChild(tr); tclipEls[t.id] = td; }
       var thost = laneEl("text", t.lane);
       if (thost && td.parentNode !== thost) thost.appendChild(td);
-      td.style.left = Math.round(t.startSec * pps) + "px";
-      td.style.width = Math.max(8, Math.round((t.endSec - t.startSec) * pps) - 2) + "px";
+      var tsp = spanPx(t.startSec, t.endSec);
+      td.style.left = tsp.left + "px"; td.style.width = tsp.width + "px";
       td.querySelector("span").textContent = "T " + String(t.text).split("\n")[0];
       td.classList.toggle("selected", t.id === selectedTextId);
       td.setAttribute("aria-label", "자막 " + t.text + ", " + formatTime(t.startSec) + "~" + formatTime(t.endSec));
@@ -3460,15 +3562,31 @@
   }
   function hexToRgba(hex, a){ var m = /^#?([0-9a-f]{6})$/i.exec(hex || "#000000"); var n = m ? parseInt(m[1], 16) : 0; return "rgba(" + ((n >> 16) & 255) + "," + ((n >> 8) & 255) + "," + (n & 255) + "," + clamp(a == null ? 1 : a, 0, 1).toFixed(3) + ")"; }
   // 웹 글꼴은 처음 쓰일 때 내려받아지므로, 자막이 쓰는 글꼴을 미리 불러오고 준비되면 다시 그린다
+  // 구글 웹 글꼴(한글)은 글자 범위(unicode-range)별로 조각내어 내려받는다. fonts.load()에 글자를 안 넘기면 공백이 든 라틴 조각만 받아
+  // 캔버스의 한글은 대체 글꼴로 그려진다 — 그래서 자막 글자 자체를 넘겨 그 글자들이 든 조각까지 받은 뒤 다시 그린다.
   var fontLoadCache = {};
+  // 글꼴 목록을 열 때 각 글꼴 이름을 그 글꼴로 보여주기 위해 이름 글자만 먼저 받아 둔다(한 번)
+  var fontMenuPrimed = false;
+  function primeFontMenu(){
+    if (fontMenuPrimed || !document.fonts || !document.fonts.load) return; fontMenuPrimed = true;
+    TEXT_FONTS.forEach(function(f){ if (f[0] === "sans" || !f[2]) return; document.fonts.load("400 15px " + f[2], f[1]).catch(function(){}); });
+  }
   function ensureTextFonts(cb){
     if (!document.fonts || !document.fonts.load){ if (cb) cb(); return; }
-    var wanted = [];
-    texts.forEach(function(t){ normalizeText(t); if (t.font !== "sans") wanted.push(t.weight + " 20px " + textFontFamily(t.font)); });
-    var pending = wanted.filter(function(spec){ return !fontLoadCache[spec]; });
-    if (!pending.length){ if (cb) cb(); return; }
-    Promise.all(pending.map(function(spec){ return document.fonts.load(spec).catch(function(){}); })).then(function(){ pending.forEach(function(spec){ fontLoadCache[spec] = true; }); if (cb) cb(); });
+    var jobs = [];
+    texts.forEach(function(t){
+      normalizeText(t); if (t.font === "sans") return;
+      var spec = t.weight + " 20px " + textFontFamily(t.font), chars = String(t.text || "").replace(/\s+/g, "");
+      if (!chars) return;
+      var key = spec + "|" + chars;
+      if (fontLoadCache[key]) return;
+      jobs.push({ key: key, spec: spec, chars: chars });
+    });
+    if (!jobs.length){ if (cb) cb(); return; }
+    Promise.all(jobs.map(function(j){ return document.fonts.load(j.spec, j.chars).catch(function(){}); })).then(function(){ jobs.forEach(function(j){ fontLoadCache[j.key] = true; }); if (cb) cb(); });
   }
+  // 늦게 내려온 글꼴 조각이 있으면 미리보기를 한 번 더 그린다
+  if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener("loadingdone", function(){ if (clips.length) drawPreviewFrame(); });
   function roundRect(ctx, x, y, w, h, r){ ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
   // ---------- 공유 컴포지터: 미리보기와 내보내기가 같은 함수로 프레임을 그린다 ----------
   // 시각 t에 그릴 층(layer) 목록 — 활성 클립 + 전환 중인 이전 클립. 아래 레인 → 위 레인, 같은 레인은 이전 클립이 먼저.
@@ -3746,7 +3864,23 @@
     if (!tfDrag.moved && Math.abs(dx) < 2 && Math.abs(dy) < 2) return;
     if (!tfDrag.moved){ tfDrag.moved = true; beginEdit(); }
     var W = previewCanvas.width, H = previewCanvas.height, tf = tfOf(tfDrag.clip), o = tfDrag.orig, R = tfDrag.rect, h = tfDrag.handle;
-    if (h === "move"){ tf.x = o.x + dx / W; tf.y = o.y + dy / H; if (Math.abs(tf.x) < 0.01) tf.x = 0; if (Math.abs(tf.y) < 0.01) tf.y = 0; }
+    if (h === "move"){
+      tf.x = o.x + dx / W; tf.y = o.y + dy / H;
+      // 출력 화면(점선 테두리)의 가장자리·중심선에 스냅 — 8px 안으로 들어오면 붙고 분홍 안내선이 뜬다. Alt를 누르면 스냅 없이.
+      var gv = $("tfGuideV"), gh = $("tfGuideH"); gv.hidden = true; gh.hidden = true;
+      if (!e.altKey && typeof snapOn !== "undefined" && snapOn){
+        var rad = R.rot * Math.PI / 180, hw = (Math.abs(R.w * Math.cos(rad)) + Math.abs(R.h * Math.sin(rad))) / 2, hh = (Math.abs(R.w * Math.sin(rad)) + Math.abs(R.h * Math.cos(rad))) / 2;
+        var thr = 8 / cs.k, cx = W / 2 + tf.x * W, cy = H / 2 + tf.y * H;
+        var candX = [[cx - hw, 0], [cx + hw, W], [cx, W / 2]], candY = [[cy - hh, 0], [cy + hh, H], [cy, H / 2]];
+        var bx = null, bxd = thr, by = null, byd = thr;
+        candX.forEach(function(p){ var d = Math.abs(p[0] - p[1]); if (d < bxd){ bxd = d; bx = p; } });
+        candY.forEach(function(p){ var d = Math.abs(p[0] - p[1]); if (d < byd){ byd = d; by = p; } });
+        var st = previewStage.getBoundingClientRect();
+        if (bx){ tf.x += (bx[1] - bx[0]) / W; gv.hidden = false; gv.style.left = (cs.r.left - st.left + bx[1] * cs.k) + "px"; }
+        if (by){ tf.y += (by[1] - by[0]) / H; gh.hidden = false; gh.style.top = (cs.r.top - st.top + by[1] * cs.k) + "px"; }
+      }
+      if (Math.abs(tf.x) < 0.002) tf.x = 0; if (Math.abs(tf.y) < 0.002) tf.y = 0;
+    }
     else if (h === "rot"){
       var a0 = Math.atan2(tfDrag.startY - R.cy, tfDrag.startX - R.cx), a1 = Math.atan2(py - R.cy, px - R.cx);
       var deg = o.rot + (a1 - a0) * 180 / Math.PI;
@@ -3773,7 +3907,7 @@
     }
     drawPreviewFrame(); renderClipProps();
   });
-  function endTfDrag(){ if (!tfDrag) return; var d = tfDrag; tfDrag = null; if (d.moved) commitEdit(d.handle === "move" ? "클립 위치" : d.handle === "rot" ? "클립 회전" : /^[nesw]$/.test(d.handle) ? "클립 크롭" : "클립 크기"); }
+  function endTfDrag(){ if (!tfDrag) return; var d = tfDrag; tfDrag = null; $("tfGuideV").hidden = true; $("tfGuideH").hidden = true; if (d.moved) commitEdit(d.handle === "move" ? "클립 위치" : d.handle === "rot" ? "클립 회전" : /^[nesw]$/.test(d.handle) ? "클립 크롭" : "클립 크기"); }
   transformBox.addEventListener("pointerup", endTfDrag);
   transformBox.addEventListener("pointercancel", endTfDrag);
   transformBox.addEventListener("dblclick", function(){ var c = clipById(selectedClipId); if (!c) return; beginEdit(); c.tf = defaultTf(); commitEdit("변형 초기화"); drawPreviewFrame(); renderClipProps(); });
@@ -3939,23 +4073,44 @@
   function renderAudioList(){
     var list = $("audioList"); list.innerHTML = "";
     $("audioEmpty").hidden = audioClips.length > 0;
-    audioClips.forEach(function(a){
-      var card = el("div", "item-card" + (a.id === selectedAudioId ? " selected" : ""));
+    if (!audioClips.length) return;
+    // 자막 탭과 같은 방식 — 위에 칩 목록, 아래엔 고른 오디오 하나만
+    var sortedA = audioClips.slice().sort(function(x, y){ return x.startSec - y.startSec || x.id - y.id; });
+    var picker = el("div", "tc-picker"); picker.setAttribute("role", "listbox"); picker.setAttribute("aria-label", "오디오 목록");
+    sortedA.forEach(function(a, i){
+      var chip = el("button", "tc-chip audio" + (a.id === selectedAudioId ? " active" : "")); chip.type = "button"; chip.setAttribute("role", "option"); chip.setAttribute("aria-selected", a.id === selectedAudioId ? "true" : "false");
+      chip.appendChild(el("span", "tc-chip-badge", "A" + (a.lane + 1)));
+      chip.appendChild(el("span", "tc-chip-text", a.name));
+      chip.appendChild(el("span", "tc-chip-time", formatTimeShort(a.startSec)));
+      chip.title = a.name + " · " + formatTime(a.startSec) + "부터 " + formatTime(audioSegDur(a));
+      chip.addEventListener("click", function(){ selectAudio(a.id); stopPlayback(); setPlayhead(a.startSec); ensurePlayheadVisible(); });
+      picker.appendChild(chip);
+    });
+    list.appendChild(picker);
+    var selA = audioById(selectedAudioId);
+    if (!selA){ list.appendChild(el("div", "empty-list", "타임라인의 보라색 오디오 클립이나 위 목록에서 골라 주세요. 볼륨·페이드·반복을 여기서 바꿔요.")); return; }
+    [selA].forEach(function(a){
+      var card = el("div", "item-card text-card audio-card" + (a.id === selectedAudioId ? " selected" : ""));
       card.setAttribute("data-audio-id", a.id);
       var head = el("div", "item-head");
-      head.appendChild(el("span", "item-title", "♪ " + a.name + " · " + formatTime(audioSegDur(a)) + (audioSegDur(a) < a.buffer.duration - 0.01 ? " (원본 " + formatTime(a.buffer.duration) + ")" : "") + " · A" + (a.lane + 1)));
+      var tt = el("span", "item-title"); tt.appendChild(el("span", "tc-badge audio", "A" + (a.lane + 1))); tt.appendChild(document.createTextNode(" " + a.name)); head.appendChild(tt);
+      var acts = el("span", "item-actions");
+      var jump = el("button", "", "여기로"); jump.type = "button"; jump.title = "재생 위치를 이 오디오 시작으로"; jump.addEventListener("click", function(){ stopPlayback(); setPlayhead(a.startSec); });
       var loopBtn = el("button", "toggle-btn", "반복"); loopBtn.type = "button"; loopBtn.setAttribute("aria-pressed", a.loop ? "true" : "false"); loopBtn.title = "영상 끝까지 반복 재생";
       loopBtn.addEventListener("click", function(){ beginEdit(); a.loop = !a.loop; commitEdit(a.loop ? "오디오 반복 켬" : "오디오 반복 끔"); renderTimeline(); renderAudioList(); });
-      var delBtn = el("button", "", "삭제"); delBtn.type = "button";
+      var delBtn = el("button", "danger-text", "삭제"); delBtn.type = "button";
       delBtn.addEventListener("click", function(){ beginEdit(); audioClips = audioClips.filter(function(x){ return x !== a; }); if (selectedAudioId === a.id) selectedAudioId = null; commitEdit("오디오 삭제"); renderAll(); });
-      head.appendChild(loopBtn); head.appendChild(delBtn);
+      acts.appendChild(jump); acts.appendChild(loopBtn); acts.appendChild(delBtn); head.appendChild(acts);
+      head.appendChild(el("span", "tc-time", formatTime(a.startSec) + " → " + formatTime(a.startSec + audioClipDur(a)) + " · 길이 " + formatTime(audioSegDur(a)) + (audioSegDur(a) < a.buffer.duration - 0.01 ? " (원본 " + formatTime(a.buffer.duration) + ")" : "") + (a.loop ? " · 반복" : "")));
       card.appendChild(head);
-      var row = el("div", "panel-row");
-      row.appendChild(labelWith("시작", numberInput(a.startSec.toFixed(2), 0, 3600, 0.1, function(v){ beginEdit(); a.startSec = clamp(v, 0, Math.max(0, totalDuration())); var ln = findLane("audio", a.lane, a.startSec, a.startSec + audioClipDur(a), a.id); if (ln >= 0) a.lane = ln; commitEdit("오디오 시작 시각"); renderTimeline(); }), "초"));
-      row.appendChild(labelWith("볼륨", rangeInput(Math.round(a.volume * 100), 0, 200, 5, function(v, final){ if (!final){ beginEdit(); a.volume = v / 100; renderTimeline(); } else commitEdit("오디오 볼륨"); }, "%")));
-      row.appendChild(labelWith("페이드 인", numberInput(a.fadeIn, 0, 30, 0.5, function(v){ beginEdit(); a.fadeIn = clamp(v, 0, 30); commitEdit("오디오 페이드 인"); }), "초"));
-      row.appendChild(labelWith("페이드 아웃", numberInput(a.fadeOut, 0, 30, 0.5, function(v){ beginEdit(); a.fadeOut = clamp(v, 0, 30); commitEdit("오디오 페이드 아웃"); }), "초"));
-      card.appendChild(row);
+      var secT = tcSection("시간"), gT = el("div", "tc-grid cols-3");
+      gT.appendChild(tcField("시작", numberInput(a.startSec.toFixed(2), 0, 3600, 0.1, function(v){ beginEdit(); a.startSec = clamp(v, 0, Math.max(0, totalDuration())); var ln = findLane("audio", a.lane, a.startSec, a.startSec + audioClipDur(a), a.id); if (ln >= 0) a.lane = ln; commitEdit("오디오 시작 시각"); renderTimeline(); }), "초"));
+      gT.appendChild(tcField("페이드 인", numberInput(a.fadeIn, 0, 30, 0.5, function(v){ beginEdit(); a.fadeIn = clamp(v, 0, 30); commitEdit("오디오 페이드 인"); }), "초"));
+      gT.appendChild(tcField("페이드 아웃", numberInput(a.fadeOut, 0, 30, 0.5, function(v){ beginEdit(); a.fadeOut = clamp(v, 0, 30); commitEdit("오디오 페이드 아웃"); }), "초"));
+      secT.appendChild(gT); card.appendChild(secT);
+      var secV = tcSection("소리"), gV = el("div", "tc-grid cols-1");
+      gV.appendChild(tcField("볼륨", rangeInput(Math.round(a.volume * 100), 0, 200, 5, function(v, final){ if (!final){ beginEdit(); a.volume = v / 100; renderTimeline(); } else commitEdit("오디오 볼륨"); }, "%"), null, "tc-range"));
+      secV.appendChild(gV); card.appendChild(secV);
       card.addEventListener("click", function(e){ if (e.target.closest("button, input")) return; selectAudio(a.id); });
       list.appendChild(card);
     });
@@ -4015,7 +4170,7 @@
   var ALIGN_LABELS = [["auto", "위치 따라"], ["left", "왼쪽"], ["center", "가운데"], ["right", "오른쪽"]];
   function makeSelect(options, value, label, onChange){
     var sel = document.createElement("select"); sel.className = "export-select"; sel.setAttribute("aria-label", label);
-    options.forEach(function(p){ var o = document.createElement("option"); o.value = p[0]; o.textContent = p[1]; if (String(p[0]) === String(value)) o.selected = true; sel.appendChild(o); });
+    options.forEach(function(p){ var o = document.createElement("option"); o.value = p[0]; o.textContent = p[1]; if (p[2] === true) o.disabled = true; if (String(p[0]) === String(value)) o.selected = true; sel.appendChild(o); });
     sel.addEventListener("change", function(){ onChange(sel.value); });
     return sel;
   }
@@ -4035,7 +4190,25 @@
   function renderTextList(){
     var list = $("textList"); list.innerHTML = "";
     $("textEmpty").hidden = texts.length > 0;
-    texts.forEach(function(t, idx){
+    if (!texts.length) return;
+    // 위쪽엔 자막 목록(칩) — 고른 자막 하나의 속성만 아래에 펼친다(타임라인 클릭과 연동)
+    var sorted = texts.slice().sort(function(a, b){ return a.startSec - b.startSec || a.id - b.id; });
+    var picker = el("div", "tc-picker"); picker.setAttribute("role", "listbox"); picker.setAttribute("aria-label", "자막 목록");
+    sorted.forEach(function(t, i){
+      normalizeText(t);
+      var chip = el("button", "tc-chip" + (t.id === selectedTextId ? " active" : "")); chip.type = "button"; chip.setAttribute("role", "option"); chip.setAttribute("aria-selected", t.id === selectedTextId ? "true" : "false");
+      chip.appendChild(el("span", "tc-chip-badge", "T" + (i + 1)));
+      chip.appendChild(el("span", "tc-chip-text", (t.text || "(빈 자막)").split("\n")[0]));
+      chip.appendChild(el("span", "tc-chip-time", formatTimeShort(t.startSec)));
+      chip.title = (t.text || "(빈 자막)") + " · " + formatTime(t.startSec) + "~" + formatTime(t.endSec);
+      chip.addEventListener("click", function(){ selectText(t.id); stopPlayback(); setPlayhead(t.startSec); ensurePlayheadVisible(); });
+      picker.appendChild(chip);
+    });
+    list.appendChild(picker);
+    var selT = textById(selectedTextId);
+    if (!selT){ list.appendChild(el("div", "empty-list", "타임라인의 주황 자막 클립이나 위 목록에서 자막을 고르면 여기서 내용·위치·글꼴을 바꿀 수 있어요.")); return; }
+    var idx = sorted.indexOf(selT);
+    [selT].forEach(function(t){
       normalizeText(t);
       var card = el("div", "item-card text-card" + (t.id === selectedTextId ? " selected" : ""));
       function titleText(){ return (t.text || "(빈 자막)").split("\n")[0]; }
@@ -4052,7 +4225,7 @@
       acts.appendChild(jump); acts.appendChild(dup); acts.appendChild(delBtn); head.appendChild(acts);
       card.appendChild(head);
       var ti = document.createElement("textarea"); ti.rows = 2; ti.value = t.text; ti.placeholder = "자막 내용 (Enter로 줄바꿈)"; ti.setAttribute("aria-label", "자막 내용"); ti.className = "text-input tc-text";
-      ti.addEventListener("input", function(){ beginEdit(); t.text = ti.value; tt.lastChild.textContent = " " + titleText(); if (tclipEls[t.id]) tclipEls[t.id].querySelector("span").textContent = "T " + t.text.split("\n")[0]; drawPreviewFrame(); });
+      ti.addEventListener("input", function(){ beginEdit(); t.text = ti.value; tt.lastChild.textContent = " " + titleText(); if (tclipEls[t.id]) tclipEls[t.id].querySelector("span").textContent = "T " + t.text.split("\n")[0]; drawPreviewFrame(); if (t.font !== "sans"){ clearTimeout(ti._ft); ti._ft = setTimeout(function(){ ensureTextFonts(drawPreviewFrame); }, 250); } });
       ti.addEventListener("change", function(){ commitEdit("자막 내용"); });
       ti.addEventListener("keydown", function(e){ e.stopPropagation(); });
       card.appendChild(ti);
@@ -4075,7 +4248,8 @@
       card.appendChild(secP);
       // 글꼴
       var secF = tcSection("글꼴"), gF = el("div", "tc-grid cols-3");
-      var fontSel = makeSelect(TEXT_FONTS.map(function(f){ return [f[0], f[1]]; }), t.font, "자막 글꼴", function(v){ beginEdit(); t.font = v; commitEdit("자막 글꼴"); ensureTextFonts(drawPreviewFrame); drawPreviewFrame(); });
+      var fontSel = makeSelect(TEXT_FONTS.map(function(f){ return [f[0], f[1], !f[2]]; }), t.font, "자막 글꼴", function(v){ beginEdit(); t.font = v; commitEdit("자막 글꼴"); ensureTextFonts(drawPreviewFrame); drawPreviewFrame(); });
+      fontSel.setAttribute("data-font-preview", "1");
       gF.appendChild(tcField("글꼴", fontSel));
       var alignSel = makeSelect(ALIGN_LABELS, t.align, "자막 정렬", function(v){ beginEdit(); t.align = v; commitEdit("자막 정렬"); drawPreviewFrame(); });
       gF.appendChild(tcField("정렬", alignSel));
@@ -4503,8 +4677,9 @@
       var encError = null;
       videoEncoder = new VideoEncoder({ output: function(chunk, meta){ muxer.addVideoChunk(chunk, meta); }, error: function(e){ encError = e; } });
       var encCodec = vcodec.enc;
-    if (dims.w * dims.h > 2073600){ if (encCodec === "avc1.640028") encCodec = "avc1.640033"; else if (encCodec === "vp09.00.40.08") encCodec = "vp09.00.51.08"; }
+    if (dims.w * dims.h > 2073600){ if (/^avc1\.(64|4d|42)/.test(encCodec)) encCodec = encCodec.slice(0, 9) + "33"; else if (encCodec === "vp09.00.40.08") encCodec = "vp09.00.51.08"; }
     var vcfg = { codec: encCodec, width: dims.w, height: dims.h, bitrate: bitrate, framerate: fps, latencyMode: "quality" };
+      if (vcodec.hw) vcfg.hardwareAcceleration = vcodec.hw;
       if (vcodec.mux === "avc") vcfg.avc = { format: "avc" };
       if (vcodec.mux === "hevc") vcfg.hevc = { format: "hevc" };
       videoEncoder.configure(vcfg);
@@ -4745,14 +4920,17 @@
     function pick(value){ if (sel.value !== value){ sel.value = value; sel.dispatchEvent(new Event("change", { bubbles: true })); } else syncNiceSelect(sel); closeNiceMenu(); btn.focus(); }
     function open(){
       if (sel.disabled) return;
+      if (sel.getAttribute("data-font-preview") === "1") primeFontMenu();
       if (openNiceMenu && openNiceMenu.sel === sel){ closeNiceMenu(); return; }
       closeNiceMenu(true);
-      var menu = document.createElement("div"); menu.className = "nice-select-menu"; menu.setAttribute("role", "listbox");
+      var menu = document.createElement("div"); menu.className = "nice-select-menu" + (sel.getAttribute("data-font-preview") === "1" ? " font-menu" : ""); menu.setAttribute("role", "listbox");
       var items = [];
       Array.prototype.forEach.call(sel.options, function(opt){
+        if (opt.disabled){ var hd = document.createElement("div"); hd.className = "nice-select-group"; hd.textContent = opt.textContent; menu.appendChild(hd); return; }
         var it = document.createElement("button"); it.type = "button"; it.className = "nice-select-option";
         it.setAttribute("role", "option"); it.setAttribute("aria-selected", opt.selected ? "true" : "false");
         it.innerHTML = CHECK_SVG + '<span></span>'; it.lastChild.textContent = opt.textContent;
+        if (sel.getAttribute("data-font-preview") === "1"){ it.lastChild.style.fontFamily = textFontFamily(opt.value); it.lastChild.style.fontSize = "15px"; }
         it.addEventListener("click", function(){ pick(opt.value); });
         it.addEventListener("mousemove", function(){ setFocused(items.indexOf(it)); });
         menu.appendChild(it); items.push(it);
