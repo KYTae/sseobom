@@ -131,6 +131,8 @@
   html{
     scrollbar-gutter: stable;
   }
+  /* 작업대 모드: 페이지 스크롤이 없으니 스크롤바 자리 예약도 해제 (안 그러면 오른쪽에 빈 띠가 남음) */
+  html.wb-on, html:has(body.workbench){ scrollbar-gutter: auto; }
   body{
     background:var(--bg);
     color:var(--text);
@@ -1275,6 +1277,8 @@
      9차 업데이트(mockup 2): 좁은 알약 모양 한 줄 대신, 카드 전체 폭을 쓰는 넓은
      패널로 바꿨다 — 지금 무엇(메인/어느 트랙)을 편집 중인지 라벨을 맨 위에 두고,
      그 아래 널찍한 시작~끝 입력칸과 액션 버튼들을 감싼다. */
+  .wave-pane{ display:contents; }
+  .wb-hsplit{ display:none; }
   .edit-toolbar{
     margin-top:14px;
     padding:16px 16px 14px;
@@ -1471,6 +1475,8 @@
     margin-top:1px;
   }
   .tool-step-body{ flex:1; min-width:0; }
+  .tool-step-title{ font-size:13px; font-weight:700; margin:0 0 2px; }
+  .adv-toggle-wb{ display:none; }
   .tool-step-label{
     font-size:12.5px;
     color:var(--text-dim);
@@ -2149,6 +2155,133 @@
       transition:none !important; animation:none !important;
     }
   }
+
+  /* ============================================================
+     작업대 모드(body.workbench) — 영상 편집과 같은 구조. 파일을 올리면 넓은 화면(1100px 이상)에서
+     페이지 스크롤을 없애고 [파형 | 도구 패널] / [재생·내보내기 바]가 화면 전체를 쓴다.
+     파형 영역·도구 패널은 안쪽 스크롤만. 1100px 미만은 기존 세로 배치·페이지 스크롤.
+     ============================================================ */
+  .wb-bar[hidden], .wb-vsplit[hidden], .wb-narrow-gate[hidden], .help-drawer-close[hidden]{ display:none; }
+  .beta-tag{ display:inline-block; vertical-align:middle; margin-left:6px; font-size:11px; font-weight:800; letter-spacing:.06em; padding:3px 9px; border-radius:999px; background:var(--accent-dim); color:var(--accent); }
+  @media (max-width:1099px){
+    .wb-bar, .wb-vsplit, .help-drawer-close{ display:none !important; }
+    body.workbench .wb-narrow-gate{ display:flex; }
+  }
+  .wb-narrow-gate{ position:fixed; inset:0; z-index:900; align-items:center; justify-content:center; padding:20px; background:rgba(0,0,0,.55); backdrop-filter:blur(3px); }
+  .wb-narrow-box{ max-width:420px; background:var(--card); border:1px solid var(--card-border); border-radius:var(--radius); padding:22px 24px; box-shadow:0 20px 50px rgba(0,0,0,.3); }
+  .wb-narrow-title{ font-size:16px; font-weight:800; margin-bottom:8px; }
+  .wb-narrow-box p{ font-size:13.5px; line-height:1.6; color:var(--text-dim); margin:0 0 14px; }
+  @media (min-width:1100px){
+    body.workbench{ overflow:hidden; height:100vh; height:100dvh; display:flex; flex-direction:column; }
+    body.workbench .top-bar{ display:flex; align-items:center; gap:14px; padding:0 18px 0 0; flex:none; }
+    body.workbench .back-link{ margin:0; max-width:none; flex:none; }
+    body.workbench .wb-bar{ display:flex; align-items:center; gap:14px; flex:1 1 auto; min-width:0; }
+    .wb-title{ display:inline-flex; align-items:center; gap:7px; font-size:13.5px; font-weight:800; color:var(--topbar-text); white-space:nowrap; }
+    .wb-title .dot{ width:7px; height:7px; border-radius:50%; background:var(--accent); display:inline-block; }
+    .wb-title .beta-tag{ margin-left:2px; }
+    .wb-actions{ margin-left:auto; display:inline-flex; align-items:center; gap:8px; min-width:0; }
+    .wb-file{ font-size:12px; color:var(--topbar-text); opacity:.75; max-width:320px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .wb-btn{ font-size:12.5px; font-weight:600; padding:5px 12px; border-radius:999px; border:1px solid var(--topbar-border); background:transparent; color:var(--topbar-text); cursor:pointer; transition:background .15s ease, color .15s ease, border-color .15s ease; }
+    .wb-btn:hover, .wb-btn[aria-expanded="true"]{ background:var(--accent-dim); color:var(--accent); border-color:var(--accent); }
+
+    body.workbench .wrap{ max-width:none; padding:0; margin:0; flex:1 1 auto; min-height:0; display:flex; flex-direction:column; }
+    body.workbench header.top, body.workbench .dropzone, body.workbench footer.note, body.workbench .float-bar-spacer, body.workbench .help-toggle{ display:none; }
+    /* 파일 정보(이름·자동 저장·편집 단계·다른 파일 선택)는 작업대 안 파형 위 한 줄로 */
+    body.workbench .file-info{ margin:0 0 8px; padding:8px 12px; gap:6px; border-radius:12px; }
+    body.workbench .file-info[hidden]{ display:none; }
+    body.workbench .file-info-head{ gap:10px; }
+    body.workbench .file-info .meta{ display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 14px; min-width:0; }
+    body.workbench .file-info .name{ font-size:13px; }
+    body.workbench .file-info .detail, body.workbench .file-info .autosave-status, body.workbench .file-info .now-status{ margin:0; font-size:12px; }
+    body.workbench .file-info .file-note{ flex:1 1 100%; margin:0; }
+    body.workbench .audio-meta-grid{ display:none; }  /* 형식·길이·샘플레이트는 위 요약 줄에 이미 있음 */
+    body.workbench .change-btn{ padding:5px 11px; font-size:12px; }
+    body.workbench .wrap > .file-info{ order:0; margin:10px 12px 0; width:auto; }
+    body.workbench .editor-section{ flex:1 1 auto; min-height:0; margin:0; padding:8px 12px 10px; display:grid; grid-template-columns:minmax(0,1fr) 10px var(--wb-insp-w, clamp(380px, 28vw, 560px)); grid-template-rows:auto auto minmax(0,1fr); gap:0; }
+    body.workbench .coach-strip{ grid-column:1; grid-row:1; margin:0 0 8px; }
+    body.workbench .batch-card{ grid-column:1; grid-row:2; margin:0 0 8px; }
+    /* 왼쪽 열: [파형 카드] [가로 분할선] [편집 카드] — 겉 .waveform-card는 투명한 틀만 */
+    body.workbench .waveform-card{ grid-column:1; grid-row:3; display:flex; flex-direction:column; min-height:0; min-width:0; overflow:visible; padding:0; background:transparent; border:none; box-shadow:none; }
+    body.workbench .wave-pane{ display:flex; flex-direction:column; flex:1 1 auto; min-height:0; overflow:auto; overscroll-behavior:contain; padding:14px 14px 12px; background:var(--card); border:1px solid var(--card-border); border-radius:var(--radius); }
+    body.workbench .wave-pane > *{ flex:none; }
+    body.workbench .waveform-wrap{ flex:1 1 auto; min-height:120px; overflow:auto; }
+    body.workbench .wb-hsplit{ display:flex; flex:none; height:12px; align-items:center; justify-content:center; cursor:row-resize; touch-action:none; user-select:none; }
+    body.workbench .wb-hsplit-grip{ height:4px; width:56px; border-radius:999px; background:var(--card-border); transition:background .15s ease, width .15s ease; }
+    body.workbench .wb-hsplit:hover .wb-hsplit-grip, body.workbench .wb-hsplit.dragging .wb-hsplit-grip, body.workbench .wb-hsplit:focus-visible .wb-hsplit-grip{ background:var(--accent); width:80px; }
+    body.workbench .wb-hsplit:focus-visible{ outline:none; }
+    body.workbench .edit-toolbar{ flex:none; height:var(--wb-edit-h, auto); max-height:calc(100% - 260px); min-height:0; box-sizing:border-box; overflow:auto; overscroll-behavior:contain; margin:0; padding:10px 12px 8px; background:var(--card); border:1px solid var(--card-border); border-radius:var(--radius); }
+    body.workbench.wb-hresizing{ cursor:row-resize; }
+    body.workbench.wb-hresizing .wave-pane, body.workbench.wb-hresizing .edit-toolbar, body.workbench.wb-hresizing .tool-tabs-card{ pointer-events:none; }
+    body.workbench .wb-vsplit{ grid-column:2; grid-row:1 / -1; display:flex; align-items:center; justify-content:center; cursor:col-resize; touch-action:none; user-select:none; }
+    body.workbench .wb-vsplit-grip{ width:4px; height:56px; border-radius:999px; background:var(--card-border); transition:background .15s ease, height .15s ease; }
+    body.workbench .wb-vsplit:hover .wb-vsplit-grip, body.workbench .wb-vsplit.dragging .wb-vsplit-grip, body.workbench .wb-vsplit:focus-visible .wb-vsplit-grip{ background:var(--accent); height:80px; }
+    body.workbench .wb-vsplit:focus-visible{ outline:none; }
+    body.workbench.wb-vresizing{ cursor:col-resize; }
+    body.workbench.wb-vresizing .waveform-card, body.workbench.wb-vresizing .tool-tabs-card{ pointer-events:none; }
+    /* 도구 패널(노이즈·피치·속도·무음) — 오른쪽 전체 높이, 항상 펼침 */
+    body.workbench .tool-tabs-card{ grid-column:3; grid-row:1 / -1; margin:0; padding:12px 14px 16px; border-top:none; background:var(--card); border:1px solid var(--card-border); border-radius:var(--radius); min-height:0; overflow:auto; overscroll-behavior:contain; }
+    /* 작업대에선 접기 버튼이 패널 제목 역할만 한다(항상 펼침) */
+    body.workbench .adv-toggle{ cursor:default; pointer-events:auto; margin-bottom:6px; }
+    body.workbench .adv-toggle-icon{ display:none; }
+    /* ---- 작업대 효과 도구 패널: 영상 편집 인스펙터(tc-card)와 같은 문법 — 구역 제목·점선 구분·라벨 위/컨트롤 아래·꽉 찬 적용 버튼 ---- */
+    body.workbench .adv-toggle{ background:transparent; border:none; padding:2px 2px 8px; margin-bottom:4px; font-size:14px; font-weight:800; color:var(--text); }
+    body.workbench .adv-toggle-text{ display:none; }
+    body.workbench .adv-toggle-wb{ display:inline-flex; align-items:baseline; gap:8px; }
+    body.workbench .adv-toggle-wb small{ font-size:11.5px; font-weight:600; color:var(--text-dim); }
+    body.workbench .mode-track{ margin-bottom:10px; padding:3px; }
+    body.workbench .mode-seg{ padding:7px 8px; font-size:12.5px; }
+    body.workbench .tool-panel{ background:var(--bg); border:1px solid var(--card-border); border-radius:12px; padding:4px 12px 12px; }
+    body.workbench .tool-step{ gap:10px; padding:10px 0 12px; border-top:1px dashed var(--card-border); }
+    body.workbench .tool-step:first-child{ border-top:none; }
+    body.workbench .tool-step-num{ width:20px; height:20px; font-size:11px; margin-top:0; }
+    body.workbench .tool-step-title{ font-size:12.5px; font-weight:800; line-height:20px; margin:0 0 4px; }
+    body.workbench .tool-step-label{ font-size:11.5px; line-height:1.5; margin:0 0 8px; }
+    body.workbench .tool-step-body > button, body.workbench .tool-step-body > button.primary{ width:100%; padding:8px 12px; font-size:12.5px; }
+    body.workbench .tool-step-body > button:disabled{ opacity:.45; }
+    body.workbench .slider-row{ display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:8px; min-width:0; margin-top:6px; }
+    body.workbench .slider-row label{ font-size:11px; font-weight:600; color:var(--text-dim); white-space:nowrap; }
+    body.workbench .slider-row input[type=range]{ width:100%; min-width:0; accent-color:var(--accent); margin:0; }
+    body.workbench .slider-value{ min-width:0; font-size:12px; font-weight:700; color:var(--text); background:var(--card); border:1px solid var(--card-border); border-radius:999px; padding:2px 9px; white-space:nowrap; }
+    body.workbench .speed-presets{ display:grid; grid-template-columns:repeat(5, minmax(0,1fr)); gap:6px; margin-top:8px; }
+    body.workbench .speed-presets .speed-preset{ width:100%; padding:6px 4px; font-size:12px; }
+    body.workbench .noise-status{ margin:10px 0 0; padding:8px 10px; border-radius:8px; background:var(--card); border:1px solid var(--card-border); border-left:3px solid var(--accent); font-size:11.5px; line-height:1.5; color:var(--text-dim); }
+    body.workbench .pitch-region-list{ margin-top:10px; padding-top:10px; border-top:1px dashed var(--card-border); }
+    body.workbench .pitch-region-list-title{ font-size:10.5px; font-weight:800; color:var(--accent); text-transform:uppercase; letter-spacing:.08em; margin:0 0 6px; }
+    body.workbench .pitch-region-item{ padding:7px 8px; border-radius:8px; border-top:none; background:var(--card); border:1px solid var(--card-border); margin-top:6px; }
+    body.workbench .pitch-region-info{ font-size:12px; min-width:120px; }
+    body.workbench .pitch-region-actions button, body.workbench .pitch-region-edit button{ font-size:11.5px; padding:4px 9px; }
+    body.workbench .silence-item{ margin-top:6px; padding:7px 10px; font-size:12px; background:var(--card); }
+    /* 작업대에선 상단 바에 ⌨ 단축키가 있으니 "트랙 추가" 옆 단축키 버튼은 숨김 */
+    body.workbench #shortcutsBtn2, body.workbench #shortcutsBtn{ display:none; }
+    /* 작업대: 확대 툴바가 파형 카드 맨 위라 "?" 말풍선이 위로 열리면 카드에 잘림 → 아래로 열기 */
+    body.workbench .waveform-toolbar .info-tip-bubble{ bottom:auto; top:calc(100% + 9px); transform:translateY(-4px); }
+    body.workbench .waveform-toolbar .info-tip-bubble::after{ top:auto; bottom:100%; border-top-color:transparent; border-bottom-color:var(--text); }
+    body.workbench .waveform-toolbar .info-tip:hover .info-tip-bubble, body.workbench .waveform-toolbar .info-tip:focus-within .info-tip-bubble{ transform:translateY(0); }
+    body.workbench .adv-content{ display:block; opacity:1; margin-top:0; transition:none; }
+    body.workbench .adv-content-inner{ overflow:visible; }
+    body.workbench .tool-tabs-card .mode-track{ display:flex; width:100%; }
+    body.workbench .tool-tabs-card .mode-track button{ flex:1 1 0; min-width:0; padding:8px 6px; }
+    /* 재생·내보내기 바: 화면 바닥 고정 줄 */
+    body.workbench .float-download-bar{ position:static; transform:none; width:auto; max-width:none; box-shadow:none; margin:0 12px 10px; padding:10px 14px; flex:none; }
+    body.workbench .float-download-bar .transport-row{ margin:0; padding:0; border:none; }
+    .wb-btn-primary{ display:inline-flex; align-items:center; gap:6px; background:var(--accent); color:#fff; border-color:var(--accent); font-weight:700; padding:6px 14px; }
+    .wb-btn-primary svg{ width:13px; height:13px; }
+    .wb-btn.wb-btn-primary:hover, .wb-btn.wb-btn-primary[aria-expanded="true"]{ background:var(--accent); color:#fff; border-color:var(--accent); filter:brightness(1.08); }
+    .wb-export-pop{ position:fixed; right:12px; top:calc(var(--wb-top, 45px) + 8px); width:min(760px, calc(100vw - 24px)); z-index:140; padding:14px 16px; background:var(--card); border:1px solid var(--card-border); border-radius:var(--radius); box-shadow:0 16px 40px rgba(0,0,0,.24); }
+    .wb-export-pop[hidden]{ display:none; }
+    .wb-export-pop .float-bar-row{ margin-top:0; }
+    body.workbench .float-download-bar[hidden]{ display:none; }
+    /* 사용법 — 오른쪽 서랍 */
+    body.workbench .help-panel{ position:fixed; top:var(--wb-top, 45px); right:0; bottom:0; width:min(640px, 100%); z-index:150; margin:0; padding:16px 20px 24px; overflow:auto; overscroll-behavior:contain; background:var(--card); border-left:1px solid var(--card-border); box-shadow:-12px 0 32px rgba(0,0,0,.18); transform:translateX(100%); transition:transform .28s cubic-bezier(.4,0,.2,1); }
+    body.workbench .help-panel.open{ transform:none; }
+    body.workbench .help-panel::before{ content:"버튼 사용법"; display:block; font-size:15px; font-weight:800; padding:4px 0 10px; }
+    body.workbench .help-drawer-close{ display:inline-flex; align-items:center; justify-content:center; position:sticky; top:0; float:right; width:32px; height:32px; border-radius:999px; border:1px solid var(--card-border); background:var(--card); color:var(--text-dim); font-size:14px; cursor:pointer; z-index:1; }
+    body.workbench .help-drawer-close:hover{ color:var(--accent); border-color:var(--accent); }
+    body.workbench .help-content{ display:block; opacity:1; margin-top:8px; padding:0; border:none; background:transparent; transition:none; }
+    body.workbench .help-content-inner{ overflow:visible; padding:0; }
+    body.workbench .help-panel .help-grid{ grid-template-columns:1fr; }
+  }
+
   @media (max-width:520px){
     .file-info-head{ flex-wrap:wrap; gap:12px 14px; }
     .file-info .change-btn{ width:100%; }
@@ -2232,12 +2365,24 @@
 </style>
 </head>
 <body>
-<div class="top-bar">
+<div class="top-bar" id="topBar">
   <a class="back-link" href="/">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H6M12 5l-7 7 7 7"></path></svg>
     도구상자로 돌아가기
   </a>
+  <!-- 작업대 모드(파일을 올린 뒤, 넓은 화면)에서만 보이는 상단 바 — 영상 편집과 같은 구조 -->
+  <div class="wb-bar" id="wbBar" hidden>
+    <span class="wb-title"><span class="dot"></span>사운드 편집 <span class="beta-tag">베타</span></span>
+    <span class="wb-actions">
+      <span class="wb-file" id="wbFile"></span>
+      <button type="button" class="wb-btn" id="wbHelpBtn" aria-controls="helpPanel" aria-expanded="false">사용법</button>
+      <button type="button" class="wb-btn" id="wbShortcutsBtn" title="키보드 단축키 (?)">⌨ 단축키</button>
+      <button type="button" class="wb-btn wb-btn-primary" id="wbExportBtn" aria-controls="wbExportPop" aria-expanded="false" title="파일명·형식·옵션을 정하고 저장해요"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M6 9l6 6 6-6M4 21h16"/></svg>내보내기</button>
+    </span>
+  </div>
 </div>
+<!-- 작업대 모드에서 내보내기(파일명·형식·옵션·진행 상태)가 들어가는 팝오버 — 하단 바의 해당 줄들을 JS로 옮겨 담는다 -->
+<div class="wb-export-pop" id="wbExportPop" hidden></div>
 
 <div class="wrap">
   <header class="top">
@@ -2264,6 +2409,7 @@
     <button class="help-toggle" id="helpToggle" type="button" aria-expanded="false">
       <span class="help-toggle-icon">▶</span> 버튼 사용법 보기
     </button>
+    <button type="button" class="help-drawer-close" id="helpDrawerClose" aria-label="사용법 닫기" hidden>✕</button>
     <div class="help-content" id="helpContent">
     <div class="help-content-inner">
       <!-- 7차: 항목이 30개 가까이 되어 소제목마다 접었다 펼 수 있게(JS가 변환). 첫 묶음 "처음 3분"만 펼쳐진 채 시작 -->
@@ -2436,6 +2582,13 @@
     </div>
   </div>
 
+  <div class="wb-narrow-gate" id="wbNarrowGate" hidden>
+    <div class="wb-narrow-box">
+      <div class="wb-narrow-title">창이 너무 좁아졌어요</div>
+      <p>사운드 편집 작업대는 가로 1100px 이상에서 제대로 보여요. 브라우저 창을 넓히거나 전체 화면(F11)으로 바꿔 주세요.</p>
+      <button type="button" id="wbNarrowContinue">좁은 화면 배치로 계속하기</button>
+    </div>
+  </div>
   <div class="editor-section" id="editorSection" hidden>
     <!-- 6차: 첫 사용 코치마크 — 3단계, 한 번 닫으면 이 브라우저에서 다시 안 보인다 -->
     <div class="coach-strip" id="coachStrip" hidden>
@@ -2449,6 +2602,9 @@
       <button type="button" class="coach-close" id="coachCloseBtn">알겠어요</button>
     </div>
     <div class="editor-card waveform-card">
+      <!-- 작업대: 파형 구역(툴바·미니맵·레인)과 편집 구역(.edit-toolbar)을 분리하고 사이에 높이 조절 분할선을 둔다.
+           일반 모드에선 .wave-pane이 display:contents라 기존 배치 그대로. -->
+      <div class="wave-pane" id="wavePane">
       <div class="waveform-toolbar">
         <span class="zoom-label">타임라인 확대</span>
         <button class="zoom-btn" id="zoomOutBtn" type="button" title="축소" disabled>−</button>
@@ -2558,6 +2714,8 @@
           <div class="shared-playhead-line" id="sharedPlayheadLine" hidden></div>
         </div>
       </div>
+      </div>
+      <div class="wb-hsplit" id="wbHSplit" role="separator" aria-orientation="horizontal" aria-label="편집 구역 높이 조절 — 끌거나 ↑↓ 키, 더블클릭으로 초기화" tabindex="-1" hidden><span class="wb-hsplit-grip" aria-hidden="true"></span></div>
       <div class="edit-toolbar" id="editToolbar">
         <p class="edit-target-label" id="editTargetLabel">메인 트랙 편집 중</p>
         <div class="selection-info" id="selectionInfo">
@@ -2633,159 +2791,172 @@
         <p class="effect-status" id="effectStatus" hidden></p>
       </div>
 
-      <div class="tool-tabs-card" id="toolTabsCard">
-        <button class="adv-toggle" id="advToolsToggle" type="button" aria-expanded="false" aria-controls="advToolsContent">
-          <span class="adv-toggle-icon">▶</span> 노이즈 제거 · 피치 · 속도 · 무음 정리 (선택 사항)
-        </button>
-        <div class="adv-content" id="advToolsContent">
-          <div class="adv-content-inner">
-            <div class="mode-track" id="toolModeTrack" role="group" aria-label="도구 선택">
-              <div class="mode-indicator" aria-hidden="true"></div>
-              <button class="mode-seg active" id="tabBtnNoise" type="button" aria-pressed="true" aria-controls="noisePanel" data-tool="noise">노이즈 제거</button>
-              <button class="mode-seg" id="tabBtnPitch" type="button" aria-pressed="false" aria-controls="pitchPanel" data-tool="pitch">피치 조절</button>
-              <button class="mode-seg" id="tabBtnSpeed" type="button" aria-pressed="false" aria-controls="speedPanel" data-tool="speed">속도 조절</button>
-              <button class="mode-seg" id="tabBtnSilence" type="button" aria-pressed="false" aria-controls="silencePanel" data-tool="silence">무음 정리</button>
-            </div>
+    </div>
+    <div class="wb-vsplit" id="wbVSplit" role="separator" aria-orientation="vertical" aria-label="도구 패널 폭 조절 — 끌거나 ←→ 키" tabindex="-1" hidden><span class="wb-vsplit-grip" aria-hidden="true"></span></div>
+    <div class="tool-tabs-card" id="toolTabsCard">
+      <button class="adv-toggle" id="advToolsToggle" type="button" aria-expanded="false" aria-controls="advToolsContent">
+        <span class="adv-toggle-icon">▶</span> <span class="adv-toggle-text">노이즈 제거 · 피치 · 속도 · 무음 정리 (선택 사항)</span><span class="adv-toggle-wb" aria-hidden="true">효과 도구 <small>노이즈 · 피치 · 속도 · 무음</small></span>
+      </button>
+      <div class="adv-content" id="advToolsContent">
+        <div class="adv-content-inner">
+          <div class="mode-track" id="toolModeTrack" role="group" aria-label="도구 선택">
+            <div class="mode-indicator" aria-hidden="true"></div>
+            <button class="mode-seg active" id="tabBtnNoise" type="button" aria-pressed="true" aria-controls="noisePanel" data-tool="noise">노이즈 제거</button>
+            <button class="mode-seg" id="tabBtnPitch" type="button" aria-pressed="false" aria-controls="pitchPanel" data-tool="pitch">피치 조절</button>
+            <button class="mode-seg" id="tabBtnSpeed" type="button" aria-pressed="false" aria-controls="speedPanel" data-tool="speed">속도 조절</button>
+            <button class="mode-seg" id="tabBtnSilence" type="button" aria-pressed="false" aria-controls="silencePanel" data-tool="silence">무음 정리</button>
+          </div>
 
-            <div class="tool-panel" id="noisePanel">
-              <div class="tool-step">
-                <span class="tool-step-num">1</span>
-                <div class="tool-step-body">
-                  <p class="tool-step-label">위 파형에서 노이즈만 있는 구간을 드래그로 선택한 뒤 저장하세요.</p>
-                  <button id="saveNoiseBtn" type="button" disabled>이 구간을 노이즈 샘플로 저장</button>
-                </div>
-              </div>
-              <div class="tool-step">
-                <span class="tool-step-num">2</span>
-                <div class="tool-step-body">
-                  <p class="tool-step-label">필요하면 민감도를 조절하세요. 값이 높을수록 더 강하게 제거되지만 소리가 깎일 수 있어요.</p>
-                  <div class="slider-row">
-                    <label for="sensitivitySlider">민감도</label>
-                    <input type="range" id="sensitivitySlider" min="1.0" max="3.5" step="0.1" value="1.8">
-                    <span class="slider-value" id="sensitivityValue">1.8</span>
-                  </div>
-                </div>
-              </div>
-              <div class="tool-step">
-                <span class="tool-step-num">3</span>
-                <div class="tool-step-body">
-                  <p class="tool-step-label">오디오 전체에 노이즈 제거를 적용해요.</p>
-                  <button class="primary" id="applyDenoiseBtn" type="button" disabled>노이즈 제거 적용</button>
-                </div>
-              </div>
-              <p class="noise-status" id="noiseStatus">저장된 노이즈 샘플이 없어요. 노이즈만 있는 구간을 선택한 뒤 저장해보세요.</p>
-            </div>
-
-            <div class="tool-panel" id="pitchPanel" hidden>
-              <div class="tool-step">
-                <span class="tool-step-num">1</span>
-                <div class="tool-step-body">
-                  <p class="tool-step-label">위 파형에서 음높이를 바꿀 구간(한 음)을 선택하세요. 구간마다 서로 다른 피치를 줄 수 있어요.</p>
-                </div>
-              </div>
-              <div class="tool-step">
-                <span class="tool-step-num">2</span>
-                <div class="tool-step-body">
-                  <p class="tool-step-label">슬라이더로 음높이를 조절하세요(±12 반음 = 위아래 한 옥타브). 재생 속도는 그대로 유지돼요.</p>
-                  <div class="slider-row">
-                    <label for="pitchSlider">음높이</label>
-                    <input type="range" id="pitchSlider" min="-12" max="12" step="1" value="0">
-                    <span class="slider-value" id="pitchValueText">0 (원음)</span>
-                  </div>
-                </div>
-              </div>
-              <div class="tool-step">
-                <span class="tool-step-num">3</span>
-                <div class="tool-step-body">
-                  <p class="tool-step-label">선택 구간에 피치를 적용해요. 적용된 구간은 파형에 주황색으로 표시돼요.</p>
-                  <button class="primary" id="applyPitchBtn" type="button" disabled>선택 구간에 피치 적용</button>
-                </div>
-              </div>
-              <p class="noise-status" id="pitchStatus">먼저 파형에서 구간(한 음)을 선택하세요. 구간마다 서로 다른 피치를 줄 수 있어요(±12 반음 = 위아래 한 옥타브).</p>
-              <div class="pitch-region-list" id="pitchRegionList" hidden>
-                <p class="pitch-region-list-title">적용된 피치 구간</p>
-                <div id="pitchRegionItems"></div>
+          <div class="tool-panel" id="noisePanel">
+            <div class="tool-step">
+              <span class="tool-step-num">1</span>
+              <div class="tool-step-body">
+                <p class="tool-step-title">노이즈 샘플 저장</p>
+                <p class="tool-step-label">위 파형에서 노이즈만 있는 구간을 드래그로 선택한 뒤 저장하세요.</p>
+                <button id="saveNoiseBtn" type="button" disabled>이 구간을 노이즈 샘플로 저장</button>
               </div>
             </div>
-
-            <!-- 5차: 속도 조절 — 피치 조절에 쓰던 WSOLA 타임스트레치를 "길이만 바꾸고 음높이는 유지"로 재사용 -->
-            <div class="tool-panel" id="speedPanel" hidden>
-              <div class="tool-step">
-                <span class="tool-step-num">1</span>
-                <div class="tool-step-body">
-                  <p class="tool-step-label">속도를 바꿀 구간을 선택하세요. 선택이 없으면 지금 편집 중인 트랙 전체에 적용돼요.</p>
+            <div class="tool-step">
+              <span class="tool-step-num">2</span>
+              <div class="tool-step-body">
+                <p class="tool-step-title">민감도</p>
+                <p class="tool-step-label">필요하면 민감도를 조절하세요. 값이 높을수록 더 강하게 제거되지만 소리가 깎일 수 있어요.</p>
+                <div class="slider-row">
+                  <label for="sensitivitySlider">민감도</label>
+                  <input type="range" id="sensitivitySlider" min="1.0" max="3.5" step="0.1" value="1.8">
+                  <span class="slider-value" id="sensitivityValue">1.8</span>
                 </div>
               </div>
-              <div class="tool-step">
-                <span class="tool-step-num">2</span>
-                <div class="tool-step-body">
-                  <p class="tool-step-label">배속을 고르세요. 음높이는 그대로 유지되고 길이만 바뀌어요(0.5× = 두 배 느리게, 2× = 두 배 빠르게).</p>
-                  <div class="slider-row">
-                    <label for="speedSlider">배속</label>
-                    <input type="range" id="speedSlider" min="0.5" max="2" step="0.05" value="1">
-                    <span class="slider-value" id="speedValueText">1.00×</span>
-                  </div>
-                  <div class="speed-presets" role="group" aria-label="배속 빠른 선택">
-                    <button type="button" class="mini-btn speed-preset" data-speed="0.75">0.75×</button>
-                    <button type="button" class="mini-btn speed-preset" data-speed="1">1×</button>
-                    <button type="button" class="mini-btn speed-preset" data-speed="1.25">1.25×</button>
-                    <button type="button" class="mini-btn speed-preset" data-speed="1.5">1.5×</button>
-                    <button type="button" class="mini-btn speed-preset" data-speed="2">2×</button>
-                  </div>
-                </div>
-              </div>
-              <div class="tool-step">
-                <span class="tool-step-num">3</span>
-                <div class="tool-step-body">
-                  <p class="tool-step-label">적용하면 구간 길이가 배속에 맞게 줄거나 늘어나고, 뒤쪽 오디오는 그만큼 따라 움직여요.</p>
-                  <button class="primary" id="applySpeedBtn" type="button" disabled>속도 적용</button>
-                </div>
-              </div>
-              <p class="noise-status" id="speedStatus">배속이 1×이면 바뀌는 게 없어요. 슬라이더나 위 버튼으로 배속을 고른 뒤 적용하세요.</p>
             </div>
+            <div class="tool-step">
+              <span class="tool-step-num">3</span>
+              <div class="tool-step-body">
+                <p class="tool-step-title">적용</p>
+                <p class="tool-step-label">오디오 전체에 노이즈 제거를 적용해요.</p>
+                <button class="primary" id="applyDenoiseBtn" type="button" disabled>노이즈 제거 적용</button>
+              </div>
+            </div>
+            <p class="noise-status" id="noiseStatus">저장된 노이즈 샘플이 없어요. 노이즈만 있는 구간을 선택한 뒤 저장해보세요.</p>
+          </div>
 
-            <!-- 5차: 무음 정리 — 강의·팟캐스트 녹음의 긴 침묵을 찾아 한 번에 지운다 -->
-            <div class="tool-panel" id="silencePanel" hidden>
-              <div class="tool-step">
-                <span class="tool-step-num">1</span>
-                <div class="tool-step-body">
-                  <p class="tool-step-label">무음으로 볼 기준을 정하세요. 기준 음량보다 작은 소리가 최소 길이 이상 이어지면 무음 구간으로 잡아요.</p>
-                  <div class="slider-row">
-                    <label for="silenceDbSlider">기준 음량</label>
-                    <input type="range" id="silenceDbSlider" min="-60" max="-20" step="1" value="-40">
-                    <span class="slider-value" id="silenceDbText">-40dB</span>
-                  </div>
-                  <div class="slider-row">
-                    <label for="silenceMinSlider">최소 길이</label>
-                    <input type="range" id="silenceMinSlider" min="0.2" max="5" step="0.1" value="1">
-                    <span class="slider-value" id="silenceMinText">1.0초</span>
-                  </div>
-                  <div class="slider-row">
-                    <label for="silenceKeepSlider">남길 여백</label>
-                    <input type="range" id="silenceKeepSlider" min="0" max="1" step="0.05" value="0.2">
-                    <span class="slider-value" id="silenceKeepText">0.20초</span>
-                  </div>
+          <div class="tool-panel" id="pitchPanel" hidden>
+            <div class="tool-step">
+              <span class="tool-step-num">1</span>
+              <div class="tool-step-body">
+                <p class="tool-step-title">구간 선택</p>
+                <p class="tool-step-label">위 파형에서 음높이를 바꿀 구간(한 음)을 선택하세요. 구간마다 서로 다른 피치를 줄 수 있어요.</p>
+              </div>
+            </div>
+            <div class="tool-step">
+              <span class="tool-step-num">2</span>
+              <div class="tool-step-body">
+                <p class="tool-step-title">음높이</p>
+                <p class="tool-step-label">슬라이더로 음높이를 조절하세요(±12 반음 = 위아래 한 옥타브). 재생 속도는 그대로 유지돼요.</p>
+                <div class="slider-row">
+                  <label for="pitchSlider">음높이</label>
+                  <input type="range" id="pitchSlider" min="-12" max="12" step="1" value="0">
+                  <span class="slider-value" id="pitchValueText">0 (원음)</span>
                 </div>
               </div>
-              <div class="tool-step">
-                <span class="tool-step-num">2</span>
-                <div class="tool-step-body">
-                  <p class="tool-step-label">지금 편집 중인 트랙에서 무음 구간을 찾아 파형 위에 표시해요. 항목을 누르면 그 구간이 선택돼서 들어볼 수 있어요.</p>
-                  <button id="findSilenceBtn" type="button" disabled>무음 구간 찾기</button>
+            </div>
+            <div class="tool-step">
+              <span class="tool-step-num">3</span>
+              <div class="tool-step-body">
+                <p class="tool-step-title">적용</p>
+                <p class="tool-step-label">선택 구간에 피치를 적용해요. 적용된 구간은 파형에 주황색으로 표시돼요.</p>
+                <button class="primary" id="applyPitchBtn" type="button" disabled>선택 구간에 피치 적용</button>
+              </div>
+            </div>
+            <p class="noise-status" id="pitchStatus">먼저 파형에서 구간(한 음)을 선택하세요. 구간마다 서로 다른 피치를 줄 수 있어요(±12 반음 = 위아래 한 옥타브).</p>
+            <div class="pitch-region-list" id="pitchRegionList" hidden>
+              <p class="pitch-region-list-title">적용된 피치 구간</p>
+              <div id="pitchRegionItems"></div>
+            </div>
+          </div>
+
+          <!-- 5차: 속도 조절 — 피치 조절에 쓰던 WSOLA 타임스트레치를 "길이만 바꾸고 음높이는 유지"로 재사용 -->
+          <div class="tool-panel" id="speedPanel" hidden>
+            <div class="tool-step">
+              <span class="tool-step-num">1</span>
+              <div class="tool-step-body">
+                <p class="tool-step-title">구간 선택</p>
+                <p class="tool-step-label">속도를 바꿀 구간을 선택하세요. 선택이 없으면 지금 편집 중인 트랙 전체에 적용돼요.</p>
+              </div>
+            </div>
+            <div class="tool-step">
+              <span class="tool-step-num">2</span>
+              <div class="tool-step-body">
+                <p class="tool-step-title">배속</p>
+                <p class="tool-step-label">배속을 고르세요. 음높이는 그대로 유지되고 길이만 바뀌어요(0.5× = 두 배 느리게, 2× = 두 배 빠르게).</p>
+                <div class="slider-row">
+                  <label for="speedSlider">배속</label>
+                  <input type="range" id="speedSlider" min="0.5" max="2" step="0.05" value="1">
+                  <span class="slider-value" id="speedValueText">1.00×</span>
+                </div>
+                <div class="speed-presets" role="group" aria-label="배속 빠른 선택">
+                  <button type="button" class="mini-btn speed-preset" data-speed="0.75">0.75×</button>
+                  <button type="button" class="mini-btn speed-preset" data-speed="1">1×</button>
+                  <button type="button" class="mini-btn speed-preset" data-speed="1.25">1.25×</button>
+                  <button type="button" class="mini-btn speed-preset" data-speed="1.5">1.5×</button>
+                  <button type="button" class="mini-btn speed-preset" data-speed="2">2×</button>
                 </div>
               </div>
-              <div class="tool-step">
-                <span class="tool-step-num">3</span>
-                <div class="tool-step-body">
-                  <p class="tool-step-label">찾은 무음 구간을 한 번에 지워요. 각 구간에는 "남길 여백"만큼의 짧은 숨 고르기가 남아요.</p>
-                  <button class="primary" id="deleteSilenceBtn" type="button" disabled>무음 구간 모두 삭제</button>
+            </div>
+            <div class="tool-step">
+              <span class="tool-step-num">3</span>
+              <div class="tool-step-body">
+                <p class="tool-step-title">적용</p>
+                <p class="tool-step-label">적용하면 구간 길이가 배속에 맞게 줄거나 늘어나고, 뒤쪽 오디오는 그만큼 따라 움직여요.</p>
+                <button class="primary" id="applySpeedBtn" type="button" disabled>속도 적용</button>
+              </div>
+            </div>
+            <p class="noise-status" id="speedStatus">배속이 1×이면 바뀌는 게 없어요. 슬라이더나 위 버튼으로 배속을 고른 뒤 적용하세요.</p>
+          </div>
+
+          <!-- 5차: 무음 정리 — 강의·팟캐스트 녹음의 긴 침묵을 찾아 한 번에 지운다 -->
+          <div class="tool-panel" id="silencePanel" hidden>
+            <div class="tool-step">
+              <span class="tool-step-num">1</span>
+              <div class="tool-step-body">
+                <p class="tool-step-title">무음 기준</p>
+                <p class="tool-step-label">무음으로 볼 기준을 정하세요. 기준 음량보다 작은 소리가 최소 길이 이상 이어지면 무음 구간으로 잡아요.</p>
+                <div class="slider-row">
+                  <label for="silenceDbSlider">기준 음량</label>
+                  <input type="range" id="silenceDbSlider" min="-60" max="-20" step="1" value="-40">
+                  <span class="slider-value" id="silenceDbText">-40dB</span>
+                </div>
+                <div class="slider-row">
+                  <label for="silenceMinSlider">최소 길이</label>
+                  <input type="range" id="silenceMinSlider" min="0.2" max="5" step="0.1" value="1">
+                  <span class="slider-value" id="silenceMinText">1.0초</span>
+                </div>
+                <div class="slider-row">
+                  <label for="silenceKeepSlider">남길 여백</label>
+                  <input type="range" id="silenceKeepSlider" min="0" max="1" step="0.05" value="0.2">
+                  <span class="slider-value" id="silenceKeepText">0.20초</span>
                 </div>
               </div>
-              <p class="noise-status" id="silenceStatus">아직 찾은 무음 구간이 없어요. 기준을 정하고 "무음 구간 찾기"를 눌러보세요.</p>
-              <div class="pitch-region-list" id="silenceList" hidden>
-                <p class="pitch-region-list-title">찾은 무음 구간</p>
-                <div id="silenceItems"></div>
+            </div>
+            <div class="tool-step">
+              <span class="tool-step-num">2</span>
+              <div class="tool-step-body">
+                <p class="tool-step-title">무음 찾기</p>
+                <p class="tool-step-label">지금 편집 중인 트랙에서 무음 구간을 찾아 파형 위에 표시해요. 항목을 누르면 그 구간이 선택돼서 들어볼 수 있어요.</p>
+                <button id="findSilenceBtn" type="button" disabled>무음 구간 찾기</button>
               </div>
+            </div>
+            <div class="tool-step">
+              <span class="tool-step-num">3</span>
+              <div class="tool-step-body">
+                <p class="tool-step-title">모두 삭제</p>
+                <p class="tool-step-label">찾은 무음 구간을 한 번에 지워요. 각 구간에는 "남길 여백"만큼의 짧은 숨 고르기가 남아요.</p>
+                <button class="primary" id="deleteSilenceBtn" type="button" disabled>무음 구간 모두 삭제</button>
+              </div>
+            </div>
+            <p class="noise-status" id="silenceStatus">아직 찾은 무음 구간이 없어요. 기준을 정하고 "무음 구간 찾기"를 눌러보세요.</p>
+            <div class="pitch-region-list" id="silenceList" hidden>
+              <p class="pitch-region-list-title">찾은 무음 구간</p>
+              <div id="silenceItems"></div>
             </div>
           </div>
         </div>
@@ -8840,6 +9011,7 @@
       metaSizeEl.textContent = formatBytes(file.size);
       fileInfo.hidden = false;
       editorSection.hidden = false;
+      enterWorkbench(typeof currentBaseName === "string" ? currentBaseName : "");
       // 17차 업데이트(R17-2): 여기 있던 syncEditorPaneLayout() 호출은 제거된 함수를
       // 계속 부르고 있던 잔재라 파일을 올리는 즉시 ReferenceError가 나는 실제 버그였다
       // — R16-5의 레인 패널 높이 제한/여백 로직 자체가 통째로 되돌아갔으므로 이 호출도
@@ -9078,6 +9250,7 @@
       metaSizeEl.textContent = "복구됨";
       fileInfo.hidden = false;
       editorSection.hidden = false;
+      enterWorkbench(typeof currentBaseName === "string" ? currentBaseName : "");
       floatDownloadBar.hidden = false;
       requestAnimationFrame(syncFloatBarSpacer);
       exportFilenameInput.value = currentBaseName;
@@ -10037,6 +10210,99 @@
     openShortcuts();
   });
 
+  // ============================================================================================
+  // 작업대 모드 (영상 편집과 같은 방식) — 파일을 올리면 넓은 화면에서 페이지 스크롤 없이 전체 화면
+  // ============================================================================================
+  var WB_MIN = 1100;
+  function isWorkbench(){ return document.body.classList.contains("workbench") && window.innerWidth >= WB_MIN; }
+  function syncWbTop(){ document.documentElement.style.setProperty("--wb-top", document.getElementById("topBar").getBoundingClientRect().height + "px"); }
+  var wbHelpBtn = document.getElementById("wbHelpBtn"), helpDrawerClose = document.getElementById("helpDrawerClose");
+  function setHelpOpen(open){ helpPanel.classList.toggle("open", open); helpToggle.setAttribute("aria-expanded", open ? "true" : "false"); wbHelpBtn.setAttribute("aria-expanded", open ? "true" : "false"); }
+  wbHelpBtn.addEventListener("click", function(){ setHelpOpen(!helpPanel.classList.contains("open")); });
+  helpDrawerClose.addEventListener("click", function(){ setHelpOpen(false); wbHelpBtn.focus(); });
+  document.getElementById("wbShortcutsBtn").addEventListener("click", function(){ shortcutsBtn.click(); });
+  window.addEventListener("keydown", function(e){ if (e.key === "Escape" && isWorkbench() && helpPanel.classList.contains("open")){ e.preventDefault(); setHelpOpen(false); } }, true);
+  // 작업대에선 문서 스크롤이 없으므로 html의 scrollbar-gutter 예약(윈도우 계열에서 오른쪽에 빈 스크롤바 띠로 보임)을 해제
+  function setWbClass(on){ document.body.classList.toggle("workbench", on); document.documentElement.classList.toggle("wb-on", on); }
+  var wbGate = document.getElementById("wbNarrowGate"), wbOptOut = false;
+  function wbGateUpdate(){
+    var narrow = window.innerWidth < WB_MIN;
+    if (wbOptOut && !narrow && !editorSection.hidden){ wbOptOut = false; setWbClass(true); moveExportToPop(); afterWbLayout(); }
+    wbGate.hidden = !(document.body.classList.contains("workbench") && narrow);
+  }
+  document.getElementById("wbNarrowContinue").addEventListener("click", function(){ wbOptOut = true; setWbClass(false); moveExportBack(); wbGate.hidden = true; setTimeout(function(){ refreshWaveform(); }, 50); });
+  window.addEventListener("resize", function(){ if (document.body.classList.contains("workbench")) syncWbTop(); wbGateUpdate(); });
+  function afterWbLayout(){ syncWbTop(); requestAnimationFrame(function(){ if (currentAudioBuffer) refreshWaveform(); layoutSegIndicators(); }); }
+  function enterWorkbench(name){
+    document.getElementById("wbBar").hidden = false; helpDrawerClose.hidden = false; document.getElementById("wbVSplit").hidden = false; document.getElementById("wbVSplit").tabIndex = 0;
+    document.getElementById("wbHSplit").hidden = false; document.getElementById("wbHSplit").tabIndex = 0;
+    if (name) document.getElementById("wbFile").textContent = name;
+    // 새 파일/프로젝트로 편집을 시작했으니 이전 자동 저장 복구 배너는 내린다(곧 새 내용으로 덮어써짐)
+    try { restoreBanner.hidden = true; } catch(e){}
+    setHelpOpen(false);
+    if (window.innerWidth < WB_MIN){ wbOptOut = true; return; }
+    setWbClass(true);
+    moveExportToPop();
+    window.scrollTo(0, 0);
+    afterWbLayout();
+    (function(){ var v = null; try { v = parseInt(localStorage.getItem("sseobom-se-insp-w"), 10); } catch(e){} if (v && !isNaN(v)) applyInspW(v); })();
+    (function(){ var v = null; try { v = parseInt(localStorage.getItem("sseobom-se-edit-h"), 10); } catch(e){} if (v && !isNaN(v)) requestAnimationFrame(function(){ applyEditH(v); }); })();
+  }
+  // 도구 패널 폭 분할선
+  var vs = document.getElementById("wbVSplit"), vsDrag = null;
+  function inspMax(){ return Math.max(320, Math.round(window.innerWidth - 24 - 10 - 560)); }
+  function applyInspW(w){
+    if (w == null){ document.documentElement.style.removeProperty("--wb-insp-w"); try { localStorage.removeItem("sseobom-se-insp-w"); } catch(e){} setTimeout(function(){ if (currentAudioBuffer) refreshWaveform(); }, 60); return; }
+    w = Math.round(Math.min(inspMax(), Math.max(320, w)));
+    document.documentElement.style.setProperty("--wb-insp-w", w + "px");
+    try { localStorage.setItem("sseobom-se-insp-w", String(w)); } catch(e){}
+  }
+  vs.addEventListener("pointerdown", function(e){ if (!isWorkbench()) return; vsDrag = { x: e.clientX, w: toolTabsCard.getBoundingClientRect().width }; vs.classList.add("dragging"); document.body.classList.add("wb-vresizing"); try { vs.setPointerCapture(e.pointerId); } catch(err){} e.preventDefault(); });
+  vs.addEventListener("pointermove", function(e){ if (!vsDrag) return; applyInspW(vsDrag.w - (e.clientX - vsDrag.x)); });
+  function endVs(){ if (!vsDrag) return; vsDrag = null; vs.classList.remove("dragging"); document.body.classList.remove("wb-vresizing"); if (currentAudioBuffer) refreshWaveform(); }
+  vs.addEventListener("pointerup", endVs); vs.addEventListener("pointercancel", endVs);
+  vs.addEventListener("dblclick", function(){ applyInspW(null); });
+  vs.addEventListener("keydown", function(e){ if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return; e.preventDefault(); applyInspW(toolTabsCard.getBoundingClientRect().width + (e.key === "ArrowLeft" ? 24 : -24)); setTimeout(function(){ if (currentAudioBuffer) refreshWaveform(); }, 60); });
+  // 편집 구역 높이 분할선(가로) — 파형 카드와 편집 카드 사이. 끌기·↑↓·더블클릭 초기화, localStorage 기억
+  var hs = document.getElementById("wbHSplit"), hsDrag = null, editToolbarEl = document.getElementById("editToolbar"), wavePaneEl = document.getElementById("wavePane");
+  function editHMax(){ var card = wavePaneEl.parentElement.getBoundingClientRect().height; return Math.max(80, Math.round(card - 12 - 260)); }
+  function applyEditH(h){
+    if (h == null){ editToolbarEl.style.removeProperty("--wb-edit-h"); try { localStorage.removeItem("sseobom-se-edit-h"); } catch(e){} setTimeout(function(){ if (currentAudioBuffer) refreshWaveform(); }, 60); return; }
+    h = Math.round(Math.min(editHMax(), Math.max(60, h)));
+    editToolbarEl.style.setProperty("--wb-edit-h", h + "px");
+    try { localStorage.setItem("sseobom-se-edit-h", String(h)); } catch(e){}
+  }
+  hs.addEventListener("pointerdown", function(e){ if (!isWorkbench()) return; hsDrag = { y: e.clientY, h: editToolbarEl.getBoundingClientRect().height }; hs.classList.add("dragging"); document.body.classList.add("wb-hresizing"); try { hs.setPointerCapture(e.pointerId); } catch(err){} e.preventDefault(); });
+  hs.addEventListener("pointermove", function(e){ if (!hsDrag) return; applyEditH(hsDrag.h - (e.clientY - hsDrag.y)); });
+  function endHs(){ if (!hsDrag) return; hsDrag = null; hs.classList.remove("dragging"); document.body.classList.remove("wb-hresizing"); if (currentAudioBuffer) refreshWaveform(); }
+  hs.addEventListener("pointerup", endHs); hs.addEventListener("pointercancel", endHs);
+  hs.addEventListener("dblclick", function(){ applyEditH(null); });
+  hs.addEventListener("keydown", function(e){ if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return; e.preventDefault(); applyEditH(editToolbarEl.getBoundingClientRect().height + (e.key === "ArrowUp" ? 24 : -24)); setTimeout(function(){ if (currentAudioBuffer) refreshWaveform(); }, 60); });
+  // 내보내기 팝오버 — 하단 바에서 재생 줄(.transport-row)만 남기고 나머지(파일명·형식·옵션·상태)를 상단 팝오버로 옮긴다
+  var wbExportBtn = document.getElementById("wbExportBtn"), wbExportPop = document.getElementById("wbExportPop");
+  var exportMoved = false;
+  function moveExportToPop(){
+    if (exportMoved) return; exportMoved = true;
+    Array.prototype.slice.call(floatDownloadBar.children).forEach(function(ch){ if (!ch.classList.contains("transport-row")) wbExportPop.appendChild(ch); });
+  }
+  function moveExportBack(){
+    if (!exportMoved) return; exportMoved = false;
+    Array.prototype.slice.call(wbExportPop.children).forEach(function(ch){ floatDownloadBar.appendChild(ch); });
+    setExportOpen(false);
+  }
+  function setExportOpen(open){ wbExportPop.hidden = !open; wbExportBtn.setAttribute("aria-expanded", open ? "true" : "false"); if (open){ try { exportFilenameInput.focus(); exportFilenameInput.select(); } catch(e){} } }
+  function isExportOpen(){ return !wbExportPop.hidden; }
+  wbExportBtn.addEventListener("click", function(){ if (!exportMoved) moveExportToPop(); setExportOpen(!isExportOpen()); });
+  document.addEventListener("mousedown", function(e){
+    if (!isWorkbench() || !isExportOpen()) return;
+    if (wbExportPop.contains(e.target) || wbExportBtn.contains(e.target)) return;
+    if (e.target.closest && e.target.closest(".nice-select-menu, .modal-overlay, .shortcuts-backdrop")) return;
+    if (busy) return; // 변환 중엔 바깥 클릭으로 안 닫힘
+    setExportOpen(false);
+  });
+  window.addEventListener("keydown", function(e){ if (e.key === "Escape" && isWorkbench() && isExportOpen()){ e.preventDefault(); setExportOpen(false); wbExportBtn.focus(); } }, true);
+  window.__seWorkbench = { enter: enterWorkbench, is: isWorkbench, exportOpen: setExportOpen, editH: applyEditH };
+
   window.__soundEditorDebug = {
     getState: function(){
       return {
@@ -10078,6 +10344,7 @@
     isAb: function(){ return abActive; },
     autosaveNow: function(){ if (autosaveTimer) clearTimeout(autosaveTimer); runAutosave(); },
     exportOptions: function(){ return exportOptions; },
+
     getExportBufferWithOptions: function(){ return getExportBufferWithOptions(); }
   };
 })();
