@@ -1074,6 +1074,12 @@
     border-top:1px solid var(--card-border);
     cursor:ew-resize;
     transition: width .22s cubic-bezier(.22,.68,.36,1);
+    /* 2026-09-23: 트랙이 여러 개라 레인 목록이 길어져도 눈금자는 파형 영역 맨 아래에 붙어 항상 보인다
+       (#waveformWrap이 세로 스크롤 컨테이너, 눈금자는 #waveformContent의 마지막 자식이라 sticky bottom이 그대로 동작). */
+    position:sticky;
+    bottom:0;
+    z-index:3;
+    box-shadow:0 -6px 12px -8px rgba(0,0,0,.25);
   }
   .wf-selection{
     /* 파형 자체가 파란색(--accent) 계열이라, 선택 영역도 같은 색이면 구분이 잘 안 됨
@@ -1322,7 +1328,12 @@
     animation:fadeUpIn .22s ease both;
   }
   .effect-status[hidden]{ display:none; }
-  .speed-presets{ display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .speed-presets{ display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; align-items:center; }
+  .speed-custom{ display:inline-flex; align-items:center; gap:2px; }
+  .speed-custom input{ width:58px; font-family:inherit; font-size:12px; padding:5px 4px; text-align:center; border-radius:999px; border:1px solid var(--card-border); background:var(--card); color:var(--text); }
+  .speed-custom input:focus{ outline:none; border-color:var(--accent); }
+  .speed-custom-x{ font-size:11px; color:var(--text-dim); }
+  .speed-custom.active input{ border-color:var(--accent); color:var(--accent); font-weight:700; }
   /* 5차: 무음 구간 목록 항목 — 피치 구간 목록과 같은 모양, 누르면 그 구간이 선택된다 */
   .silence-item{
     display:flex;
@@ -1476,6 +1487,42 @@
   }
   .tool-step-body{ flex:1; min-width:0; }
   .tool-step-title{ font-size:13px; font-weight:700; margin:0 0 2px; }
+  /* 다듬기 탭: 영상 편집 인스펙터(tc-card)와 같은 "라벨 위 · 컨트롤 아래" 필드 격자 */
+  .rf-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:4px 0 6px; }
+  .rf-title{ font-size:13.5px; font-weight:800; }
+  .rf-scope{ font-size:11px; font-weight:600; color:var(--text-dim); background:var(--card); border:1px solid var(--card-border); border-radius:999px; padding:3px 9px; white-space:nowrap; }
+  .rf-scope .effect-scope{ display:inline; margin:0; font-size:11px; font-weight:700; color:var(--accent); }
+  .rf-sec{ padding:10px 0 12px; border-top:1px dashed var(--card-border); }
+  .rf-sec-title{ font-size:10.5px; font-weight:800; color:var(--accent); text-transform:uppercase; letter-spacing:.08em; margin:0 0 8px; }
+  .rf-grid{ display:grid; gap:8px 10px; align-items:end; }
+  .rf-grid + .rf-grid{ margin-top:8px; }
+  .rf-grid.cols-1{ grid-template-columns:1fr; }
+  .rf-grid.cols-2{ grid-template-columns:repeat(2, minmax(0,1fr)); }
+  .rf-grid.cols-3{ grid-template-columns:repeat(3, minmax(0,1fr)); }
+  .rf-field{ display:flex; flex-direction:column; gap:4px; min-width:0; }
+  .rf-label{ font-size:11px; font-weight:600; color:var(--text-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .rf-hint{ font-weight:500; opacity:.8; }
+  .rf-ctrl{ display:flex; align-items:center; gap:6px; min-width:0; min-height:32px; }
+  .rf-ctrl > button{ flex:1 1 auto; min-width:0; width:100%; font-size:12.5px; padding:7px 8px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:1.25; }
+  .rf-ctrl > button small{ display:block; font-size:10.5px; font-weight:500; color:var(--text-dim); margin-top:1px; }
+  .rf-stepper{ display:grid; grid-template-columns:34px minmax(0,1fr) 34px auto; gap:4px; }
+  .rf-stepper .gain-input{ width:100%; min-width:0; text-align:center; font-size:12.5px; padding:6px 4px; border-radius:8px; border:1px solid var(--card-border); background:var(--card); color:var(--text); }
+  .rf-stepper .gain-input:focus{ outline:none; border-color:var(--accent); }
+  .rf-step{ width:34px; padding:6px 0 !important; font-size:15px; font-weight:700; line-height:1; border-radius:8px; }
+  .rf-stepper > #applyGainBtn{ flex:none; width:auto; padding:7px 12px; }
+  .rf-stepper:has(input:disabled) .rf-step{ opacity:.45; pointer-events:none; }
+  .rf-select-row{ display:flex; gap:6px; }
+  .rf-select-row .nice-select{ flex:1 1 auto; min-width:0; }
+  .rf-select-row .nice-select-btn{ width:100%; justify-content:space-between; }
+  .rf-select-row > button{ flex:none; width:auto; padding:7px 12px; }
+  .rf-ctrl > .nice-select{ width:100%; min-width:0; }
+  .rf-ctrl .nice-select-btn{ width:100%; justify-content:space-between; }
+  .rf-ctrl > button:disabled{ opacity:.45; }
+  .tool-panel .effect-status{ margin-top:10px; }
+  @media (max-width:520px){
+    .rf-grid.cols-3{ grid-template-columns:repeat(2, minmax(0,1fr)); }
+    .rf-grid.cols-3 .rf-field:last-child{ grid-column:1 / -1; }
+  }
   .adv-toggle-wb{ display:none; }
   .tool-step-label{
     font-size:12.5px;
@@ -1966,6 +2013,15 @@
   @keyframes niceMenuInUp{ from{ opacity:0; transform:translateY(6px) scale(.97); } to{ opacity:1; transform:none; } }
   .nice-select-menu.leaving{ animation:niceMenuOut .14s ease both; }
   @keyframes niceMenuOut{ to{ opacity:0; transform:translateY(-4px) scale(.98); } }
+  .rate-custom-pop{ position:fixed; z-index:160; width:220px; padding:12px 14px; background:var(--card); border:1px solid var(--card-border); border-radius:12px; box-shadow:0 12px 32px rgba(0,0,0,.18); animation:niceMenuIn .16s ease both; }
+  .rate-custom-pop[hidden]{ display:none; }
+  .rate-custom-pop label{ display:block; font-size:12px; font-weight:700; margin-bottom:6px; }
+  .rate-custom-row{ display:flex; align-items:center; gap:6px; }
+  .rate-custom-row input{ flex:1 1 auto; min-width:0; width:70px; font-family:inherit; font-size:13px; padding:6px 8px; border-radius:8px; border:1px solid var(--card-border); background:var(--bg); color:var(--text); text-align:center; }
+  .rate-custom-row input:focus{ outline:none; border-color:var(--accent); }
+  .rate-custom-x{ font-size:12.5px; color:var(--text-dim); }
+  .rate-custom-row button{ flex:none; font-size:12.5px; padding:6px 12px; }
+  .rate-custom-hint{ margin:6px 0 0; font-size:11px; color:var(--text-dim); }
   .nice-select-option{
     display:flex; align-items:center; gap:10px;
     width:100%;
@@ -2209,7 +2265,7 @@
     body.workbench .wb-hsplit-grip{ height:4px; width:56px; border-radius:999px; background:var(--card-border); transition:background .15s ease, width .15s ease; }
     body.workbench .wb-hsplit:hover .wb-hsplit-grip, body.workbench .wb-hsplit.dragging .wb-hsplit-grip, body.workbench .wb-hsplit:focus-visible .wb-hsplit-grip{ background:var(--accent); width:80px; }
     body.workbench .wb-hsplit:focus-visible{ outline:none; }
-    body.workbench .edit-toolbar{ flex:none; height:var(--wb-edit-h, auto); max-height:calc(100% - 260px); min-height:0; box-sizing:border-box; overflow:auto; overscroll-behavior:contain; margin:0; padding:10px 12px 8px; background:var(--card); border:1px solid var(--card-border); border-radius:var(--radius); }
+    body.workbench .edit-toolbar{ flex:none; height:var(--wb-edit-h, auto); max-height:calc(100% - 400px); min-height:0; box-sizing:border-box; overflow:auto; overscroll-behavior:contain; margin:0; padding:10px 12px 8px; background:var(--card); border:1px solid var(--card-border); border-radius:var(--radius); }
     body.workbench.wb-hresizing{ cursor:row-resize; }
     body.workbench.wb-hresizing .wave-pane, body.workbench.wb-hresizing .edit-toolbar, body.workbench.wb-hresizing .tool-tabs-card{ pointer-events:none; }
     body.workbench .wb-vsplit{ grid-column:2; grid-row:1 / -1; display:flex; align-items:center; justify-content:center; cursor:col-resize; touch-action:none; user-select:none; }
@@ -2242,7 +2298,16 @@
     body.workbench .slider-row label{ font-size:11px; font-weight:600; color:var(--text-dim); white-space:nowrap; }
     body.workbench .slider-row input[type=range]{ width:100%; min-width:0; accent-color:var(--accent); margin:0; }
     body.workbench .slider-value{ min-width:0; font-size:12px; font-weight:700; color:var(--text); background:var(--card); border:1px solid var(--card-border); border-radius:999px; padding:2px 9px; white-space:nowrap; }
-    body.workbench .speed-presets{ display:grid; grid-template-columns:repeat(5, minmax(0,1fr)); gap:6px; margin-top:8px; }
+    /* 칸이 58px보다 좁아지면 자동으로 다음 줄로 — 좁은 패널에서 버튼이 짓눌리지 않게 */
+    body.workbench .speed-presets{ display:grid; grid-template-columns:repeat(auto-fit, minmax(58px, 1fr)); gap:6px; margin-top:8px; }
+    body.workbench .speed-presets .speed-preset{ min-width:0; padding:6px 2px; }
+    body.workbench .speed-custom{ display:flex; align-items:center; gap:2px; min-width:0; grid-column:span 1; }
+    body.workbench .speed-custom input{ width:100%; min-width:0; font-family:inherit; font-size:12px; padding:6px 4px; text-align:center; border-radius:999px; border:1px solid var(--card-border); background:var(--card); color:var(--text); -moz-appearance:textfield; appearance:textfield; }
+    body.workbench .speed-custom input::-webkit-outer-spin-button, body.workbench .speed-custom input::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+    body.workbench .speed-custom input:focus{ outline:none; border-color:var(--accent); }
+    body.workbench .speed-custom input::placeholder{ color:var(--text-dim); }
+    body.workbench .speed-custom-x{ font-size:11px; color:var(--text-dim); }
+    body.workbench .speed-custom.active input{ border-color:var(--accent); color:var(--accent); font-weight:700; }
     body.workbench .speed-presets .speed-preset{ width:100%; padding:6px 4px; font-size:12px; }
     body.workbench .noise-status{ margin:10px 0 0; padding:8px 10px; border-radius:8px; background:var(--card); border:1px solid var(--card-border); border-left:3px solid var(--accent); font-size:11.5px; line-height:1.5; color:var(--text-dim); }
     body.workbench .pitch-region-list{ margin-top:10px; padding-top:10px; border-top:1px dashed var(--card-border); }
@@ -2259,11 +2324,43 @@
     body.workbench .waveform-toolbar .info-tip:hover .info-tip-bubble, body.workbench .waveform-toolbar .info-tip:focus-within .info-tip-bubble{ transform:translateY(0); }
     body.workbench .adv-content{ display:block; opacity:1; margin-top:0; transition:none; }
     body.workbench .adv-content-inner{ overflow:visible; }
+    body.workbench .tool-tabs-card{ container-type:inline-size; }
     body.workbench .tool-tabs-card .mode-track{ display:flex; width:100%; }
     body.workbench .tool-tabs-card .mode-track button{ flex:1 1 0; min-width:0; padding:8px 6px; }
+    /* 패널이 좁아지면(안쪽 폭 400px 미만) 미끄러지는 알약 대신 두 줄 버튼 격자로 — 글자가 겹치지 않게 */
+    @container (max-width: 400px){
+      body.workbench .tool-tabs-card .mode-track{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:4px; padding:4px; border-radius:14px; }
+      body.workbench .tool-tabs-card .mode-track .mode-indicator{ display:none; }
+      body.workbench .tool-tabs-card .mode-track button{ border-radius:10px; padding:7px 4px; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      body.workbench .tool-tabs-card .mode-track button.active{ background:var(--card); color:var(--accent); box-shadow:0 1px 4px rgba(0,0,0,.14); }
+    }
+    /* 슬라이더 줄(민감도·음높이·배속·무음 기준 등): 패널이 좁으면 라벨·값을 윗줄, 바를 아랫줄 전폭으로 — 바가 짧아져 미세 조절이 안 되는 것 방지 */
+    @container (max-width: 400px){
+      body.workbench .slider-row{ grid-template-columns:1fr auto; grid-template-areas:"label value" "range range"; row-gap:6px; }
+      body.workbench .slider-row label{ grid-area:label; }
+      body.workbench .slider-row .slider-value{ grid-area:value; }
+      body.workbench .slider-row input[type=range]{ grid-area:range; }
+    }
+    /* 다듬기 탭도 패널이 좁으면 한 열로: 정규화·스테퍼 각각 한 줄, 페이드 2열+크로스페이드 전폭, 라벨 힌트는 숨김 */
+    @container (max-width: 360px){
+      body.workbench #refinePanel .rf-grid.cols-2{ grid-template-columns:1fr; }
+      body.workbench #refinePanel .rf-grid.cols-3{ grid-template-columns:repeat(2, minmax(0,1fr)); }
+      body.workbench #refinePanel .rf-grid.cols-3 .rf-field:last-child{ grid-column:1 / -1; }
+      body.workbench #refinePanel .rf-hint{ display:none; }
+      body.workbench #refinePanel .rf-head{ flex-wrap:wrap; }
+      body.workbench #refinePanel .rf-select-row{ flex-wrap:wrap; }
+      body.workbench #refinePanel .rf-select-row > button{ flex:1 1 100%; }
+    }
     /* 재생·내보내기 바: 화면 바닥 고정 줄 */
-    body.workbench .float-download-bar{ position:static; transform:none; width:auto; max-width:none; box-shadow:none; margin:0 12px 10px; padding:10px 14px; flex:none; }
-    body.workbench .float-download-bar .transport-row{ margin:0; padding:0; border:none; }
+    /* 2026-09-23: 재생 줄은 타임라인(파형 카드) 바로 아래 왼쪽 열 안에 — 화면 바닥 전체 폭 바는 더 이상 없다 */
+    body.workbench .float-download-bar{ display:none !important; }
+    body.workbench .wb-transport{ display:block; flex:none; margin-top:8px; padding:8px 12px; background:var(--card); border:1px solid var(--card-border); border-radius:var(--radius); }
+    body.workbench .wb-transport[hidden]{ display:none; }
+    body.workbench .wb-transport .transport-row{ margin:0; padding:0; border:none; gap:8px; }
+    body.workbench .wb-transport .time-text{ margin-left:auto; }
+    body.workbench .wb-transport .preview-vol input[type=range]{ width:140px; }
+    body.workbench .wb-transport #playBtn{ min-width:104px; padding-left:16px; padding-right:16px; }
+    .wb-transport{ display:none; }
     .wb-btn-primary{ display:inline-flex; align-items:center; gap:6px; background:var(--accent); color:#fff; border-color:var(--accent); font-weight:700; padding:6px 14px; }
     .wb-btn-primary svg{ width:13px; height:13px; }
     .wb-btn.wb-btn-primary:hover, .wb-btn.wb-btn-primary[aria-expanded="true"]{ background:var(--accent); color:#fff; border-color:var(--accent); filter:brightness(1.08); }
@@ -2417,7 +2514,7 @@
         <div class="help-section-label">처음 3분 — 이것만 알면 돼요</div>
         <div class="help-grid">
           <div class="help-item"><span class="help-key">① 올리기</span><span class="help-desc">오디오 파일을 위 상자에 끌어다 놓거나 클릭해서 고르세요. 파일이 없으면 "마이크로 녹음해서 시작"으로 바로 녹음할 수 있어요.</span></div>
-          <div class="help-item"><span class="help-key">② 구간 잡기</span><span class="help-desc">파형 양 끝의 ‖ 손잡이를 끌거나(PC는 Shift+드래그) 시작·끝 시각을 직접 입력해 구간을 잡아요. "▶ 선택 구간만 재생"으로 들어보고 손잡이로 고치세요.</span></div>
+          <div class="help-item"><span class="help-key">② 구간 잡기</span><span class="help-desc">Shift를 누른 채 파형을 끌거나 I/O 키로, 또는 시작·끝 시각을 직접 입력해 구간을 잡아요. "▶ 선택 구간만 재생"으로 들어보고 손잡이로 고치세요.</span></div>
           <div class="help-item"><span class="help-key">③ 자르고 저장</span><span class="help-desc">"선택 구간만 남기기" 또는 "선택 구간 삭제"로 자른 뒤, 아래 바에서 WAV/MP3를 누르면 바로 내려받아요. 잘못했으면 Ctrl+Z로 되돌려요. 작업은 자동 저장돼서 새로고침해도 이어서 할 수 있어요.</span></div>
         </div>
       </div>
@@ -2436,7 +2533,7 @@
         <div class="help-section-label">파형 보기 · 재생 · 단축키</div>
         <div class="help-grid">
           <div class="help-item"><span class="help-key">파형 클릭</span><span class="help-desc">클릭한 위치로 재생 위치(빨간 선)를 옮겨요(탐색). 재생 중이면 그 위치부터 이어서 재생돼요.</span></div>
-          <div class="help-item help-item-wide"><span class="help-key">파형 드래그 (구간 선택)</span><span class="help-desc">파형 <b>양 끝 가장자리</b>(‖ 표시)를 끌면 그 파형 전체가 선택되면서 끌던 쪽 끝점이 따라와요 — 반대쪽 손잡이도 끌어 원하는 구간으로 좁히세요. PC에서는 <b>Shift를 누른 채 파형 가운데를 드래그</b>하면 그 사이 구간이 바로 선택돼요. 파형 가운데를 그냥 끌면 파형이 타임라인 위에서 이동해요(트랙 배치). 끝점이 지금 재생 위치(빨간 선) 근처에 오면 그 지점에 자동으로 달라붙어요(스냅).</span></div>
+          <div class="help-item help-item-wide"><span class="help-key">파형 드래그</span><span class="help-desc">소리가 있는 <b>파형 위를 끌면 그 트랙이 좌우로 옮겨지고</b>(클릭만 하면 재생 위치 이동), 레인의 <b>빈 곳을 끌면 재생 위치(빨간 선)</b>만 따라가요. 구간은 <b>Shift를 누른 채 파형을 드래그</b>하거나, 재생 위치를 두고 <b>I</b>(시작)·<b>O</b>(끝) 키로 잡아요. 잡힌 구간의 양 끝 ‖ 손잡이를 끌어 다듬을 수 있어요. 끝점이 지금 재생 위치(빨간 선) 근처에 오면 그 지점에 자동으로 달라붙어요(스냅).</span></div>
           <div class="help-item"><span class="help-key">아래 타임라인(눈금자) 클릭·드래그</span><span class="help-desc">구간 선택을 건드리지 않고 재생 위치(빨간 선)만 원하는 곳으로 바로 옮기고 싶을 때 사용하세요. 선택 구간이 있으면 그 경계(보라 선) 근처에서 자동으로 달라붙어요(스냅).</span></div>
           <div class="help-item"><span class="help-key">선택 시작/끝 시각 입력칸</span><span class="help-desc">구간을 만든 뒤, 시작·끝 시각을 직접 숫자로 입력해서 정확하게 고칠 수 있어요("0:01.500"처럼 분:초 형식이나 "1.5"처럼 초만 입력해도 돼요). 바꾸면 파형 위 선택 영역도 그대로 따라 움직여요.</span></div>
           <div class="help-item"><span class="help-key">▶ 선택 구간만 재생 / 반복 재생</span><span class="help-desc">지금 선택한 구간만 들어보고 자동으로 멈춰요. "반복 재생"을 켜 두면(단축키 L) 구간 끝에서 처음으로 돌아가 계속 들려줘서, 자를 지점을 귀로 맞추기 좋아요.</span></div>
@@ -2458,7 +2555,7 @@
           <div class="help-item"><span class="help-key">마커 (북마크)</span><span class="help-desc">"마커 추가"(단축키 M)를 누르면 재생 위치에 번호 깃발이 찍혀요. [ / ] 키로 이전·다음 마커로 바로 점프하고, 마커 근처에서 Shift+M을 누르면 지워져요. 긴 강의·회의 녹음에서 "여기 다시 볼 것" 표시로 쓰고, 트랙을 옮길 때 마커에도 자석처럼 달라붙어요.</span></div>
           <div class="help-item"><span class="help-key">자석 스냅 · 크로스페이드</span><span class="help-desc">트랙을 드래그해 옮길 때 다른 트랙의 시작·끝, 재생 위치, 0초, 마커 가까이 가면 딱 달라붙어요(보라 점선이 잠깐 보여요). 정확히 이어 붙이거나 겹치게 놓을 때 몇 ms 틈이 생기지 않아요. Alt를 누른 채 끌면 스냅 없이 자유롭게 옮겨요. "겹친 트랙 크로스페이드"는 서로 겹친 구간마다 앞 트랙은 서서히 줄이고 뒤 트랙은 서서히 키워 이어 붙인 티를 없애요(겹친 트랙이 없으면 알려줘요).</span></div>
           <div class="help-item"><span class="help-key">파형 위 시각·dB 표시</span><span class="help-desc">PC에서 파형 위에 마우스를 올리면 그 지점의 시각과 피크 음량(dB)이 작은 말풍선으로 떠요. 확대해서 정밀하게 자를 때 참고하세요.</span></div>
-          <div class="help-item"><span class="help-key">키보드 단축키</span><span class="help-desc">스페이스 = 재생/일시정지 · ←/→ = 0.1초 이동(Shift와 함께 1초) · Home/End = 맨 앞/맨 끝 · I / O = 재생 위치를 선택 시작/끝으로 · L = 반복 재생 켜기/끄기 · Delete = 선택 구간 삭제 · S = 재생 위치에서 분할 · Ctrl+C / Ctrl+X / Ctrl+V = 복사 / 잘라내기 / 붙여넣기 · M = 마커 추가(Shift+M 삭제) · [ / ] = 이전/다음 마커로 · Ctrl+Z / Ctrl+Y = 실행 취소 / 다시 실행. 전체 목록은 ? 키를 누르거나 파형 위 "⌨ 단축키" 버튼으로 한눈에 볼 수 있어요. 글자를 입력하는 칸에 커서가 있을 땐 동작하지 않아요.</span></div>
+          <div class="help-item"><span class="help-key">키보드 단축키</span><span class="help-desc">스페이스 = 재생/일시정지 · ←/→ = 조금 이동(확대할수록 잘게)(Shift와 함께 1초) · Home/End = 맨 앞/맨 끝 · I / O = 재생 위치를 선택 시작/끝으로 · L = 반복 재생 켜기/끄기 · Delete = 선택 구간 삭제 · S = 재생 위치에서 분할 · Ctrl+C / Ctrl+X / Ctrl+V = 복사 / 잘라내기 / 붙여넣기 · M = 마커 추가(Shift+M 삭제) · [ / ] = 이전/다음 마커로 · Ctrl+Z / Ctrl+Y = 실행 취소 / 다시 실행. 전체 목록은 ? 키를 누르거나 파형 위 "⌨ 단축키" 버튼으로 한눈에 볼 수 있어요. 글자를 입력하는 칸에 커서가 있을 땐 동작하지 않아요.</span></div>
           <div class="help-item"><span class="help-key">편집 기록 목록</span><span class="help-desc">파일 정보 카드의 "편집 N단계"를 누르면 지금까지의 편집이 순서대로 뜨고, 항목을 고르면 그 단계로 한 번에 돌아가요(되돌린 단계는 흐리게 — 눌러서 다시 실행할 수도 있어요).</span></div>
           <div class="help-item"><span class="help-key">미니맵</span><span class="help-desc">파형 위의 가는 띠가 전체 축소판이고, 파란 상자가 "지금 보는 범위"예요(확대할수록 좁아져요). 상자를 끌거나 원하는 곳을 누르면 그리로 이동해요.</span></div>
           <div class="help-item"><span class="help-key">실행 취소 / 다시 실행</span><span class="help-desc">트림·삭제·노이즈 제거·피치 조절은 물론 음량(dB) 지점 추가·이동·삭제·초기화, 레인 이동·순서 변경·음소거, 트랙 추가·삭제까지 모두 되돌릴 수 있어요. 여러 단계 되돌리고, 되돌린 걸 다시 실행할 수도 있어요. 화면 아래 재생 버튼 옆에 있고, 키보드로는 Ctrl+Z(Mac은 ⌘Z)로 실행 취소, Ctrl+Y 또는 Ctrl+Shift+Z로 다시 실행해요. 메인 트랙 삭제와 파일 변경만은 되돌릴 수 없어요.</span></div>
@@ -2492,7 +2589,7 @@
         <div class="help-section-label">여러 트랙 (이어 붙이기 · 겹치기 · 순서)</div>
         <div class="help-grid">
           <div class="help-item help-item-wide"><span class="help-key">+ 트랙 추가</span><span class="help-desc">새 오디오 파일을 트랙으로 얹어요(한 번에 여러 개를 골라도 돼요 — 순서대로 하나씩 추가돼요). 처음 추가하면 지금까지의 맨 끝에 자동으로 붙어서(이어 붙이기) 나타나요. 메인 트랙은 그대로 두고, 새 오디오는 자기 파형·dB 레인을 가진 새 줄로 아래에 쌓여요. 오디오가 열려 있는 상태에서 파일을 페이지 어디에나 끌어다 놓아도 트랙으로 추가돼요(맨 위 드롭존만 예외 — 거기는 "새 파일로 바꾸기"예요).</span></div>
-          <div class="help-item help-item-wide"><span class="help-key">트랙 파형 드래그</span><span class="help-desc">트랙 파형의 가운데를 눌러서 좌우로 끌면 그 트랙이 재생되는 시간 위치를 바꿀 수 있어요(메인 트랙이나 다른 트랙과 겹치게 놓으면 그 구간에서 소리가 섞여서 들려요). 파형의 양 끝 가장자리 근처를 끌면 그 트랙만의 트림 구간이 잡혀서, 아래 자르기 도구로 그 트랙을 다듬을 수 있어요 — 이렇게 트랙과 상호작용하면 자동으로 그 트랙이 자르기·노이즈 제거·피치 조절의 대상이 돼요. 왼쪽 ⠿ 손잡이를 끌면 레인의 위아래 순서를 바꿀 수 있어요.</span></div>
+          <div class="help-item help-item-wide"><span class="help-key">트랙 옮기기 (⠿ 손잡이)</span><span class="help-desc">레인 헤더 왼쪽의 ⠿ 손잡이를 <b>좌우로 끌면</b> 그 트랙이 재생되는 시간 위치가 바뀌고(메인 트랙이나 다른 트랙과 겹치게 놓으면 그 구간에서 소리가 섞여서 들려요), <b>위아래로 끌면</b> 레인 순서가 바뀌어요. 트랙 파형을 끌어도 옮겨지고, 클릭하면 편집 대상이 되면서 재생 위치가 움직여요 — 이렇게 트랙과 상호작용하면 자동으로 그 트랙이 자르기·노이즈 제거·피치 조절의 대상이 돼요. 왼쪽 ⠿ 손잡이를 끌면 레인의 위아래 순서를 바꿀 수 있어요.</span></div>
           <div class="help-item"><span class="help-key">볼륨·팬 / 이름 바꾸기</span><span class="help-desc">레인 헤더의 "볼륨·팬"을 누르면 그 트랙 전체 볼륨(-24~+12dB)과 좌우 위치(팬)를 슬라이더로 조절해요 — dB 지점을 찍지 않고 "이 트랙만 조금 줄이기", "왼쪽으로 보내기"를 바로 할 수 있고, 재생·저장에 모두 반영돼요. 레인 이름을 더블클릭하면 이름을 바꿀 수 있어요(프로젝트 파일에도 저장). 둘 다 실행 취소돼요.</span></div>
           <div class="help-item"><span class="help-key">음소거 / 삭제</span><span class="help-desc">각 트랙 헤더의 버튼으로 그 트랙만 음소거하거나 완전히 삭제할 수 있어요(삭제는 확인 창을 한 번 거쳐요). 메인 트랙 헤더에도 같은 버튼이 있어요 — 메인을 음소거하면 재생·내보내기에서 메인 소리만 빠지고, 추가 트랙이 하나라도 있을 때 메인을 삭제하면(역시 확인 창을 거침) 남은 트랙 중 타임라인에서 가장 앞선 트랙이 자동으로 새 메인이 돼요(편집기에 "메인"이 아예 없어지는 일은 없어요).</span></div>
           <div class="help-item"><span class="help-key">타임라인 길이</span><span class="help-desc">추가한 트랙이 메인 트랙보다 뒤까지 이어지면, 타임라인·재생·내보내기 길이가 그만큼 자동으로 늘어나요.</span></div>
@@ -2593,7 +2690,7 @@
     <!-- 6차: 첫 사용 코치마크 — 3단계, 한 번 닫으면 이 브라우저에서 다시 안 보인다 -->
     <div class="coach-strip" id="coachStrip" hidden>
       <div class="coach-steps">
-        <span class="coach-step"><span class="coach-num">1</span>파형 양 끝(‖)을 끌거나 Shift+드래그로 구간을 잡고</span>
+        <span class="coach-step"><span class="coach-num">1</span>Shift+드래그(또는 I/O 키)로 구간을 잡고</span>
         <span class="coach-arrow" aria-hidden="true">→</span>
         <span class="coach-step"><span class="coach-num">2</span>"선택 구간만 남기기" 또는 "선택 구간 삭제"로 자른 뒤</span>
         <span class="coach-arrow" aria-hidden="true">→</span>
@@ -2626,7 +2723,7 @@
           <button id="shortcutsBtn2" type="button" class="toolbar-shortcuts-btn" title="키보드 단축키 한눈에 (?)" aria-label="키보드 단축키 보기"><span class="kbd-icon" aria-hidden="true">⌨</span><span class="toolbar-shortcuts-text">단축키</span></button>
           <span class="info-tip">
             <button type="button" class="info-tip-btn" aria-label="추가 트랙 도움말" aria-describedby="addTrackTip">?</button>
-            <span class="info-tip-bubble" role="tooltip" id="addTrackTip">새 오디오를 트랙으로 추가하면 자기 파형·dB 레인이 아래에 나타나요. 그 레인의 파형 가운데를 드래그하면 위치가 옮겨지고(이어 붙이기·겹쳐 믹싱), 양 끝 가장자리를 드래그하면 그 트랙만 트림할 구간이 잡혀요. 오디오 파일을 이 영역에 바로 끌어다 놓아도 트랙으로 추가돼요.</span>
+            <span class="info-tip-bubble" role="tooltip" id="addTrackTip">새 오디오를 트랙으로 추가하면 자기 파형·dB 레인이 아래에 나타나요. 그 레인의 파형을 끌거나 헤더의 ⠿ 손잡이를 좌우로 끌면 위치가 옮겨지고(이어 붙이기·겹쳐 믹싱), 빈 곳을 끌면 재생 위치가 움직여요. 오디오 파일을 이 영역에 바로 끌어다 놓아도 트랙으로 추가돼요.</span>
           </span>
         </span>
         <input type="file" id="trackFileInput" accept="audio/*,.wav,.mp3,.ogg,.oga,.flac,.m4a,.aac,.webm,.opus" multiple hidden>
@@ -2657,7 +2754,7 @@
                 <!-- R15-1: 레인 순서를 바꾸는 드래그 손잡이 — 파형 드래그(트림/이동)·이름
                      라벨과 겹치지 않는 전용 버튼. sticky 그룹의 맨 앞에 둬서 가로 스크롤
                      중에도 항상 손이 닿는다. -->
-                <button type="button" class="lane-drag-handle" id="mainLaneDragHandle" aria-label="레인 순서 이동 — 드래그하거나 위·아래 화살표 키" title="드래그하거나 ↑/↓ 키로 레인 순서를 바꾸세요">⠿</button>
+                <button type="button" class="lane-drag-handle" id="mainLaneDragHandle" aria-label="레인 옮기기 — 위아래로 끌면 순서, 좌우로 끌면 시간 위치(↑/↓ 키로 순서)" title="위아래로 끌면 레인 순서, 좌우로 끌면 시간 위치가 바뀌어요 (↑/↓ 키로 순서)">⠿</button>
                 <span class="lane-color-dot" style="background:var(--accent)"></span>
                 <span class="lane-name" id="mainLaneNameEl" title="더블클릭해서 이름 바꾸기">메인 트랙</span>
               </span>
@@ -2715,13 +2812,14 @@
         </div>
       </div>
       </div>
+      <div class="wb-transport" id="wbTransportHost" hidden></div>
       <div class="wb-hsplit" id="wbHSplit" role="separator" aria-orientation="horizontal" aria-label="편집 구역 높이 조절 — 끌거나 ↑↓ 키, 더블클릭으로 초기화" tabindex="-1" hidden><span class="wb-hsplit-grip" aria-hidden="true"></span></div>
       <div class="edit-toolbar" id="editToolbar">
         <p class="edit-target-label" id="editTargetLabel">메인 트랙 편집 중</p>
         <div class="selection-info" id="selectionInfo">
           <!-- 구간 시간 입력칸은 선택이 없어도 항상 보인다 — 드래그로 눈대중한 뒤 고치는 게 아니라
                "1:30 ~ 2:00"을 바로 타이핑해서 구간을 만들 수 있게(정밀 편집·키보드 사용자). -->
-          <span class="selection-placeholder" id="selectionPlaceholder">파형 양 끝(‖)을 끌거나 아래에 시작·끝 시각을 직접 넣어도 돼요. PC에서는 Shift를 누른 채 파형을 드래그해도 구간이 잡혀요.</span>
+          <span class="selection-placeholder" id="selectionPlaceholder">Shift를 누른 채 파형을 끌거나 I/O 키로 구간을 잡아요. 아래에 시작·끝 시각을 직접 넣어도 돼요. 파형을 끌면 트랙이 옮겨지고, 빈 곳을 끌면 재생 위치가 움직여요.</span>
           <div class="selection-time-edit" id="selectionTimeEdit">
             <input type="text" id="selStartInput" class="sel-time-input" aria-label="선택 시작 시각" inputmode="decimal" placeholder="0:00.000" title="시작 시각 — 0:01.500 또는 1.5">
             <span class="sel-time-sep">~</span>
@@ -2755,59 +2853,75 @@
               <button id="shortcutsBtn" type="button" class="shortcuts-btn" title="키보드 단축키 한눈에 (?)">⌨ 단축키</button>
             </div>
           </div>
-          <div class="tool-group tool-group-collapsible" id="refineGroup">
-            <button type="button" class="tool-group-label tool-group-toggle" id="refineToggle" aria-expanded="true" aria-controls="refineBody">다듬기<span class="effect-scope" id="effectScopeText"> · 트랙 전체에</span><span class="tool-group-caret" aria-hidden="true">▾</span></button>
-            <div class="tool-group-body" id="refineBody">
-              <div class="tool-group-btns">
-                <button id="fadeInBtn" type="button" disabled title="시작을 무음에서 서서히 키워요">페이드 인</button>
-                <button id="fadeOutBtn" type="button" disabled title="끝을 서서히 줄여 무음으로 만들어요">페이드 아웃</button>
-                <button id="normalizeBtn" type="button" disabled title="가장 큰 소리가 -1dB가 되도록 전체 음량을 맞춰요">음량 정규화</button>
-                <span class="gain-group">
-                  <input type="number" id="gainDbInput" class="gain-input" value="3" step="0.5" min="-24" max="24" inputmode="decimal" aria-label="음량 조절 값(dB)" disabled>
-                  <span class="gain-unit">dB</span>
-                  <button id="applyGainBtn" type="button" disabled title="입력한 만큼 음량을 키우거나(+) 줄여요(−)">음량 조절</button>
-                </span>
-                <span class="gain-group">
-                  <select id="lufsTarget" class="export-select" aria-label="라우드니스 기준" disabled>
-                    <option value="-14">유튜브·스포티파이 (-14 LUFS)</option>
-                    <option value="-16">팟캐스트·애플 (-16 LUFS)</option>
-                    <option value="-18">-18 LUFS</option>
-                    <option value="-23">방송 (-23 LUFS)</option>
-                  </select>
-                  <button id="lufsBtn" type="button" disabled title="전체 음량을 재서(LUFS) 업로드 기준에 맞게 키우거나 줄여요">라우드니스 맞추기</button>
-                </span>
-                <button id="reverseBtn" type="button" disabled title="거꾸로 재생되게 뒤집어요">역재생</button>
-                <button id="crossfadeBtn" type="button" disabled title="트랙끼리 겹친 구간마다 앞 트랙은 서서히 줄이고 뒤 트랙은 서서히 키워 이어 붙인 티를 없애요">겹친 트랙 크로스페이드</button>
-                <select id="channelOpSelect" class="export-select" disabled aria-label="채널 조작" title="스테레오 좌우 채널을 바꾸거나 한쪽만 남겨요">
-                  <option value="">채널…</option>
-                  <option value="swap">좌우 채널 바꾸기</option>
-                  <option value="left">왼쪽 채널만 (양쪽에)</option>
-                  <option value="right">오른쪽 채널만 (양쪽에)</option>
-                </select>
-              </div>
-            </div>
-          </div>
         </div>
-        <p class="effect-status" id="effectStatus" hidden></p>
       </div>
 
     </div>
     <div class="wb-vsplit" id="wbVSplit" role="separator" aria-orientation="vertical" aria-label="도구 패널 폭 조절 — 끌거나 ←→ 키" tabindex="-1" hidden><span class="wb-vsplit-grip" aria-hidden="true"></span></div>
     <div class="tool-tabs-card" id="toolTabsCard">
       <button class="adv-toggle" id="advToolsToggle" type="button" aria-expanded="false" aria-controls="advToolsContent">
-        <span class="adv-toggle-icon">▶</span> <span class="adv-toggle-text">노이즈 제거 · 피치 · 속도 · 무음 정리 (선택 사항)</span><span class="adv-toggle-wb" aria-hidden="true">효과 도구 <small>노이즈 · 피치 · 속도 · 무음</small></span>
+        <span class="adv-toggle-icon">▶</span> <span class="adv-toggle-text">다듬기 · 노이즈 제거 · 피치 · 속도 · 무음 정리</span><span class="adv-toggle-wb" aria-hidden="true">효과 도구 <small>다듬기 · 노이즈 · 피치 · 속도 · 무음</small></span>
       </button>
       <div class="adv-content" id="advToolsContent">
         <div class="adv-content-inner">
           <div class="mode-track" id="toolModeTrack" role="group" aria-label="도구 선택">
             <div class="mode-indicator" aria-hidden="true"></div>
-            <button class="mode-seg active" id="tabBtnNoise" type="button" aria-pressed="true" aria-controls="noisePanel" data-tool="noise">노이즈 제거</button>
+            <button class="mode-seg active" id="tabBtnRefine" type="button" aria-pressed="true" aria-controls="refinePanel" data-tool="refine">다듬기</button>
+            <button class="mode-seg" id="tabBtnNoise" type="button" aria-pressed="false" aria-controls="noisePanel" data-tool="noise">노이즈 제거</button>
             <button class="mode-seg" id="tabBtnPitch" type="button" aria-pressed="false" aria-controls="pitchPanel" data-tool="pitch">피치 조절</button>
             <button class="mode-seg" id="tabBtnSpeed" type="button" aria-pressed="false" aria-controls="speedPanel" data-tool="speed">속도 조절</button>
             <button class="mode-seg" id="tabBtnSilence" type="button" aria-pressed="false" aria-controls="silencePanel" data-tool="silence">무음 정리</button>
           </div>
 
-          <div class="tool-panel" id="noisePanel">
+          <div class="tool-panel" id="refinePanel">
+            <div class="rf-head"><span class="rf-title">다듬기</span><span class="rf-scope" id="refineScopeBadge">적용 범위<span class="effect-scope" id="effectScopeText"></span></span></div>
+            <div class="rf-sec">
+              <p class="rf-sec-title">음량</p>
+              <div class="rf-grid cols-2">
+                <div class="rf-field"><span class="rf-label">정규화 <span class="rf-hint">가장 큰 소리 → −1 dB</span></span><div class="rf-ctrl"><button id="normalizeBtn" type="button" disabled title="가장 큰 소리가 -1dB가 되도록 전체 음량을 맞춰요">정규화</button></div></div>
+                <div class="rf-field"><span class="rf-label">음량 조절 (dB)</span><div class="rf-ctrl rf-stepper">
+                  <button type="button" class="rf-step" id="gainMinusBtn" aria-label="0.5 dB 줄이기" title="−0.5 dB">−</button>
+                  <input type="number" id="gainDbInput" class="gain-input" value="3" step="0.5" min="-24" max="24" inputmode="decimal" aria-label="음량 조절 값(dB)" disabled>
+                  <button type="button" class="rf-step" id="gainPlusBtn" aria-label="0.5 dB 키우기" title="+0.5 dB">+</button>
+                  <button id="applyGainBtn" type="button" disabled title="입력한 만큼 음량을 키우거나(+) 줄여요(−)">적용</button>
+                </div></div>
+              </div>
+              <div class="rf-grid cols-1">
+                <div class="rf-field"><span class="rf-label">라우드니스 맞추기 <span class="rf-hint">업로드 기준(LUFS)에 맞게 전체 음량을 조정</span></span><div class="rf-ctrl rf-select-row">
+                  <select id="lufsTarget" class="export-select" aria-label="라우드니스 기준" disabled>
+                    <option value="-14">유튜브·스포티파이 (-14 LUFS)</option>
+                    <option value="-16">팟캐스트·애플 (-16 LUFS)</option>
+                    <option value="-18">-18 LUFS</option>
+                    <option value="-23">방송 (-23 LUFS)</option>
+                  </select>
+                  <button id="lufsBtn" type="button" disabled title="전체 음량을 재서(LUFS) 업로드 기준에 맞게 키우거나 줄여요">맞추기</button>
+                </div></div>
+              </div>
+            </div>
+            <div class="rf-sec">
+              <p class="rf-sec-title">페이드</p>
+              <div class="rf-grid cols-3">
+                <div class="rf-field"><span class="rf-label">시작</span><div class="rf-ctrl"><button id="fadeInBtn" type="button" disabled title="시작을 무음에서 서서히 키워요">페이드 인</button></div></div>
+                <div class="rf-field"><span class="rf-label">끝</span><div class="rf-ctrl"><button id="fadeOutBtn" type="button" disabled title="끝을 서서히 줄여 무음으로 만들어요">페이드 아웃</button></div></div>
+                <div class="rf-field"><span class="rf-label">겹친 트랙</span><div class="rf-ctrl"><button id="crossfadeBtn" type="button" disabled title="트랙끼리 겹친 구간마다 앞 트랙은 서서히 줄이고 뒤 트랙은 서서히 키워 이어 붙인 티를 없애요">크로스페이드</button></div></div>
+              </div>
+            </div>
+            <div class="rf-sec">
+              <p class="rf-sec-title">기타</p>
+              <div class="rf-grid cols-2">
+                <div class="rf-field"><span class="rf-label">방향</span><div class="rf-ctrl"><button id="reverseBtn" type="button" disabled title="거꾸로 재생되게 뒤집어요">역재생</button></div></div>
+                <div class="rf-field"><span class="rf-label">스테레오 채널</span><div class="rf-ctrl"><select id="channelOpSelect" class="export-select" disabled aria-label="채널 조작" title="스테레오 좌우 채널을 바꾸거나 한쪽만 남겨요">
+                  <option value="">채널 조작</option>
+                  <option value="swap">좌우 채널 바꾸기</option>
+                  <option value="left">왼쪽 채널만 (양쪽에)</option>
+                  <option value="right">오른쪽 채널만 (양쪽에)</option>
+                </select></div></div>
+              </div>
+            </div>
+            <p class="noise-status effect-status" id="effectStatus" hidden></p>
+          </div>
+
+          <div class="tool-panel" id="noisePanel" hidden>
             <div class="tool-step">
               <span class="tool-step-num">1</span>
               <div class="tool-step-body">
@@ -2899,6 +3013,10 @@
                   <button type="button" class="mini-btn speed-preset" data-speed="1.25">1.25×</button>
                   <button type="button" class="mini-btn speed-preset" data-speed="1.5">1.5×</button>
                   <button type="button" class="mini-btn speed-preset" data-speed="2">2×</button>
+                  <span class="speed-custom" title="원하는 배속을 직접 넣어요 (0.1~20)">
+                    <input type="number" id="speedCustomInput" min="0.1" max="20" step="0.05" inputmode="decimal" placeholder="직접" aria-label="배속 직접 입력 (0.1~20)">
+                    <span class="speed-custom-x">×</span>
+                  </span>
                 </div>
               </div>
             </div>
@@ -2974,7 +3092,7 @@
       <span class="mark">ⓒ 2026</span> <span class="name">고윤태</span> · <a href="https://yuntaeko.com/" target="_blank" rel="noopener noreferrer">yuntaeko.com</a> — 정성을 담아 제작한 도구입니다. 이용 허락·문의는 <a href="/#feedback">의견 보내기</a>로 남겨 주세요.<br>
       <a href="/privacy/">개인정보처리방침</a> · <a href="/notice/">오픈소스 고지</a>
     </div>
-    <div class="updated">업데이트 · 2026. 9. 13.</div>
+    <div class="updated">업데이트 · 2026. 9. 22.</div>
   </footer>
 </div>
 
@@ -3003,6 +3121,7 @@
         <option value="1.25">1.25×</option>
         <option value="1.5">1.5×</option>
         <option value="2">2×</option>
+        <option value="custom">직접 입력…</option>
       </select>
       <button type="button" id="abBtn" class="toggle-btn ab-btn" aria-pressed="false" disabled aria-label="편집 전 듣기" title="직전 편집 전 상태로 잠깐 되돌려 비교해 들어요 (다시 누르면 편집 후로)"><span class="ab-long">편집 전 듣기</span><span class="ab-short" aria-hidden="true">A/B</span></button>
     </span>
@@ -3075,6 +3194,15 @@
   <p class="export-status" id="exportStatus"></p>
 </div>
 
+<div class="rate-custom-pop" id="rateCustomPop" hidden role="dialog" aria-label="듣기 배속 직접 입력">
+  <label for="rateCustomInput">듣기 배속</label>
+  <div class="rate-custom-row">
+    <input type="number" id="rateCustomInput" min="0.1" max="16" step="0.05" value="1" inputmode="decimal" aria-label="배속 (0.1~16)">
+    <span class="rate-custom-x">×</span>
+    <button type="button" class="primary" id="rateCustomApply">적용</button>
+  </div>
+  <p class="rate-custom-hint">0.1 ~ 16 사이. 듣기 속도라 저장 파일에는 영향이 없어요 — 실제로 빠르게·느리게 만들려면 오른쪽 <b>속도 조절</b> 탭에서 적용하세요.</p>
+</div>
 <div class="loading-overlay" id="loadingOverlay">
   <div class="spinner"></div>
   <div class="loading-percent" id="loadingPercent"></div>
@@ -3089,7 +3217,7 @@
       <div class="shortcut-col">
         <div class="shortcut-head">재생 · 이동</div>
         <div class="shortcut-row"><kbd>Space</kbd><span>재생 / 일시정지</span></div>
-        <div class="shortcut-row"><kbd>←</kbd><kbd>→</kbd><span>0.1초 이동 (<kbd>Shift</kbd> 1초)</span></div>
+        <div class="shortcut-row"><kbd>←</kbd><kbd>→</kbd><span>조금 이동 — 확대할수록 잘게, 최대 0.1초 (<kbd>Shift</kbd> 1초)</span></div>
         <div class="shortcut-row"><kbd>Home</kbd><kbd>End</kbd><span>맨 앞 / 맨 끝</span></div>
         <div class="shortcut-row"><kbd>L</kbd><span>선택 구간 반복 재생</span></div>
         <div class="shortcut-row"><kbd>M</kbd><span>마커 추가 (<kbd>Shift</kbd>+<kbd>M</kbd> 삭제)</span></div>
@@ -3104,7 +3232,7 @@
         <div class="shortcut-row"><kbd>S</kbd><span>재생 위치에서 분할</span></div>
         <div class="shortcut-row"><kbd>Ctrl</kbd>+<kbd>C</kbd> / <kbd>X</kbd> / <kbd>V</kbd><span>복사 / 잘라내기 / 붙여넣기</span></div>
         <div class="shortcut-row"><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Y</kbd><span>실행 취소 / 다시 실행</span></div>
-        <div class="shortcut-row"><kbd>Alt</kbd>+드래그<span>자석 스냅 없이 트랙 이동</span></div>
+        <div class="shortcut-row">파형 드래그 / ⠿ 좌우<span>트랙 시간 위치 이동 (<kbd>Alt</kbd>: 스냅 없이)</span></div>
         <div class="shortcut-row"><kbd>?</kbd><span>이 창 열기 · 닫기</span></div>
       </div>
     </div>
@@ -3521,7 +3649,13 @@
   // 게인(뮤지컬 노이즈 방지, 기본 0.08). 내부 수학(FFT/게인 계산/윈도우 오버랩-애드)은 검증된
   // 프로토타입과 완전히 동일하고, 무거운 STFT 프레임 루프만 onProgress + 주기적 양보를 위해
   // 청크 단위 async 루프로 감쌌다.
-  async function denoiseChannelAsync(samples, sampleRate, noiseProfile, fftSize, hopSize, window, overSubtract, floorGain, onProgress) {
+  async function denoiseChannelAsync(samplesIn, sampleRate, noiseProfile, fftSize, hopSize, window, overSubtract, floorGain, onProgress) {
+    // 2026-09-23 버그 수정: 예전엔 프레임 루프가 `pos + fftSize <= n`이라 마지막 (n−fftSize) mod hop 샘플(최대 511개)이
+    // 어떤 프레임에도 안 들어가 0(무음)으로 나왔고, 창의 첫 값이 0이라 맨 앞 샘플도 0이 됐다.
+    // → 앞뒤에 fftSize만큼 0을 덧대어 모든 원본 샘플이 창에 온전히 덮이게 한 뒤 원래 길이로 잘라낸다.
+    var origLen = samplesIn.length, pad = fftSize;
+    var samples = new Float32Array(origLen + pad * 2);
+    samples.set(samplesIn, pad);
     var n = samples.length;
     var out = new Float64Array(n);
     var winSum = new Float64Array(n);
@@ -3564,12 +3698,12 @@
       if (onProgress) onProgress(Math.min(1, pos / n));
       if (frameIndex % yieldEveryFrames === 0) await nextFrameCore();
     }
-    for (var k = 0; k < n; k++) { if (winSum[k] > 1e-9) out[k] /= winSum[k]; }
+    for (var k = 0; k < n; k++) { if (winSum[k] > 1e-9) out[k] /= winSum[k]; else out[k] = samples[k]; }
     if (onProgress) onProgress(1);
 
-    // AudioBuffer(copyToChannel)와 인코더 양쪽이 기대하는 Float32Array로 변환해서 반환.
-    var out32 = new Float32Array(n);
-    for (var m2 = 0; m2 < n; m2++) out32[m2] = out[m2];
+    // AudioBuffer(copyToChannel)와 인코더 양쪽이 기대하는 Float32Array로 변환해서 반환(덧댄 부분은 잘라낸다).
+    var out32 = new Float32Array(origLen);
+    for (var m2 = 0; m2 < origLen; m2++) out32[m2] = out[pad + m2];
     return out32;
   }
 
@@ -3684,8 +3818,13 @@
     var stepIndex = 0;
     var yieldEverySteps = Math.max(1, Math.round(totalSteps / 100));
 
+    // 2026-09-23 버그 수정: 마지막 그레인들이 원본 끝(n)을 넘어 읽으면 0이 섞여 결과 끝이 작아지고 무음이 됐다(느리게 할 때 특히).
+    // 읽기 시작을 [0, n − grainSize]로 제한하되, 정렬(상관) 탐색도 그 범위 안에서만 하도록 해서 끝 그레인끼리 위상이 어긋나 상쇄되지 않게 한다.
+    var maxRead = Math.max(0, n - grainSize);
     while (writePos < targetLength){
       var readStart = Math.round(nominalReadPos);
+      if (readStart > maxRead) readStart = maxRead;
+      if (readStart < 0) readStart = 0;
       if (!firstGrain && SEARCH_RADIUS > 0){
         // 직전 그레인이 이미 놓아둔 구간(out의 겹치는 앞부분)과 가장 잘 맞물리는 읽기
         // 오프셋을 상관관계로 찾는다 — 정확도보다 속도가 중요해서 일정 간격으로 듬성듬성 비교한다.
@@ -3694,6 +3833,7 @@
         var corrLen = corrEnd - writePos;
         for (var off = -SEARCH_RADIUS; off <= SEARCH_RADIUS; off += SEARCH_STEP){
           var candStart = readStart + off;
+          if (candStart < 0 || candStart > maxRead) continue; // 원본 밖을 읽는 후보는 제외
           var score = 0;
           for (var k = 0; k < corrLen; k += CORR_STRIDE){
             var si = candStart + k;
@@ -3704,12 +3844,14 @@
         }
         readStart += bestOffset;
       }
+      if (readStart > maxRead) readStart = maxRead;
+      if (readStart < 0) readStart = 0;
       for (var i = 0; i < grainSize; i++){
         var srcPos = readStart + i;
         var i0 = Math.floor(srcPos);
         var frac = srcPos - i0;
-        var s0 = i0 >= 0 && i0 < n ? samples[i0] : 0;
-        var s1 = i0 + 1 >= 0 && i0 + 1 < n ? samples[i0 + 1] : 0;
+        var s0 = i0 < 0 ? samples[0] : (i0 < n ? samples[i0] : samples[n - 1]);
+        var s1 = i0 + 1 < 0 ? samples[0] : (i0 + 1 < n ? samples[i0 + 1] : samples[n - 1]);
         var v = s0 + (s1 - s0) * frac;
         var outIdx = writePos + i;
         if (outIdx >= 0 && outIdx < targetLength){
@@ -3724,7 +3866,11 @@
       if (onProgress) onProgress(Math.min(1, writePos / targetLength));
       if (stepIndex % yieldEverySteps === 0) await nextFrameCore();
     }
-    for (var k2 = 0; k2 < targetLength; k2++){ if (winSum[k2] > 1e-6) out[k2] /= winSum[k2]; }
+    // 창이 덮지 않는 샘플(맨 앞: 창 첫 값이 0)은 0으로 두지 않고 원본의 해당 위치 값을 그대로 쓴다
+    for (var k2 = 0; k2 < targetLength; k2++){
+      if (winSum[k2] > 1e-6) out[k2] /= winSum[k2];
+      else { var srcK = Math.min(n - 1, Math.max(0, Math.round(k2 / stretchFactor))); out[k2] = samples[srcK]; }
+    }
     if (onProgress) onProgress(1);
     return out;
   }
@@ -4966,6 +5112,7 @@
     ctx.stroke();
   }
   function drawTrackEdgeGrips(ctx, x0, x1, h, dark){
+    return; // 2026-09-23: 가장자리 드래그 트림이 없어져서 그립 표시도 뺀다
     drawTrackEdgeGrip(ctx, x0, h, dark);
     drawTrackEdgeGrip(ctx, x1, h, dark);
   }
@@ -5894,7 +6041,49 @@
     if (masterGain) masterGain.gain.setTargetAtTime(v, audioCtx.currentTime, 0.02);
     previewVolSlider.title = "듣기 음량 " + Math.round(v * 100) + "% — 저장 파일에는 영향이 없어요";
   });
+  // "직접 입력…" — 작은 팝오버에서 0.25~4 사이 배속을 넣으면 그 값이 목록에 항목으로 추가되고 선택된다
+  var rateCustomPop = document.getElementById("rateCustomPop"), rateCustomInput = document.getElementById("rateCustomInput"), rateCustomApply = document.getElementById("rateCustomApply");
+  var lastRateValue = "1";
+  function rateSelectBtn(){ var w = previewRateSelect.parentNode; return (w && w.classList.contains("nice-select")) ? w.querySelector(".nice-select-btn") : previewRateSelect; }
+  function openRateCustom(){
+    var r = rateSelectBtn().getBoundingClientRect();
+    rateCustomPop.hidden = false;
+    var pw = rateCustomPop.offsetWidth, ph = rateCustomPop.offsetHeight;
+    var up = (window.innerHeight - r.bottom) < ph + 12 && r.top > ph + 12;
+    rateCustomPop.style.left = Math.max(8, Math.min(window.innerWidth - pw - 8, r.left)) + "px";
+    rateCustomPop.style.top = (up ? (r.top - ph - 6) : (r.bottom + 6)) + "px";
+    rateCustomInput.value = String(previewRate || 1);
+    setTimeout(function(){ rateCustomInput.focus(); rateCustomInput.select(); }, 0);
+  }
+  function closeRateCustom(restore){
+    if (rateCustomPop.hidden) return;
+    rateCustomPop.hidden = true;
+    if (restore && previewRateSelect.value === "custom"){ previewRateSelect.value = lastRateValue; previewRateSelect.dispatchEvent(new Event("change", { bubbles: true })); }
+  }
+  function applyRateCustom(){
+    var v = parseFloat(rateCustomInput.value);
+    if (!isFinite(v)){ rateCustomInput.focus(); return; }
+    v = Math.round(Math.max(0.1, Math.min(16, v)) * 100) / 100;
+    var val = String(v);
+    var existing = null;
+    Array.prototype.forEach.call(previewRateSelect.options, function(o){ if (o.value === val && o.value !== "custom") existing = o; });
+    if (!existing){
+      var old = previewRateSelect.querySelector("option[data-custom]"); if (old) old.remove();
+      var opt = document.createElement("option"); opt.value = val; opt.textContent = val + "× (직접)"; opt.setAttribute("data-custom", "1");
+      previewRateSelect.insertBefore(opt, previewRateSelect.querySelector('option[value="custom"]'));
+    }
+    rateCustomPop.hidden = true;
+    previewRateSelect.value = val;
+    previewRateSelect.dispatchEvent(new Event("change", { bubbles: true }));
+    rateSelectBtn().focus();
+  }
+  rateCustomApply.addEventListener("click", applyRateCustom);
+  rateCustomInput.addEventListener("keydown", function(e){ e.stopPropagation(); if (e.key === "Enter"){ e.preventDefault(); applyRateCustom(); } else if (e.key === "Escape"){ e.preventDefault(); closeRateCustom(true); rateSelectBtn().focus(); } });
+  document.addEventListener("pointerdown", function(e){ if (rateCustomPop.hidden) return; if (rateCustomPop.contains(e.target) || rateSelectBtn().contains(e.target)) return; closeRateCustom(true); });
+  window.addEventListener("resize", function(){ closeRateCustom(true); });
   previewRateSelect.addEventListener("change", function(){
+    if (previewRateSelect.value === "custom"){ openRateCustom(); return; }
+    lastRateValue = previewRateSelect.value;
     var r = parseFloat(previewRateSelect.value) || 1;
     var wasPlaying = isPlaying;
     var pos = getCurrentPosition();
@@ -5972,7 +6161,9 @@
     if (e.code === "Space" || key === " "){
       if (isPlaying) pausePlayback(); else startPlaybackFrom(pausedAt);
     } else if (key === "ArrowLeft" || key === "ArrowRight"){
-      var step = (e.shiftKey ? 1 : 0.1) * (key === "ArrowLeft" ? -1 : 1);
+      // 확대할수록 잘게 움직인다: 화면 4px에 해당하는 시간(0.001~0.1초). Shift는 1초.
+      var fine = (typeof wfCssWidth === "number" && getTimelineDuration() > 0) ? Math.min(0.1, Math.max(0.001, 4 * getTimelineDuration() / Math.max(1, wfCssWidth))) : 0.1;
+      var step = (e.shiftKey ? 1 : fine) * (key === "ArrowLeft" ? -1 : 1);
       seekTo(getCurrentPosition() + step);
     } else if (key === "Home"){
       seekTo(0);
@@ -6230,6 +6421,8 @@
     laneOrderLive.textContent = "\"" + name + "\" 레인: " + laneOrder.length + "개 중 " + (idx + 1) + "번째";
   }
 
+  // ⠿ 손잡이: 처음 몇 px를 어느 방향으로 끄느냐로 갈린다 — 위아래 = 레인 순서, 좌우 = 트랙 시간 위치 이동
+  var lanePending = null;
   function onLaneHandlePointerDown(id){
     return function(e){
       if (e.button !== undefined && e.button !== 0 && e.pointerType === "mouse") return;
@@ -6239,15 +6432,33 @@
       e.stopPropagation();
       activePointerId = e.pointerId;
       try { e.currentTarget.setPointerCapture(e.pointerId); } catch(err){}
-      dragMode = "lane-reorder";
-      dragReorderId = id;
-      dragReorderEl = el;
-      dragReorderStartClientY = e.clientY;
-      dragReorderOthersOrder = laneOrder.filter(function(x){ return x !== id; });
-      dragReorderTargetIndex = laneOrder.indexOf(id);
-      dragReorderOriginTop = naturalTopOf(el); // 드래그 시작 시점엔 아직 transform이 없으므로 지금 rect가 곧 자연 위치
-      el.classList.add("lane-dragging");
+      dragMode = "lane-pending";
+      lanePending = { id: id, el: el, x: e.clientX, y: e.clientY };
     };
+  }
+  function beginLaneReorder(id, el, clientY){
+    dragMode = "lane-reorder";
+    dragReorderId = id;
+    dragReorderEl = el;
+    dragReorderStartClientY = clientY;
+    dragReorderOthersOrder = laneOrder.filter(function(x){ return x !== id; });
+    dragReorderTargetIndex = laneOrder.indexOf(id);
+    dragReorderOriginTop = naturalTopOf(el); // 드래그 시작 시점엔 아직 transform이 없으므로 지금 rect가 곧 자연 위치
+    el.classList.add("lane-dragging");
+  }
+  function beginLaneMoveFromHandle(id, clientX){
+    var desc = laneDescForId(id); var buf = desc && desc.getBuffer();
+    if (!desc || !buf){ dragMode = null; activePointerId = null; return; }
+    dragMode = "track-move";
+    dragTrackForMove = desc;
+    dragTrackMoveStartSec = desc.getStartSec();
+    dragTrackMoveStartClientX = clientX;
+    dragTrackMoved = false;
+    var duration = getTimelineDuration();
+    dragTrackMovePxPerSec = duration > 0 ? wfCssWidth / duration : 0;
+    var spanW = Math.max(1, Math.round(secToPx(desc.getStartSec() + buf.duration)) - Math.round(secToPx(desc.getStartSec())));
+    dragTrackMoveFrozenPeaks = desc.getFrozenPeaks(spanW);
+    if (desc.canvas) desc.canvas.style.cursor = "grabbing";
   }
 
   // 17차 업데이트(R17-3): R16-5 후속에서 이 함수는 "#waveformWrap 자체가
@@ -6334,6 +6545,13 @@
 
   window.addEventListener("pointermove", function(e){
     if (!dragMode || e.pointerId !== activePointerId) return;
+    if (dragMode === "lane-pending"){
+      var pdx = e.clientX - lanePending.x, pdy = e.clientY - lanePending.y;
+      if (Math.abs(pdx) < 4 && Math.abs(pdy) < 4) return;
+      var pend = lanePending; lanePending = null;
+      if (Math.abs(pdx) > Math.abs(pdy)){ beginLaneMoveFromHandle(pend.id, pend.x); if (dragMode !== "track-move") return; }
+      else { beginLaneReorder(pend.id, pend.el, pend.y); handleLaneReorderPointerMove(e); return; }
+    }
     if (dragMode === "lane-reorder"){
       handleLaneReorderPointerMove(e);
       return;
@@ -6383,6 +6601,7 @@
 
   window.addEventListener("pointerup", function(e){
     if (!dragMode || e.pointerId !== activePointerId) return;
+    if (dragMode === "lane-pending"){ lanePending = null; dragMode = null; activePointerId = null; return; }
     if (dragMode === "lane-reorder"){
       finishLaneReorderDrag();
       dragMode = null;
@@ -6424,6 +6643,7 @@
   });
   window.addEventListener("pointercancel", function(e){
     if (e.pointerId === activePointerId){
+      if (dragMode === "lane-pending"){ lanePending = null; }
       if (dragMode === "lane-reorder"){ finishLaneReorderDrag(); }
       if (dragMode === "volume-drag" && activeVolumeLane){ activeVolumeLane.onDragEnd(); activeVolumeLane = null; }
       if (dragMode === "track-move" && dragTrackForMove){
@@ -6687,18 +6907,8 @@
   // 전부 "선택 구간이 있으면 그 구간, 없으면 지금 편집 중인 트랙 전체"에 적용되고,
   // 트림과 같은 pushUndo 경로라 실행 취소/다시 실행이 그대로 된다.
   // ============================================================================================
-  var refineGroup = document.getElementById("refineGroup");
-  var refineToggle = document.getElementById("refineToggle");
+  // 2026-09-23: "다듬기"는 오른쪽 효과 도구의 첫 탭(#refinePanel)으로 옮겼다 — 아래 편집 카드엔 구간·재생만 남는다.
   var narrowMq = window.matchMedia ? window.matchMedia("(max-width:520px)") : null;
-  function setRefineOpen(open){
-    refineGroup.classList.toggle("open", open);
-    refineToggle.setAttribute("aria-expanded", open ? "true" : "false");
-  }
-  setRefineOpen(!(narrowMq && narrowMq.matches)); // 좁은 화면은 접힌 채 시작, 넓은 화면은 펼침(CSS가 어차피 항상 보여줌)
-  refineToggle.addEventListener("click", function(){
-    if (narrowMq && !narrowMq.matches) return; // 데스크톱에선 라벨일 뿐
-    setRefineOpen(!refineGroup.classList.contains("open"));
-  });
   var fadeInBtn = document.getElementById("fadeInBtn");
   var fadeOutBtn = document.getElementById("fadeOutBtn");
   var normalizeBtn = document.getElementById("normalizeBtn");
@@ -6818,11 +7028,22 @@
     var r = effectRange();
     var gain = Math.pow(10, db / 20);
     var clipped = applyRangeGain("음량 조절", r, function(){ return gain; });
-    var msg = "음량 조절: " + effectScopeLabel() + "을(를) " + dbText(db) + "(약 " + gain.toFixed(2) + "배) " + (db > 0 ? "키웠어요." : "줄였어요.");
+    var msg = "음량 조절: " + effectScopeLabel() + " " + dbText(db) + "(약 " + gain.toFixed(2) + "배) " + (db > 0 ? "키웠어요." : "줄였어요.");
     if (clipped) msg += " 일부(" + clipped.toLocaleString() + " 샘플)가 최대치를 넘어 잘렸어요(클리핑) — 실행 취소 후 더 작은 값을 써보세요.";
     setEffectStatus(msg);
   });
   gainDbInput.addEventListener("keydown", function(e){ if (e.key === "Enter"){ e.preventDefault(); applyGainBtn.click(); } });
+  // −/+ 스테퍼: 0.5dB씩, 범위는 입력의 min/max 그대로
+  [["gainMinusBtn", -0.5], ["gainPlusBtn", 0.5]].forEach(function(pair){
+    var b = document.getElementById(pair[0]); if (!b) return;
+    b.addEventListener("click", function(){
+      if (gainDbInput.disabled) return;
+      var v = parseFloat(gainDbInput.value); if (!isFinite(v)) v = 0;
+      v = Math.max(parseFloat(gainDbInput.min), Math.min(parseFloat(gainDbInput.max), Math.round((v + pair[1]) * 2) / 2));
+      gainDbInput.value = String(v);
+      gainDbInput.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+  });
 
   // ---------- 6차: 영점 교차 스냅 ----------
   // 자를 위치를 ±5ms 안에서 파형이 0에 가장 가까운(부호가 바뀌는) 샘플로 옮긴다 — 이음매의 '틱' 방지.
@@ -6921,7 +7142,7 @@
     invalidatePitchRegionsOverlapping(r.start, r.end);
     refreshWaveform();
     updateTimeText();
-    setEffectStatus("역재생 적용: " + effectScopeLabel() + "(" + ((r.end - r.start) / currentAudioBuffer.sampleRate).toFixed(2) + "초)을(를) 거꾸로 뒤집었어요.");
+    setEffectStatus("역재생 적용: " + effectScopeLabel() + " " + ((r.end - r.start) / currentAudioBuffer.sampleRate).toFixed(2) + "초를 거꾸로 뒤집었어요.");
   });
   channelOpSelect.addEventListener("change", function(){
     var op = channelOpSelect.value;
@@ -7158,14 +7379,31 @@
     var sp = currentSpeed();
     speedValueText.textContent = sp.toFixed(2) + "×"; // 좁은 화면에서 줄바꿈되지 않게 숫자만(느리게/빠르게는 슬라이더 방향으로 충분)
     applySpeedBtn.disabled = !currentAudioBuffer || Math.abs(sp - 1) < 0.001;
+    var anyPreset = false;
     Array.prototype.forEach.call(document.querySelectorAll(".speed-preset"), function(b){
-      b.classList.toggle("active", Math.abs(parseFloat(b.getAttribute("data-speed")) - sp) < 0.001);
+      var on = Math.abs(parseFloat(b.getAttribute("data-speed")) - sp) < 0.001; if (on) anyPreset = true;
+      b.classList.toggle("active", on);
     });
+    var sc = document.querySelector(".speed-custom"); if (sc) sc.classList.toggle("active", !anyPreset && !!document.getElementById("speedCustomInput").value);
   }
-  speedSlider.addEventListener("input", updateSpeedUI);
+  speedSlider.addEventListener("input", function(){ speedCustomInput.value = ""; updateSpeedUI(); });
   Array.prototype.forEach.call(document.querySelectorAll(".speed-preset"), function(b){
-    b.addEventListener("click", function(){ speedSlider.value = b.getAttribute("data-speed"); updateSpeedUI(); });
+    b.addEventListener("click", function(){ speedCustomInput.value = ""; speedSlider.value = b.getAttribute("data-speed"); updateSpeedUI(); });
   });
+  // 직접 입력: 0.1~20. 슬라이더 범위(0.5~2) 밖이면 그 값이 들어가도록 슬라이더 범위를 넓힌다
+  var speedCustomInput = document.getElementById("speedCustomInput");
+  function applySpeedCustom(){
+    var v = parseFloat(speedCustomInput.value);
+    if (!isFinite(v)){ updateSpeedUI(); return; }
+    v = Math.round(Math.max(0.1, Math.min(20, v)) * 100) / 100;
+    speedCustomInput.value = String(v);
+    if (v < parseFloat(speedSlider.min)) speedSlider.min = String(v);
+    if (v > parseFloat(speedSlider.max)) speedSlider.max = String(v);
+    speedSlider.value = String(v);
+    updateSpeedUI();
+  }
+  speedCustomInput.addEventListener("change", applySpeedCustom);
+  speedCustomInput.addEventListener("keydown", function(e){ e.stopPropagation(); if (e.key === "Enter"){ e.preventDefault(); applySpeedCustom(); speedCustomInput.blur(); } });
   applySpeedBtn.addEventListener("click", async function(){
     if (!currentAudioBuffer || isBlocked()) return;
     var sp = currentSpeed();
@@ -7990,18 +8228,11 @@
         canvas.style.cursor = "crosshair";
         return;
       }
-      var edgePx = edgeZonePx(e); // 터치면 22px, 마우스면 12px — 호버 커서 판정(trackLaneZoneAt)과 같은 값
-      if (Math.abs(localX - xStart) <= edgePx || Math.abs(localX - xEnd) <= edgePx){
-        // 가장자리 근처 — 그 레인 전체를 선택 구간으로 잡아 두고, 기존 손잡이 드래그
-        // 로직(dragMode "handle-start"/"handle-end")을 그대로 재사용해서 끝점을 조정한다.
-        selection = { startSec: 0, endSec: buf.duration };
-        dragMode = (Math.abs(localX - xStart) <= edgePx) ? "handle-start" : "handle-end";
-        activePointerId = e.pointerId;
-        try { canvas.setPointerCapture(e.pointerId); } catch(err){}
-        updateSelectionOverlay();
-        canvas.style.cursor = "ew-resize"; // R13: 트림 드래그 중에도 일관되게 유지
-      } else if (localX > xStart && localX < xEnd){
-        // 가운데 — 레인 전체를 좌우로 옮긴다(시작 위치 변경).
+      // 2026-09-23(2차): 파형(소리가 있는 구간) 위를 눌러 끌면 그 트랙이 좌우로 옮겨지고, 그냥 클릭은 재생 위치 이동.
+      // 파형 바깥(레인의 빈 곳)을 누르거나 끌면 재생 위치만 따라간다(스크럽). 구간은 Shift+드래그·I/O 키·구간 손잡이.
+      activePointerId = e.pointerId;
+      try { canvas.setPointerCapture(e.pointerId); } catch(err){}
+      if (localX >= xStart && localX <= xEnd){
         dragMode = "track-move";
         dragTrackForMove = desc;
         dragTrackMoveStartSec = desc.getStartSec();
@@ -8011,11 +8242,11 @@
         dragTrackMovePxPerSec = duration > 0 ? wfCssWidth / duration : 0;
         var spanW = Math.max(1, Math.round(xEnd) - Math.round(xStart));
         dragTrackMoveFrozenPeaks = desc.getFrozenPeaks(spanW);
-        activePointerId = e.pointerId;
-        try { canvas.setPointerCapture(e.pointerId); } catch(err){}
-        canvas.style.cursor = "grabbing"; // R13: 실제로 옮기는 동안은 "쥐고 있다"는 느낌으로
+        canvas.style.cursor = "grabbing";
+      } else {
+        dragMode = "scrub";
+        seekTo(clientXToSec(e.clientX));
       }
-      // 그 외(레인 내용 바깥의 빈 공간)를 눌렀으면 아무 드래그도 시작하지 않는다.
     });
 
     // R13(6번째 항목, Round 13): 데스크톱 전용 보너스 — 버튼을 누르지 않은 순수 호버
@@ -8031,9 +8262,9 @@
       var localX = e.clientX - rect.left;
       if (e.pointerType === "mouse") showWaveTip(desc, localX, canvas); else hideWaveTip();
       var zone = trackLaneZoneAt(desc, localX, edgeZonePx(e));
-      // Shift/Alt를 누른 채 올려두면 "구간 선택" 커서로 미리 알려준다.
+      // Shift/Alt를 누른 채 올려두면 "구간 선택" 커서로 미리 알려준다. 그 외엔 스크럽(재생 위치) 커서.
       if ((e.shiftKey || e.altKey) && zone){ canvas.style.cursor = "crosshair"; return; }
-      canvas.style.cursor = zone === "edge" ? "ew-resize" : (zone === "move" ? "grab" : "pointer");
+      canvas.style.cursor = zone ? "grab" : "col-resize";
     });
     canvas.addEventListener("pointerleave", function(){
       hideWaveTip();
@@ -8245,8 +8476,8 @@
     var dragHandle = document.createElement("button");
     dragHandle.type = "button";
     dragHandle.className = "lane-drag-handle";
-    dragHandle.setAttribute("aria-label", "레인 순서 이동 — 드래그하거나 위·아래 화살표 키");
-    dragHandle.title = "드래그하거나 ↑/↓ 키로 레인 순서를 바꾸세요";
+    dragHandle.setAttribute("aria-label", "레인 옮기기 — 위아래로 끌면 순서, 좌우로 끌면 시간 위치(↑/↓ 키로 순서)");
+    dragHandle.title = "위아래로 끌면 레인 순서, 좌우로 끌면 시간 위치가 바뀌어요 (↑/↓ 키로 순서)";
     dragHandle.textContent = "⠿";
     dragHandle.addEventListener("pointerdown", onLaneHandlePointerDown(track.id));
     dragHandle.addEventListener("keydown", onLaneHandleKeyDown(track.id));
@@ -10258,14 +10489,17 @@
     try { localStorage.setItem("sseobom-se-insp-w", String(w)); } catch(e){}
   }
   vs.addEventListener("pointerdown", function(e){ if (!isWorkbench()) return; vsDrag = { x: e.clientX, w: toolTabsCard.getBoundingClientRect().width }; vs.classList.add("dragging"); document.body.classList.add("wb-vresizing"); try { vs.setPointerCapture(e.pointerId); } catch(err){} e.preventDefault(); });
-  vs.addEventListener("pointermove", function(e){ if (!vsDrag) return; applyInspW(vsDrag.w - (e.clientX - vsDrag.x)); });
+  // 끄는 동안에도 파형이 실시간으로 새 폭에 맞춰지도록 rAF로 묶어 다시 그린다(프레임당 최대 1회)
+  var liveRefreshRaf = 0;
+  function liveRefreshWaveform(){ if (liveRefreshRaf) return; liveRefreshRaf = requestAnimationFrame(function(){ liveRefreshRaf = 0; if (currentAudioBuffer) refreshWaveform(); }); }
+  vs.addEventListener("pointermove", function(e){ if (!vsDrag) return; applyInspW(vsDrag.w - (e.clientX - vsDrag.x)); liveRefreshWaveform(); });
   function endVs(){ if (!vsDrag) return; vsDrag = null; vs.classList.remove("dragging"); document.body.classList.remove("wb-vresizing"); if (currentAudioBuffer) refreshWaveform(); }
   vs.addEventListener("pointerup", endVs); vs.addEventListener("pointercancel", endVs);
   vs.addEventListener("dblclick", function(){ applyInspW(null); });
   vs.addEventListener("keydown", function(e){ if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return; e.preventDefault(); applyInspW(toolTabsCard.getBoundingClientRect().width + (e.key === "ArrowLeft" ? 24 : -24)); setTimeout(function(){ if (currentAudioBuffer) refreshWaveform(); }, 60); });
   // 편집 구역 높이 분할선(가로) — 파형 카드와 편집 카드 사이. 끌기·↑↓·더블클릭 초기화, localStorage 기억
   var hs = document.getElementById("wbHSplit"), hsDrag = null, editToolbarEl = document.getElementById("editToolbar"), wavePaneEl = document.getElementById("wavePane");
-  function editHMax(){ var card = wavePaneEl.parentElement.getBoundingClientRect().height; return Math.max(80, Math.round(card - 12 - 260)); }
+  function editHMax(){ var card = wavePaneEl.parentElement.getBoundingClientRect().height; return Math.max(80, Math.round(card - 12 - 400)); }
   function applyEditH(h){
     if (h == null){ editToolbarEl.style.removeProperty("--wb-edit-h"); try { localStorage.removeItem("sseobom-se-edit-h"); } catch(e){} setTimeout(function(){ if (currentAudioBuffer) refreshWaveform(); }, 60); return; }
     h = Math.round(Math.min(editHMax(), Math.max(60, h)));
@@ -10273,7 +10507,7 @@
     try { localStorage.setItem("sseobom-se-edit-h", String(h)); } catch(e){}
   }
   hs.addEventListener("pointerdown", function(e){ if (!isWorkbench()) return; hsDrag = { y: e.clientY, h: editToolbarEl.getBoundingClientRect().height }; hs.classList.add("dragging"); document.body.classList.add("wb-hresizing"); try { hs.setPointerCapture(e.pointerId); } catch(err){} e.preventDefault(); });
-  hs.addEventListener("pointermove", function(e){ if (!hsDrag) return; applyEditH(hsDrag.h - (e.clientY - hsDrag.y)); });
+  hs.addEventListener("pointermove", function(e){ if (!hsDrag) return; applyEditH(hsDrag.h - (e.clientY - hsDrag.y)); liveRefreshWaveform(); });
   function endHs(){ if (!hsDrag) return; hsDrag = null; hs.classList.remove("dragging"); document.body.classList.remove("wb-hresizing"); if (currentAudioBuffer) refreshWaveform(); }
   hs.addEventListener("pointerup", endHs); hs.addEventListener("pointercancel", endHs);
   hs.addEventListener("dblclick", function(){ applyEditH(null); });
@@ -10281,12 +10515,16 @@
   // 내보내기 팝오버 — 하단 바에서 재생 줄(.transport-row)만 남기고 나머지(파일명·형식·옵션·상태)를 상단 팝오버로 옮긴다
   var wbExportBtn = document.getElementById("wbExportBtn"), wbExportPop = document.getElementById("wbExportPop");
   var exportMoved = false;
+  var wbTransportHost = document.getElementById("wbTransportHost");
   function moveExportToPop(){
     if (exportMoved) return; exportMoved = true;
-    Array.prototype.slice.call(floatDownloadBar.children).forEach(function(ch){ if (!ch.classList.contains("transport-row")) wbExportPop.appendChild(ch); });
+    Array.prototype.slice.call(floatDownloadBar.children).forEach(function(ch){ if (ch.classList.contains("transport-row")) wbTransportHost.appendChild(ch); else wbExportPop.appendChild(ch); });
+    wbTransportHost.hidden = false;
   }
   function moveExportBack(){
     if (!exportMoved) return; exportMoved = false;
+    var tr = wbTransportHost.querySelector(".transport-row"); if (tr) floatDownloadBar.insertBefore(tr, floatDownloadBar.firstChild);
+    wbTransportHost.hidden = true;
     Array.prototype.slice.call(wbExportPop.children).forEach(function(ch){ floatDownloadBar.appendChild(ch); });
     setExportOpen(false);
   }
@@ -10304,6 +10542,7 @@
   window.__seWorkbench = { enter: enterWorkbench, is: isWorkbench, exportOpen: setExportOpen, editH: applyEditH };
 
   window.__soundEditorDebug = {
+    dsp: { denoise: function(samples, profile, over, floor){ return denoiseChannelAsync(samples, 44100, profile, FFT_SIZE, HOP_SIZE, HANN_WINDOW, over, floor, null); }, stretch: function(samples, targetLen){ return timeStretchWSOLAAsync(samples, targetLen, PITCH_GRAIN_SIZE, PITCH_HOP_SIZE, HANN_WINDOW, null); }, fftSize: FFT_SIZE },
     getState: function(){
       return {
         mainDurationSec: mainAudioBuffer ? mainAudioBuffer.duration : 0,
