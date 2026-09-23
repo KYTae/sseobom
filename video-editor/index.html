@@ -610,6 +610,9 @@
   .timeline-toolbar .zoom-value{ font-size:12px; color:var(--text-dim); min-width:44px; text-align:center; font-variant-numeric:tabular-nums; display:inline-flex; align-items:center; gap:2px; }
   .timeline-toolbar .zoom-value input{ font-family:inherit; font-size:12px; width:52px; padding:4px 6px; border-radius:999px; border:1px solid var(--card-border); background:var(--bg); color:var(--text); text-align:right; font-variant-numeric:tabular-nums; }
   .timeline-toolbar .zoom-value input:focus{ outline:none; border-color:var(--accent); }
+  /* 좁은 툴바에서 스핀 화살표가 숫자를 가리지 않게 */
+  .timeline-toolbar .zoom-value input{ -moz-appearance:textfield; appearance:textfield; }
+  .timeline-toolbar .zoom-value input::-webkit-outer-spin-button, .timeline-toolbar .zoom-value input::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
   .zoom-slider{ width:110px; accent-color:var(--accent); margin:0 2px; }
   #frameTag{ display:none; }
   body.workbench #shortcutsBtn{ display:none; }
@@ -762,6 +765,8 @@
   .ctx-menu button.danger:hover{ color:var(--danger); }
   .ctx-menu kbd{ font-family:inherit; font-size:10.5px; color:var(--text-dim); }
   .ctx-menu hr{ border:none; border-top:1px solid var(--card-border); margin:5px 4px; }
+  /* 재생 ↔ 일시정지로 글자가 바뀌어도 버튼 폭이 흔들리지 않게(긴 쪽 기준 고정) */
+  #playBtn{ min-width:112px; justify-content:center; }
   .tl-playhead{ position:absolute; top:0; bottom:0; width:2px; background:var(--danger); z-index:6; pointer-events:none; }
   .tl-playhead::before{ content:""; position:absolute; top:0; left:-5px; border:6px solid transparent; border-top:8px solid var(--danger); }
   .tl-empty{ font-size:12.5px; color:var(--text-dim); padding:14px; text-align:center; }
@@ -945,7 +950,7 @@
   .tc-field{ display:flex; flex-direction:column; gap:3px; min-width:0; }
   .tc-label{ font-size:11px; font-weight:600; color:var(--text-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .tc-ctrl{ display:flex; align-items:center; gap:4px; min-width:0; min-height:30px; }
-  .tc-ctrl input[type=number]{ width:100%; min-width:0; }
+  .tc-ctrl input[type=number]{ width:100%; min-width:64px; }
   .tc-ctrl input[type=range], body.workbench .inspector-card .tc-ctrl input[type=range]{ flex:1 1 auto !important; width:auto !important; min-width:0; accent-color:var(--accent); }
   .tc-ctrl .nice-select, .tc-ctrl .nice-select-btn{ width:100%; max-width:100%; }
   .tc-ctrl .nice-select-btn .nice-select-text{ flex:1 1 auto; text-align:left; }
@@ -1115,6 +1120,7 @@
     body.workbench.wb-vresizing{ cursor:col-resize; }
     body.workbench.wb-vresizing .preview-card, body.workbench.wb-vresizing .timeline-card, body.workbench.wb-vresizing .inspector-card{ pointer-events:none; }
     body.workbench[data-tool="text"] .preview-stage{ cursor:text; }
+    body.workbench[data-tool="text"] .transform-box, body.workbench[data-tool="text"] .transform-box *{ cursor:text !important; }
     /* 도구별 커서 */
     body.workbench[data-tool="hand"] .tl-lanes, body.workbench[data-tool="hand"] .tl-ruler, body.workbench[data-tool="hand"] .tl-lanes *{ cursor:grab !important; }
     body.workbench[data-tool="hand"].wb-panning .tl-lanes, body.workbench[data-tool="hand"].wb-panning .tl-lanes *{ cursor:grabbing !important; }
@@ -1174,7 +1180,8 @@
     body.workbench .transport-row{ flex:none; }
     body.workbench .inspector-card{ height:auto; min-height:0; max-height:none !important; animation:none; margin:0; }
 
-    body.workbench .timeline-card{ margin:0; display:flex; flex-direction:column; min-height:0; max-height:38vh; padding:8px 14px 8px; animation:none; }
+    /* 낮은 창에서도 카드 밖으로 내용이 넘쳐 페이지가 스크롤되지 않게: 카드가 잘라내고, 레인 영역이 먼저 줄어든다(안쪽 스크롤) */
+    body.workbench .timeline-card{ margin:0; display:flex; flex-direction:column; min-height:0; max-height:clamp(320px, 42vh, 60vh); padding:8px 14px 8px; animation:none; overflow:hidden; }
     body.workbench .tool-group-btns button{ padding:5px 9px; font-size:12px; }
     body.workbench .sel-inputs input{ width:82px; padding:5px 8px; font-size:12px; }
     body.workbench .timeline-toolbar .toolbar-actions button{ padding:6px 10px; font-size:12px; }
@@ -1184,7 +1191,7 @@
     body.workbench .now-status{ margin-top:4px; }
     body.workbench.wb-tl-sized .timeline-card{ height:var(--wb-tl-h); max-height:none; flex:none; }
     body.workbench .timeline-toolbar{ margin-bottom:8px; }
-    body.workbench .timeline-wrap{ flex:1 1 auto; min-height:110px; }
+    body.workbench .timeline-wrap{ flex:1 1 auto; min-height:56px; }
     body.workbench .timeline-scroll{ overflow-y:auto; }
     body.workbench .tl-gutter{ overflow:hidden; }
     /* 오른쪽 스크롤 영역엔 가로 스크롤바 높이만큼 내용이 더 있어서, 이름 칸도 같은 만큼 여유를 줘야 끝까지 같이 내려간다 */
@@ -1725,7 +1732,7 @@
       <span class="mark">ⓒ 2026</span> <span class="name">고윤태</span> · <a href="https://yuntaeko.com/" target="_blank" rel="noopener noreferrer">yuntaeko.com</a> — 정성을 담아 제작한 도구입니다. 이용 허락·문의는 <a href="/#feedback">의견 보내기</a>로 남겨 주세요.<br>
       <a href="/privacy/">개인정보처리방침</a> · <a href="/notice/">오픈소스 고지</a>
     </div>
-    <div class="updated">업데이트 · 2026. 9. 22.</div>
+    <div class="updated">업데이트 · 2026. 9. 23.</div>
   </footer>
 </div>
 
@@ -2643,6 +2650,8 @@
     syncLanes();
     var w = Math.round(timelineSpan() * pxPerSec());
     timelineContent.style.width = w + "px";
+    // 레인이 몇 개 없어도 재생선(절대 위치, top:0/bottom:0)이 보이는 영역 맨 아래까지 닿도록 내용 높이를 스크롤 영역만큼 확보
+    timelineContent.style.minHeight = Math.max(0, timelineScroll.clientHeight - 1) + "px";
     drawRuler();
     var pps = pxPerSec();
     var seen = {};
@@ -2870,6 +2879,8 @@
     setZoom(zoom * (e.deltaY < 0 ? 1.2 : 1 / 1.2), sec);
   }, { passive: false });
   window.addEventListener("resize", function(){ renderTimeline(); layoutSegIndicators(); });
+  // 분할선으로 타임라인 높이가 바뀌어도 재생선이 바닥까지 닿게
+  if (window.ResizeObserver) new ResizeObserver(function(){ timelineContent.style.minHeight = Math.max(0, timelineScroll.clientHeight - 1) + "px"; }).observe(timelineScroll);
 
   // ============================================================================================
   // 타임라인 조작: 시크 · 구간 선택 · 클립 드래그(시간+레인) · 트림
@@ -3130,7 +3141,14 @@
     var vaEl = e.target.closest(".vaclip");
     if (vaEl){ stopPlayback(); selectClip(parseInt(vaEl.getAttribute("data-clip-id"), 10)); e.preventDefault(); return; }
     var clipEl = e.target.closest(".clip, .aclip, .tclip");
-    if (!clipEl){ stopPlayback(); setPlayhead(eventSec(e)); selectClip(null); return; }
+    if (!clipEl){
+      // 빈 곳: 클릭이면 재생 위치 이동 + 선택 해제, 끌면 재생선이 따라온다(스크럽)
+      stopPlayback(); setPlayhead(quantizeFrame(eventSec(e))); selectClip(null);
+      laneScrub = { id: e.pointerId };
+      try { lanesHost.setPointerCapture(e.pointerId); } catch(err){}
+      e.preventDefault();
+      return;
+    }
     stopPlayback();
     var kind = clipEl.classList.contains("clip") ? "video" : clipEl.classList.contains("aclip") ? "audio" : "text";
     var id = parseInt(clipEl.getAttribute(kind === "video" ? "data-clip-id" : kind === "audio" ? "data-audio-id" : "data-text-id"), 10);
@@ -3157,7 +3175,9 @@
     lanesHost.setPointerCapture(e.pointerId);
     e.preventDefault();
   });
+  var laneScrub = null;
   lanesHost.addEventListener("pointermove", function(e){
+    if (laneScrub && e.pointerId === laneScrub.id){ setPlayhead(quantizeFrame(eventSec(e))); return; }
     if (!drag) return;
     var dx = e.clientX - drag.startX, dy = e.clientY - drag.startY;
     if (!drag.moved && Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
@@ -3195,9 +3215,14 @@
       var newLen = itemEnd(it, drag.kind) - it.startSec, oldLen = itemEnd(o, drag.kind) - o.startSec;
       showDragTip(e, "길이 " + formatTime(newLen), signedSec(newLen - oldLen) + (currentTool() === "ripple" ? " · 리플" : ""));
     } else {
-      var ns = snapSec(Math.max(0, o.startSec + dx / pps), it.id, drag.kind, true);
       var lane = laneAtY(e.clientY, drag.kind);
       var len = drag.kind === "video" ? clipDur(it) : drag.kind === "audio" ? audioClipDur(it) : (it.endSec - it.startSec);
+      // 시작뿐 아니라 끝 가장자리도 자석에 붙인다(더 가까운 쪽). 자막은 재생선이 따라오지 않으므로 빨간 선에도 붙는다.
+      var rawStart = Math.max(0, o.startSec + dx / pps), noPh = false; // 재생선이 고정이라 모든 종류가 빨간 선에도 붙는다
+      var s1 = snapSec(rawStart, it.id, drag.kind, noPh), hitS = lastSnap, dS = Math.abs(s1 - rawStart);
+      var e1 = snapSec(rawStart + len, it.id, drag.kind, noPh), hitE = lastSnap, dE = Math.abs(e1 - (rawStart + len));
+      var ns;
+      if (hitE != null && (hitS == null || dE < dS)){ ns = Math.max(0, e1 - len); lastSnap = hitE; } else { ns = s1; lastSnap = hitS; }
       drag.targetLane = lane; drag.wantStart = ns;
       var free = laneFree(drag.kind, lane, ns, ns + len, it.id);
       drag.el.classList.toggle("blocked", !free);
@@ -3212,9 +3237,10 @@
       var laneDelta = laneOffsetPx(drag.kind, it.lane, lane);
       drag.el.style.transform = "translate(" + ((ns - it.startSec) * pps) + "px, " + laneDelta + "px)";
       Object.keys(laneEls).forEach(function(k){ laneEls[k].classList.toggle("drop-target", k === laneKey(drag.kind, lane)); });
+      // 2026-09-23: 옮기는 동안 재생선은 제자리(영상·소리·자막 모두). 미리보기는 고정된 재생 위치에서 "지금 그 자리에 오는 프레임"을 실시간으로 보여준다.
       if (free){
-        setPlayhead(it.startSec + Math.min(drag.phOffset, Math.max(0, len - 0.001)));
-        if (drag.kind === "video") updateNowStatus();
+        if (drag.kind === "video"){ updateNowStatus(); syncPreviewToPlayhead(); }
+        else drawPreviewFrame();
       }
       showSnapLine(lastSnap);
       showDragTip(e, (free ? "" : "✕ ") + "시작 " + formatTime(ns), signedSec(ns - o.startSec) + (lane !== o.lane ? " · " + (drag.kind === "video" ? "V" : drag.kind === "audio" ? "A" : "T") + (lane + 1) : "") + (drag.dup ? " · 복제" : ""));
@@ -3243,6 +3269,7 @@
     }
   }
   function endDrag(){
+    if (laneScrub){ laneScrub = null; }
     if (!drag) return;
     var d = drag; drag = null; ppsLock = null;
     d.el.classList.remove("dragging", "trimming", "blocked"); d.el.style.transform = "";
@@ -4167,14 +4194,16 @@
   var stageTextClick = false;
   previewStage.addEventListener("pointerdown", function(e){
     if (currentTool() !== "text" || isBlocked() || !clips.length || e.button !== 0) return;
-    if (e.target.closest && e.target.closest("#transformBox")) return;
+    // (수정) 클립이 자동 선택되면서 변형 상자가 미리보기를 늘 덮게 됐는데, 글자 도구일 땐 상자 위를 눌러도 그 자리에 자막을 만든다
     e.preventDefault(); e.stopPropagation(); stageTextClick = true;
     stopPlayback();
     // 클릭한 곳과 가장 가까운 9칸(왼쪽 위 … 오른쪽 아래) 자리에 자막을 만든다 — 출력 화면 기준(레터박스 제외)
     var cs = canvasScale(), fx = clamp((e.clientX - cs.r.left) / cs.r.width, 0, 1), fy = clamp((e.clientY - cs.r.top) / cs.r.height, 0, 1);
     var n0 = texts.length;
     addText();
-    if (texts.length > n0){ var t = texts[texts.length - 1]; t.x = fx; t.y = fy; renderTextList(); drawPreviewFrame(); }
+    if (texts.length > n0){ var t = texts[texts.length - 1]; t.x = fx; t.y = fy; renderTextList(); drawPreviewFrame();
+      // 목록을 다시 그리면서 addText가 준 포커스가 사라지므로 내용 칸에 다시 포커스(바로 타이핑할 수 있게)
+      var ta = $("textList").querySelector(".item-card.selected textarea"); if (ta){ ta.focus(); ta.select(); } }
   }, true);
   // 선택 도구로 미리보기의 자막을 집어 끌면 그 자리로 옮긴다(프리미어 프로그램 모니터처럼)
   var textDrag = null;
