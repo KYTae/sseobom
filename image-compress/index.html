@@ -1597,7 +1597,7 @@
   }
 
   // UPNG.js로 팔레트 양자화 PNG를 인코딩한다. getImageData로 원본 캔버스의 RGBA
-  // 픽셀을 그대로 가져와 넘기면, UPNG가 내부적으로 median-cut 방식으로 지정한
+  // 픽셀을 그대로 가져와 넘기면, UPNG가 분산 기반 분할(미디언 컷 계열) 방식으로 지정한
   // 색상 수(colors)만큼의 팔레트를 골라 인덱스 컬러 PNG로 다시 만든다 — 알파(투명도)도
   // 팔레트에 포함되어 그대로 보존된다. 결과가 Uint8Array라서 Blob으로 감싸서 반환.
   function encodePngQuantized(canvas, colors){
