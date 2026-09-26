@@ -1014,7 +1014,7 @@
     <div class="wrap">
       <div class="tools-head">
         <h2>지금 쓸 수 있는 도구</h2>
-        <span class="tools-count">14개</span>
+        <span class="tools-count">16개</span>
       </div>
 
       <!-- 카테고리 칩 + 검색 — 스크롤하면 위에 붙어(sticky) 목차 역할을 한다. 칩은 필터(그 종류만 남김),
@@ -1104,6 +1104,15 @@
           <p class="tool-desc">그리거나 입력하거나 업로드한 서명을 PDF 위에 도장처럼 찍어요.</p>
           <span class="tool-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"></path></svg></span>
         </a>
+        <a class="tool-card" href="/pdf-watermark/" data-cat="pdf" aria-label="PDF 워터마크·도장 도구 열기">
+          <div class="tool-head">
+            <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"></circle><path d="M9.5 9h5"></path><path d="M5 20.5h14"></path><path d="M6.5 17.5h11"></path></svg></div>
+            <div class="tool-name-row"><div class="tool-name">PDF 워터마크·도장</div><span class="tool-badge-new" aria-label="새 도구">NEW</span>
+            <span class="tool-cat">PDF</span></div>
+          </div>
+          <p class="tool-desc">"대외비" 같은 글자나 로고·도장을 PDF 원하는 쪽에 얹어요. 글자만 적으면 원·네모 도장도 만들어 찍어요.</p>
+          <span class="tool-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"></path></svg></span>
+        </a>
         <a class="tool-card" href="/sound-converter/" data-cat="sound" aria-label="사운드 형식 변환 도구 열기">
           <div class="tool-head">
             <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg></div>
@@ -1167,12 +1176,21 @@
           <p class="tool-desc">링크나 글자를 QR 코드로 만들어 색·점 모양·아이콘까지 꾸며 PNG·SVG로 저장하고, 사진 속 QR 코드도 읽어요.</p>
           <span class="tool-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"></path></svg></span>
         </a>
+        <a class="tool-card" href="/text-counter/" data-cat="text" aria-label="글자수 세기·텍스트 정리 도구 열기">
+          <div class="tool-head">
+            <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="15" y2="12"></line><line x1="3" y1="18" x2="18" y2="18"></line></svg></div>
+            <div class="tool-name-row"><div class="tool-name">글자수 세기·텍스트 정리</div><span class="tool-badge-new" aria-label="새 도구">NEW</span>
+            <span class="tool-cat">텍스트</span></div>
+          </div>
+          <p class="tool-desc">글자·바이트·단어·문장 수와 읽는 시간을 바로 세고, 공백·줄바꿈 정리, 대소문자·정렬, 찾아 바꾸기까지 해요.</p>
+          <span class="tool-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"></path></svg></span>
+        </a>
       </div>
 
       <!-- 준비 중인 도구는 본문에서 빼서 접어둔다 — 쓸 수 있는 도구만 먼저 보이게. 예고는 여기서. -->
       <div class="soon-panel" id="soonPanel">
         <button class="notices-toggle soon-toggle" id="soonToggle" type="button" aria-expanded="false" aria-controls="soonContent">
-          <span class="notices-toggle-icon">▶</span> 준비 중인 도구 4개 보기
+          <span class="notices-toggle-icon">▶</span> 준비 중인 도구 2개 보기
         </button>
         <div class="notices-content" id="soonContent">
           <div class="notices-content-inner">
@@ -1186,28 +1204,12 @@
           <span class="soon-cat">이미지</span>
       </article>
           <article class="soon-card" data-cat="pdf">
-            <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"></circle><path d="M9.5 9h5"></path><path d="M5 20.5h14"></path><path d="M6.5 17.5h11"></path></svg></div>
-            <div class="tool-body">
-              <div class="tool-name-row"><div class="tool-name">PDF 워터마크·도장</div><span class="tool-badge-soon">준비 중</span></div>
-              <p class="tool-desc">PDF 모든 쪽에 워터마크 글자나 도장 이미지를 한 번에 넣어요.</p>
-            </div>
-          <span class="soon-cat">PDF</span>
-      </article>
-          <article class="soon-card" data-cat="pdf">
             <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 3 4 11 4 11 6"></polyline><line x1="7" y1="4" x2="7" y2="14"></line><line x1="5" y1="14" x2="9" y2="14"></line><rect x="13" y="9" width="9" height="9" rx="1.5"></rect><circle cx="15.8" cy="12" r="0.9"></circle><polyline points="22 16 19 13 13 18"></polyline></svg></div>
             <div class="tool-body">
               <div class="tool-name-row"><div class="tool-name">PDF 글자·이미지 고치기</div><span class="tool-badge-soon">준비 중</span></div>
               <p class="tool-desc">PDF 안의 글자를 고치고, 들어 있는 사진을 다른 이미지로 갈아끼워요.</p>
             </div>
           <span class="soon-cat">PDF</span>
-      </article>
-          <article class="soon-card" data-cat="text">
-            <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="15" y2="12"></line><line x1="3" y1="18" x2="18" y2="18"></line></svg></div>
-            <div class="tool-body">
-              <div class="tool-name-row"><div class="tool-name">글자수 세기·텍스트 정리</div><span class="tool-badge-soon">준비 중</span></div>
-              <p class="tool-desc">글자·단어 수를 바로 세고, 줄바꿈과 공백을 깔끔하게 정리해요.</p>
-            </div>
-          <span class="soon-cat">텍스트</span>
       </article>
             </div>
             <p class="grow-note">
@@ -1242,11 +1244,13 @@
                     <span class="notice-date">2026.09.26</span>
                     <span class="notice-tag notice-tag-new">신규 도구</span>
                   </div>
-                  <p class="notice-text">도구 3개 "이미지 일괄 처리", "이미지 크롭·확장", "오디오 → 텍스트"를 출시했습니다.</p>
+                  <p class="notice-text">도구 5개 "이미지 일괄 처리", "이미지 크롭·확장", "오디오 → 텍스트", "글자수 세기·텍스트 정리", "PDF 워터마크·도장"을 출시했습니다.</p>
                   <ul class="notice-sublist">
                     <li>이미지 일괄 처리 — 사진 여러 장을 올리고 크기 조절(긴 변·가로·세로·비율), JPG·PNG·WEBP 변환과 품질(용량), 글자·로고 워터마크, 회전·반전, 파일 이름 규칙(앞·뒤 글자, 번호)을 원하는 것만 켜서 같은 방식으로 처리한 뒤 zip 하나로 받습니다. 규칙을 바꾸면 미리보기에 바로 반영되고, 처리 후 사진마다 줄어든 용량과 크기가 표시됩니다.</li>
                     <li>이미지 크롭·확장 — 사진 위의 프레임을 끌어 자르거나(1:1·4:5·16:9 등 비율 고정, 픽셀 크기 직접 입력) 사진보다 넓혀 여백을 더합니다. 넓힌 자리는 단색·흐린 배경·거울·투명 중 골라 채우고, 모서리를 둥글게 깎아 PNG·JPG·WEBP로 저장합니다. 사진 가장자리에 프레임이 딱 붙는 스냅과 SNS 규격 칩(1080², 1080×1350, 1080×1920 등)을 제공합니다.</li>
                     <li>오디오 → 텍스트 — 녹음 파일이나 영상을 올리면 브라우저 안에서 AI(Whisper)가 말을 글로 바꿉니다. 한국어·영어 등 여러 언어를 지원하고, 구간마다 시간이 붙어 누르면 그 자리가 재생되며, 글을 고쳐서 TXT·SRT·VTT 자막으로 받습니다. 처음 한 번 AI 모델(약 40~250MB)을 내려받아 브라우저에 저장하며, 오디오는 서버에 올라가지 않습니다. 마이크 탭은 브라우저 내장 음성 인식으로 실시간 받아쓰기를 하며, 이 경우 음성이 브라우저 제조사 서버로 전송된다는 점을 화면에 안내합니다.</li>
+                    <li>글자수 세기·텍스트 정리 — 글을 붙여 넣으면 글자 수(공백 포함·제외), 바이트, 단어·문장·줄·문단 수, 원고지 매수, 읽는 시간이 바로 세어집니다. 글자 수 제한을 정해 남은 글자를 막대로 보고, 연속 공백·빈 줄·줄바꿈 정리, 대소문자·정렬·중복 줄 제거, 정규식 찾아 바꾸기를 한 번에 합니다. 입력한 글은 브라우저에만 임시 저장됩니다.</li>
+                    <li>PDF 워터마크·도장 — "대외비", "사본" 같은 글자 워터마크나 로고·도장 이미지를 PDF에 얹습니다. 글자만 적으면 원·네모 도장을 만들어 찍을 수 있고, 위치 9곳 또는 미리보기에서 끌어서 놓기, 크기·투명도·기울기, 바둑판 반복, 넣을 페이지(전체·홀짝·범위)를 정해 새 PDF로 받습니다.</li>
                     <li>사운드 편집 — 영상 파일을 올리면 소리만 자동으로 꺼내 편집할 수 있게 되었습니다. 영상 편집 — 분할선을 끌 때 변형 상자가 실시간으로 따라오고 소개 화면 폭을 다른 도구와 맞췄습니다.</li>
                     <li>파일 처리 도구는 모두 서버에 올리지 않고 브라우저 안에서만 처리됩니다.</li>
                   </ul>
