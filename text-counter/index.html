@@ -929,7 +929,8 @@
     var noBreak = graphemeCount(s.replace(/\r?\n/g, ""));
     var trimmed = s.trim();
     var words = trimmed ? trimmed.split(/\s+/).length : 0;
-    var sentences = trimmed ? (trimmed.match(/[^.!?。！？\n]+[.!?。！？]+["'”’)\]]*|[^.!?。！？\n]+$/gm) || []).filter(function(x){ return x.trim(); }).length : 0;
+    // 문장: 마침표·느낌표·물음표 뒤에 공백이나 끝이 올 때만 끊는다(3.14, e.g. 같은 건 안 끊김). 줄바꿈도 문장 경계
+    var sentences = trimmed ? trimmed.split(/[.!?。！？]+["'”’)\]]*(?=\s|$)|\n/).filter(function(x){ return x.trim(); }).length : 0;
     var lines = s ? s.split(/\r?\n/).length : 0;
     var nonEmptyLines = s ? s.split(/\r?\n/).filter(function(l){ return l.trim(); }).length : 0;
     var paras = trimmed ? trimmed.split(/\n\s*\n/).filter(function(p){ return p.trim(); }).length : 0;
@@ -969,14 +970,17 @@
     if (b > a){ var sub = editor.value.slice(a, b), ss = stats(sub); note.textContent = "선택한 부분: " + fmt(ss.chars) + "자 (공백 제외 " + fmt(ss.noSpace) + "자) · " + fmt(ss.words) + "단어"; }
     else note.textContent = "";
   }
-  editor.addEventListener("input", render);
+  // 긴 글(3만 자↑)은 키 입력마다 세지 않고 잠깐 모아서 센다 — 타이핑이 끊기지 않게
+  var renderT = null;
+  function scheduleRender(){ clearTimeout(renderT); if (editor.value.length < 30000){ renderT = null; render(); return; } renderT = setTimeout(function(){ renderT = null; render(); }, 150); }
+  editor.addEventListener("input", scheduleRender);
   ["select", "keyup", "mouseup"].forEach(function(evt){ editor.addEventListener(evt, updateSelection); });
   document.addEventListener("selectionchange", function(){ if (document.activeElement === editor) updateSelection(); });
   limitInput.addEventListener("input", render); limitBasis.addEventListener("change", render);
 
   // ---------- 임시 저장 ----------
   var KEY = "sseobom-text-counter-draft", saveT = null, autosaveText = $("autosaveText");
-  function scheduleSave(){ clearTimeout(saveT); saveT = setTimeout(function(){ try { if (editor.value) { localStorage.setItem(KEY, editor.value); localStorage.setItem(KEY + ":at", String(Date.now())); } else { localStorage.removeItem(KEY); localStorage.removeItem(KEY + ":at"); } localStorage.setItem(KEY + ":limit", JSON.stringify({ n: limitInput.value, basis: limitBasis.value })); autosaveText.textContent = "이 브라우저에 자동 저장됨 · " + new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" }); } catch(e){ autosaveText.textContent = "자동 저장을 쓸 수 없는 브라우저예요"; } }, 400); }
+  function scheduleSave(){ clearTimeout(saveT); saveT = setTimeout(function(){ try { if (editor.value) { localStorage.setItem(KEY, editor.value); localStorage.setItem(KEY + ":at", String(Date.now())); } else { localStorage.removeItem(KEY); localStorage.removeItem(KEY + ":at"); } localStorage.setItem(KEY + ":limit", JSON.stringify({ n: limitInput.value, basis: limitBasis.value })); autosaveText.textContent = "이 브라우저에 자동 저장됨 · " + new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" }); } catch(e){ autosaveText.textContent = (e && (e.name === "QuotaExceededError" || /quota/i.test(String(e.name || e.message)))) ? "글이 너무 길어서 자동 저장은 건너뛰었어요" : "자동 저장을 쓸 수 없는 브라우저예요"; } }, 400); }
   var restoreBar = $("restoreBar");
   function hideRestore(){ if (restoreBar.hidden || restoreBar.classList.contains("leaving")) return; restoreBar.classList.add("leaving"); setTimeout(function(){ restoreBar.hidden = true; restoreBar.classList.remove("leaving"); }, 220); }
   try {
@@ -1048,7 +1052,8 @@
     if (c.getAttribute("data-clean") === "collapseBlank" && c.checked) document.querySelector('#cleanOpts input[data-clean="removeBlank"]').checked = false;
     previewClean();
   }); });
-  editor.addEventListener("input", function(){ if (!$("tabClean").hidden) previewClean(); });
+  var previewCleanT = null;
+  editor.addEventListener("input", function(){ if ($("tabClean").hidden) return; clearTimeout(previewCleanT); previewCleanT = setTimeout(previewClean, editor.value.length < 30000 ? 0 : 250); });
   $("cleanApplyBtn").addEventListener("click", function(){ var o = cleanOpts(); if (!Object.keys(o).some(function(k){ return o[k]; })){ toast("항목을 하나 이상 체크해 주세요"); return; } applyTransform(function(s){ return runClean(s, o); }, "정리"); previewClean(); });
 
   // ============================================================
@@ -1057,8 +1062,8 @@
   var CONV = {
     upper: function(s){ return s.toUpperCase(); },
     lower: function(s){ return s.toLowerCase(); },
-    title: function(s){ return s.replace(/\b([a-z])(\w*)/g, function(m, a, b){ return a.toUpperCase() + b.toLowerCase(); }); },
-    sentence: function(s){ return s.toLowerCase().replace(/(^|[.!?]\s+|\n\s*)([a-z])/g, function(m, p, c){ return p + c.toUpperCase(); }); },
+    title: function(s){ return s.replace(/\b([A-Za-z])([A-Za-z']*)/g, function(m, a, b){ return a.toUpperCase() + b.toLowerCase(); }); },
+    sentence: function(s){ return s.toLowerCase().replace(/(^|[.!?]\s+|\n\s*)([a-z])/g, function(m, p, c){ return p + c.toUpperCase(); }).replace(/\bi\b/g, "I"); },
     sortAsc: function(s){ return s.split(/\r?\n/).sort(function(a, b){ return a.localeCompare(b, "ko", { numeric: true }); }).join("\n"); },
     sortDesc: function(s){ return s.split(/\r?\n/).sort(function(a, b){ return b.localeCompare(a, "ko", { numeric: true }); }).join("\n"); },
     reverse: function(s){ return s.split(/\r?\n/).reverse().join("\n"); },
@@ -1087,12 +1092,13 @@
     replaceHint.textContent = n ? fmt(n) + "곳 찾음" : "찾은 곳이 없어요";
   }
   [findInput, matchCase, useRegex].forEach(function(x){ x.addEventListener("input", previewReplace); x.addEventListener("change", previewReplace); });
-  editor.addEventListener("input", function(){ if (!$("tabReplace").hidden) previewReplace(); });
+  var previewReplaceT = null;
+  editor.addEventListener("input", function(){ if ($("tabReplace").hidden) return; clearTimeout(previewReplaceT); previewReplaceT = setTimeout(previewReplace, editor.value.length < 30000 ? 0 : 250); });
   $("replaceBtn").addEventListener("click", function(){
     var re = buildRe(); if (!re){ toast("찾을 말을 넣어 주세요"); return; } if (re.error){ toast("정규식이 잘못됐어요"); return; }
     var n = 0, rep = replaceInput.value;
-    var out = editor.value.replace(re, function(){ n++; return useRegex.checked ? rep.replace(/\$(\d)/g, function(m, d){ return arguments[0] && arguments.length ? (arguments[0]) : m; }) : rep; });
-    if (useRegex.checked){ n = 0; out = editor.value.replace(re, function(){ n++; var args = arguments; return rep.replace(/\$(\d)/g, function(m, d){ var v = args[+d]; return v == null ? "" : v; }); }); }
+    var groups = useRegex.checked ? (new RegExp(re.source + "|").exec("").length - 1) : 0;   // 그룹 수(뒤의 offset·원문 인자와 구분)
+    var out = editor.value.replace(re, function(){ n++; if (!useRegex.checked) return rep; var args = arguments; return rep.replace(/\$(\d)/g, function(m, d){ d = +d; if (d < 1 || d > groups) return ""; var v = args[d]; return v == null ? "" : v; }); });
     if (!n){ toast("찾은 곳이 없어요"); return; }
     pushHistory(); lastApplyAt = Date.now(); editor.value = out; render(); toast(fmt(n) + "곳 바꿨어요"); previewReplace();
   });
@@ -1155,7 +1161,7 @@
     reader.readAsText(f);
     function setFromFile(t){ pushHistory(); lastApplyAt = Date.now(); editor.value = t.replace(/\r\n/g, "\n"); render(); toast(f.name + " 불러왔어요"); }
   });
-  window.addEventListener("beforeunload", function(){ try { if (editor.value) localStorage.setItem(KEY, editor.value); } catch(e){} });
+  window.addEventListener("beforeunload", function(){ try { if (editor.value){ localStorage.setItem(KEY, editor.value); localStorage.setItem(KEY + ":at", String(Date.now())); } localStorage.setItem(KEY + ":limit", JSON.stringify({ n: limitInput.value, basis: limitBasis.value })); } catch(e){} });
 
   render(); previewClean();
   window.__textCounterDebug = { stats: stats, graphemeCount: graphemeCount, clean: runClean, conv: CONV, setText: function(t){ editor.value = t; render(); previewClean(); } };
