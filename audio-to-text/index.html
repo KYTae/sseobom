@@ -749,7 +749,7 @@
       <div class="help-section">
         <div class="help-section-label">파일로 인식</div>
         <div class="help-grid">
-          <div class="help-item help-item-wide"><span class="help-key">처음 한 번, 모델 내려받기</span><span class="help-desc">"글로 바꾸기"를 처음 누르면 AI 모델 파일을 내려받아요(빠름 약 40MB · 균형 약 75MB · 정확 약 250MB). 한 번 받으면 브라우저에 저장돼 다음부터는 바로 시작해요. <b>오디오는 어디에도 올라가지 않고</b> 모델만 내려받아요.</span></div>
+          <div class="help-item help-item-wide"><span class="help-key">처음 한 번, 모델 내려받기</span><span class="help-desc">"글로 바꾸기"를 처음 누르면 AI 모델 파일을 내려받아요. 크기는 기기에 따라 달라요 — 그래픽 가속(WebGPU)이 되는 크롬·엣지에서는 빠름 약 120MB · 균형 약 205MB · 정확 약 585MB, 그 외에는 빠름 약 40MB · 균형 약 75MB · 정확 약 240MB예요. 한 번 받으면 브라우저에 저장돼 다음부터는 바로 시작해요. <b>오디오는 어디에도 올라가지 않고</b> 모델만 내려받아요.</span></div>
           <div class="help-item"><span class="help-key">모델</span><span class="help-desc">빠름은 짧은 메모에, 균형은 대부분의 녹음에, 정확은 회의·강의처럼 긴 한국어 녹음에 맞아요. 느린 기기에서는 균형부터 써보세요.</span></div>
           <div class="help-item"><span class="help-key">언어</span><span class="help-desc">녹음에 쓰인 언어를 고르세요(기본 한국어). 언어를 맞게 고를수록 정확하고 빨라요. 여러 언어가 섞인 파일은 주된 언어로 고르세요.</span></div>
           <div class="help-item"><span class="help-key">진행 상황</span><span class="help-desc">인식되는 글이 실시간으로 아래에 흘러나와요. 30초 단위로 나눠 처리하고, 중간에 취소할 수 있어요.</span></div>
@@ -997,11 +997,14 @@
   Array.prototype.forEach.call(modelGrid.querySelectorAll(".model-opt"), function(b){
     b.addEventListener("click", function(){ model = b.getAttribute("data-model"); Array.prototype.forEach.call(modelGrid.querySelectorAll(".model-opt"), function(o){ var a = o === b; o.classList.toggle("active", a); o.setAttribute("aria-checked", a ? "true" : "false"); }); updateRunHint(); });
   });
-  var MODEL_INFO = { tiny:{ label:"빠름", size:"약 40MB" }, base:{ label:"균형", size:"약 75MB" }, small:{ label:"정확", size:"약 250MB" } };
+  // 내려받는 크기는 장치에 따라 다르다(실측): 그래픽 가속(WebGPU)은 fp32 인코더 + q4 디코더, CPU는 uint8
+  var MODEL_INFO = { tiny:{ label:"빠름", gpu:"약 120MB", cpu:"약 40MB" }, base:{ label:"균형", gpu:"약 205MB", cpu:"약 75MB" }, small:{ label:"정확", gpu:"약 585MB", cpu:"약 240MB" } };
   var gpuAvailable = !!navigator.gpu;
+  function modelSize(m){ return gpuAvailable ? MODEL_INFO[m].gpu : MODEL_INFO[m].cpu; }
+  Array.prototype.forEach.call(modelGrid.querySelectorAll(".model-opt"), function(b){ var el = b.querySelector(".m-size"); if (el) el.textContent = modelSize(b.getAttribute("data-model")); });
   function updateRunHint(){
     var cached = cachedModels[model];
-    runHint.textContent = (cached ? "모델이 이미 준비돼 있어요" : "처음엔 모델(" + MODEL_INFO[model].size + ")을 내려받아요") + (gpuAvailable ? " · 그래픽 가속 사용" : " · 그래픽 가속 없이 CPU로 처리(느릴 수 있어요)");
+    runHint.textContent = (cached ? "모델이 이미 준비돼 있어요" : "처음엔 모델(" + modelSize(model) + ")을 내려받아요") + (gpuAvailable ? " · 그래픽 가속 사용" : " · 그래픽 가속 없이 CPU로 처리(느릴 수 있어요)");
   }
   var cachedModels = {};
   (async function(){ try { if (!window.caches) return; var keys = await caches.keys(); var c = null; for (var i = 0; i < keys.length; i++) if (/transformers/i.test(keys[i])) c = await caches.open(keys[i]); if (!c) return; var reqs = await c.keys(); var urls = reqs.map(function(r){ return r.url; }).join("\n"); ["tiny", "base", "small"].forEach(function(m){ if (new RegExp("whisper-" + m + "[/\\-].*decoder", "i").test(urls)) cachedModels[m] = true; }); updateRunHint(); } catch(e){} })();
@@ -1072,7 +1075,8 @@
     // 후보 순서: onnx-community(최신 내보내기, q4 지원) → Xenova(예전 내보내기). 장치는 webgpu → wasm.
     'function candidates(size, device){',
     '  const list = [];',
-    '  list.push({ model: "onnx-community/whisper-" + size, dtype: device === "webgpu" ? { encoder_model: "fp32", decoder_model_merged: "q4" } : { encoder_model: "q8", decoder_model_merged: "q8" } });',
+    // 실측(2026-09-26): onnx-community에는 q8(_quantized) 파일이 없고 int8/uint8/fp16/q4/fp32가 있다. WebGPU는 fp32 인코더 + q4 디코더(실기기 확인), CPU(wasm)는 uint8.
+    '  list.push({ model: "onnx-community/whisper-" + size, dtype: device === "webgpu" ? { encoder_model: "fp32", decoder_model_merged: "q4" } : { encoder_model: "uint8", decoder_model_merged: "uint8" } });',
     '  list.push({ model: "Xenova/whisper-" + size, dtype: device === "webgpu" ? "fp32" : "q8" });',
     '  return list;',
     '}',
