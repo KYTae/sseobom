@@ -1336,7 +1336,8 @@
       if (!engine.ready) throw new Error("engine-init: " + (engine.initError || ""));
       if (engine.sessKey === spec.key + "@" + tileW + "x" + tileH){ return; }
       setProgress([spec.file].concat(spec.parts).every(function(n){ return cachedKeys[n]; }) ? "저장된 모델을 여는 중..." : "모델을 내려받는 중 (" + spec.mb + "MB · 처음 한 번)", 0, "");
-      return fetchModelSet(spec, function(r, cached, got, len){ if (!cached) setProgress("모델을 내려받는 중 (" + spec.mb + "MB · 처음 한 번)", r, len ? formatBytes(got) + " / " + formatBytes(len) : ""); }).then(function(mset){
+      // 서버가 gzip으로 보내면 content-length는 압축 크기라 받은 양이 그보다 커질 수 있다 → 99%에서 멈추고 받은 양만 표시
+      return fetchModelSet(spec, function(r, cached, got, len){ if (!cached) setProgress("모델을 내려받는 중 (" + spec.mb + "MB · 처음 한 번)", Math.min(r, 0.99), len && got <= len ? formatBytes(got) + " / " + formatBytes(len) : formatBytes(got || 0) + " 받음"); }).then(function(mset){
         setProgress(engine.gpu ? "그래픽 카드에 모델을 올리는 중 (셰이더 준비 · 첫 실행은 조금 걸려요)" : "모델을 준비하는 중...", 0, "", true);
         return new Promise(function(res, rej){
           engine.handlers.loaded = function(m){ engine.sessKey = spec.key + "@" + tileW + "x" + tileH; engine.ep = m.ep; if (m.ep !== "webgpu" && engine.gpu){ engine.gpu = false; showDevice(); } res(); };
