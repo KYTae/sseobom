@@ -1201,7 +1201,7 @@
   function loadOne(file){
     return new Promise(function(res, rej){
       var url = URL.createObjectURL(file), im = new Image();
-      im.onload = function(){ (im.decode ? im.decode().catch(function(){}) : Promise.resolve()).then(function(){
+      im.onload = function(){ (im.decode ? Promise.race([im.decode().catch(function(){}), new Promise(function(r){ setTimeout(r, 1500); })]) : Promise.resolve()).then(function(){
         var w = im.naturalWidth, h = im.naturalHeight; if (!w || !h){ URL.revokeObjectURL(url); rej(new Error("decode")); return; }
         if (w * h > MAX_PX || Math.max(w, h) > LONG_EDGE_CAP){ URL.revokeObjectURL(url); rej(new Error("too-big")); return; }
         var th = document.createElement("canvas"), s = 72 / Math.max(w, h) * (Math.max(w, h) / Math.min(w, h)); th.width = Math.max(1, Math.round(w * Math.min(1, s))); th.height = Math.max(1, Math.round(h * Math.min(1, s))); th.getContext("2d").drawImage(im, 0, 0, th.width, th.height);
