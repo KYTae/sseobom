@@ -1282,7 +1282,7 @@
     var url = URL.createObjectURL(file), im = new Image();
     showLoading("이미지를 여는 중...");
     im.onload = function(){
-      var p = im.decode ? im.decode().catch(function(){}) : Promise.resolve();
+      var p = im.decode ? Promise.race([im.decode().catch(function(){}), new Promise(function(r){ setTimeout(r, 1500); })]) : Promise.resolve();
       p.then(function(){
         if (img && img.url) URL.revokeObjectURL(img.url);
         img = { file: file, name: file.name, url: url, w: im.naturalWidth, h: im.naturalHeight, el: im };
