@@ -1014,7 +1014,7 @@
     <div class="wrap">
       <div class="tools-head">
         <h2>지금 쓸 수 있는 도구</h2>
-        <span class="tools-count">16개</span>
+        <span class="tools-count">18개</span>
       </div>
 
       <!-- 카테고리 칩 + 검색 — 스크롤하면 위에 붙어(sticky) 목차 역할을 한다. 칩은 필터(그 종류만 남김),
@@ -1086,6 +1086,15 @@
           <p class="tool-desc">프레임을 끌어 비율·크기에 맞게 자르거나, 여백을 넓혀 채우고 모서리를 둥글려요.</p>
           <span class="tool-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"></path></svg></span>
         </a>
+        <a class="tool-card" href="/image-scale-up/" data-cat="image" aria-label="이미지 스케일 업 도구 열기">
+          <div class="tool-head">
+            <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"></path><path d="M21 8V5a2 2 0 0 0-2-2h-3"></path><path d="M3 16v3a2 2 0 0 0 2 2h3"></path><path d="M16 21h3a2 2 0 0 0 2-2v-3"></path></svg></div>
+            <div class="tool-name-row"><div class="tool-name">이미지 스케일 업</div><span class="tool-badge-new" aria-label="새 도구">NEW</span>
+            <span class="tool-cat">이미지</span></div>
+          </div>
+          <p class="tool-desc">작고 흐릿한 사진을 AI(Real-ESRGAN)가 2배·4배로 선명하게 키워요. 그래픽 카드로 브라우저 안에서 처리해요.</p>
+          <span class="tool-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"></path></svg></span>
+        </a>
         <a class="tool-card" href="/pdf-editor/" data-cat="pdf" aria-label="PDF 편집기 도구 열기">
           <div class="tool-head">
             <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path><path d="M9 15h6M9 11h6"></path></svg></div>
@@ -1111,6 +1120,15 @@
             <span class="tool-cat">PDF</span></div>
           </div>
           <p class="tool-desc">"대외비" 같은 글자나 로고·도장을 PDF 원하는 쪽에 얹어요. 글자만 적으면 원·네모 도장도 만들어 찍어요.</p>
+          <span class="tool-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"></path></svg></span>
+        </a>
+        <a class="tool-card" href="/pdf-retouch/" data-cat="pdf" aria-label="PDF 글자·이미지 고치기 도구 열기">
+          <div class="tool-head">
+            <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 3 4 11 4 11 6"></polyline><line x1="7" y1="4" x2="7" y2="14"></line><line x1="5" y1="14" x2="9" y2="14"></line><rect x="13" y="9" width="9" height="9" rx="1.5"></rect><circle cx="15.8" cy="12" r="0.9"></circle><polyline points="22 16 19 13 13 18"></polyline></svg></div>
+            <div class="tool-name-row"><div class="tool-name">PDF 글자·이미지 고치기</div><span class="tool-badge-new" aria-label="새 도구">NEW</span>
+            <span class="tool-cat">PDF</span></div>
+          </div>
+          <p class="tool-desc">PDF 안의 글자 줄을 눌러 고치거나 지우고, 사진을 갈아끼워요. 파일에 든 글꼴을 그대로 써서 옆 글자와 똑같이 들어가요.</p>
           <span class="tool-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"></path></svg></span>
         </a>
         <a class="tool-card" href="/sound-converter/" data-cat="sound" aria-label="사운드 형식 변환 도구 열기">
@@ -1188,29 +1206,13 @@
       </div>
 
       <!-- 준비 중인 도구는 본문에서 빼서 접어둔다 — 쓸 수 있는 도구만 먼저 보이게. 예고는 여기서. -->
-      <div class="soon-panel" id="soonPanel">
+      <div class="soon-panel" id="soonPanel" hidden>
         <button class="notices-toggle soon-toggle" id="soonToggle" type="button" aria-expanded="false" aria-controls="soonContent">
-          <span class="notices-toggle-icon">▶</span> 준비 중인 도구 2개 보기
+          <span class="notices-toggle-icon">▶</span> 준비 중인 도구 보기
         </button>
         <div class="notices-content" id="soonContent">
           <div class="notices-content-inner">
             <div class="soon-grid">
-          <article class="soon-card" data-cat="image">
-            <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"></path><path d="M21 8V5a2 2 0 0 0-2-2h-3"></path><path d="M3 16v3a2 2 0 0 0 2 2h3"></path><path d="M16 21h3a2 2 0 0 0 2-2v-3"></path></svg></div>
-            <div class="tool-body">
-              <div class="tool-name-row"><div class="tool-name">이미지 스케일 업</div><span class="tool-badge-soon">준비 중</span></div>
-              <p class="tool-desc">흐릿한 사진을 선명하게 다듬고, 확대해도 깨지지 않게 키워요.</p>
-            </div>
-          <span class="soon-cat">이미지</span>
-      </article>
-          <article class="soon-card" data-cat="pdf">
-            <div class="tool-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 3 4 11 4 11 6"></polyline><line x1="7" y1="4" x2="7" y2="14"></line><line x1="5" y1="14" x2="9" y2="14"></line><rect x="13" y="9" width="9" height="9" rx="1.5"></rect><circle cx="15.8" cy="12" r="0.9"></circle><polyline points="22 16 19 13 13 18"></polyline></svg></div>
-            <div class="tool-body">
-              <div class="tool-name-row"><div class="tool-name">PDF 글자·이미지 고치기</div><span class="tool-badge-soon">준비 중</span></div>
-              <p class="tool-desc">PDF 안의 글자를 고치고, 들어 있는 사진을 다른 이미지로 갈아끼워요.</p>
-            </div>
-          <span class="soon-cat">PDF</span>
-      </article>
             </div>
             <p class="grow-note">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>
@@ -1232,11 +1234,29 @@
           <button class="notices-toggle" id="noticesToggle" type="button" aria-expanded="false" aria-controls="noticesContent">
             <span class="notices-toggle-icon">▶</span> 공지사항 보기
           </button>
-          <span class="notices-latest-hint">최근 공지 2026.09.26</span>
+          <span class="notices-latest-hint">최근 공지 2026.09.27</span>
         </div>
         <div class="notices-content" id="noticesContent">
           <div class="notices-content-inner">
             <ul class="notice-list">
+              <li class="notice-item">
+                <div class="notice-marker"><span class="notice-dot"></span></div>
+                <div class="notice-card">
+                  <div class="notice-meta">
+                    <span class="notice-date">2026.09.27</span>
+                    <span class="notice-tag notice-tag-new">신규 도구</span>
+                  </div>
+                  <p class="notice-text">도구 2개 "PDF 글자·이미지 고치기", "이미지 스케일 업"을 출시했습니다.</p>
+                  <ul class="notice-sublist">
+                    <li>PDF 안의 글자 줄을 눌러 내용·크기·색을 고치거나 지우고, 들어 있는 사진을 다른 이미지로 갈아끼우거나 지웁니다. 빈 곳에 새 글자·이미지를 넣고 끌어서 놓을 수 있으며, 드래그한 영역을 주변 색으로 덮어 도장·낙서를 지울 수 있습니다.</li>
+                    <li>파일에 포함된 글꼴은 그대로 써서 고친 글자가 옆 글자와 똑같이 들어갑니다. 글꼴 조각에 없는 글자는 같은 글꼴의 완전판(무료 글꼴 라이브러리·내 컴퓨터 글꼴)이나 생김새를 분석해 가장 비슷한 글꼴로 채우고, 원래 줄의 정렬(왼쪽·가운데·오른쪽)과 자리를 지켜 길어지면 크기를 자동으로 줄입니다.</li>
+                    <li>연도·회사 이름처럼 여러 쪽에 걸친 같은 글자는 한 번에 바꾸고, 찾은 줄 목록을 눌러 그 자리로 이동합니다. 확대·축소와 돋보기, 되돌리기·다시 실행을 지원하며, 고친 글자는 검색·복사되는 진짜 글자로 들어갑니다. 원본 글자를 완전히 없애야 할 때는 고친 쪽을 이미지로 구워서 받을 수 있습니다.</li>
+                    <li>PDF 글자·이미지 고치기 — 넓은 화면에서는 쪽 미리보기와 편집 패널이 화면 전체를 쓰는 작업대 배치로 열립니다.</li>
+                    <li>이미지 스케일 업 — 작고 흐릿한 사진을 AI(Real-ESRGAN 공식 모델)가 2배·4배로 키웁니다. 단순히 늘리는 것이 아니라 윤곽과 질감을 다시 그려 압축 얼룩·계단 현상이 사라지고 또렷해집니다. "사진 · 최고 화질"(x4plus), "사진 · 빠름"(잡음 제거 세기 조절), "일러스트·애니" 중 고르고, 처리는 서버 없이 브라우저 안에서 그래픽 카드(WebGPU)로 합니다(없으면 CPU). 끝난 조각부터 미리보기에 채워지며 원본과 비교 슬라이더로 확인한 뒤 PNG·JPG·WEBP로 저장합니다. 투명 PNG는 투명이 유지됩니다. 모델은 처음 한 번 내려받아 브라우저에 저장합니다(최고 화질 약 34MB). 기기 성능에 따라 큰 사진은 시간이 걸리거나 처리하지 못할 수 있으며, 그 경우 배율을 낮추거나 빠름으로 바꾸라고 안내합니다.</li>
+                    <li>두 도구 모두 파일은 서버에 올리지 않고 브라우저 안에서만 처리됩니다.</li>
+                  </ul>
+                </div>
+              </li>
               <li class="notice-item">
                 <div class="notice-marker"><span class="notice-dot"></span></div>
                 <div class="notice-card">
@@ -1555,7 +1575,7 @@
     <span class="footer-credit-mark">ⓒ 2026</span> <span class="footer-credit-name">써봄</span> · All rights reserved — 써봄의 이름, 디자인, 코드는 저작권으로 보호받으며 무단 복제·수정·재배포와 다른 사이트 게시를 금지합니다.<br>
     <span class="footer-credit-mark">ⓒ 2026</span> <span class="footer-credit-name">고윤태</span> — 정성을 담아 제작한 페이지입니다. 이용 허락·문의는 <a class="footer-credit-link" href="#feedback">의견 보내기</a>로 남겨 주세요.<br>
     <a class="footer-credit-link" href="/privacy/">개인정보처리방침</a> · <a class="footer-credit-link" href="/notice/">오픈소스 고지</a>
-    <span class="footer-updated">업데이트 · 2026. 9. 24.</span>
+    <span class="footer-updated">업데이트 · 2026. 9. 27.</span>
   </div>
 </footer>
 
@@ -1775,7 +1795,7 @@
       if ((q || cat !== "all") && soonShown && !soonPanel.classList.contains("open")){ soonPanel.classList.add("open"); soonToggle.setAttribute("aria-expanded", "true"); autoOpened = true; }
       // 필터·검색을 다 지우면, 그때 자동으로 펼쳤던 패널은 다시 접는다(사용자가 직접 연 건 그대로)
       if (!q && cat === "all" && autoOpened){ soonPanel.classList.remove("open"); soonToggle.setAttribute("aria-expanded", "false"); autoOpened = false; }
-      soonPanel.hidden = soonShown === 0 && (q !== "" || cat !== "all");
+      soonPanel.hidden = soonShown === 0 && (q !== "" || cat !== "all" || soonCards.length === 0);   // 예고 카드가 하나도 없으면 패널 자체를 숨긴다
       var msg = "";
       if (q) msg = shown ? "\"" + input.value.trim() + "\" — 도구 " + shown + "개" + (soonShown ? " · 준비 중 " + soonShown + "개" : "") : "\"" + input.value.trim() + "\"에 맞는 도구가 " + (soonShown ? "아직 준비 중이에요." : "아직 없어요. 아래 의견 보내기로 요청해 주세요.");
       result.textContent = msg; result.hidden = !msg;
