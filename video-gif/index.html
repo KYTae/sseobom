@@ -1077,7 +1077,7 @@
           if (settled) return; settled = true;
           if (!info || !vSamples.length){ resolve(null); return; }
           var vt = info.videoTracks[0], description;
-          try { var trak = mp4.getTrackById(vt.id), entries = trak.mdia.minf.stbl.stsd.entries; for (var k = 0; k < entries.length; k++){ var box = entries[k].avcC || entries[k].hvcC || entries[k].vpcC || entries[k].av1C; if (box){ var ds = new MP4Box.DataStream(undefined, 0, MP4Box.DataStream.BIG_ENDIAN); box.write(ds); description = new Uint8Array(ds.buffer, 8); break; } } } catch(e){}
+          try { var trak = mp4.getTrackById(vt.id), entries = trak.mdia.minf.stbl.stsd.entries; for (var k = 0; k < entries.length; k++){ var box = entries[k].avcC || entries[k].hvcC || entries[k].vpcC || entries[k].av1C; if (box){ var DS = MP4Box.DataStream || (typeof DataStream !== "undefined" ? DataStream : null); if (!DS) break; var ds = new DS(undefined, 0, DS.BIG_ENDIAN); box.write(ds); description = new Uint8Array(ds.buffer, 8); break; } } } catch(e){}
           var ts = vt.timescale, frames = vSamples.map(function(s){ return { t: s.cts / ts, dts: s.dts / ts, dur: s.duration / ts, key: !!s.is_sync, data: s.data }; });
           frames.sort(function(a, b){ return a.dts - b.dts; });
           var isAvc = /^avc/.test(vt.codec), isHevc = /^(hvc|hev)/.test(vt.codec);
@@ -1463,7 +1463,7 @@
   // ---------- 시작 ----------
   probeSupport().then(function(){ if (!support.webcodecs){ kindMp4.title = kindWebm.title = "이 브라우저는 영상 인코딩을 지원하지 않아요"; } syncPanel(); });
   syncPanel();
-  window.__videoGifDebug = { get src(){ return src; }, settings: settings, seg: seg, get result(){ return result; }, get running(){ return running; }, support: support, openFile: openFile, outDims: outDims, estimate: estimate, makeCursor: makeCursor, createGifEncoder: createGifEncoder, syncTrim: syncTrim, seekTo: seekTo, player: player, webmHasAudio: webmHasAudio, audioReason: audioReason };
+  window.__videoGifDebug = { get src(){ return src; }, settings: settings, seg: seg, get result(){ return result; }, get running(){ return running; }, support: support, openFile: openFile, outDims: outDims, estimate: estimate, makeCursor: makeCursor, createGifEncoder: createGifEncoder, syncTrim: syncTrim, seekTo: seekTo, player: player, webmHasAudio: webmHasAudio, audioReason: audioReason, tryDemux: tryDemux, loadScript: loadScript, LIB: LIB };
   // ---------- 사이트 공용 커스텀 드롭다운(영상·사운드 편집과 같은 패턴) ----------
   var CARET_SVG = '<svg class="nice-select-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>';
   var CHECK_SVG = '<svg class="nice-select-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"></path></svg>';
