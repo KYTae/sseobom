@@ -1016,7 +1016,14 @@
 
   // ---------- 파일 열기 ----------
   function seekVideo(v, t){ return new Promise(function(resolve){ var fired = false; var to = setTimeout(function(){ if (!fired){ fired = true; v.removeEventListener("seeked", onS); resolve(); } }, 4000); function onS(){ if (fired) return; fired = true; clearTimeout(to); v.removeEventListener("seeked", onS); resolve(); } v.addEventListener("seeked", onS); v.currentTime = t; }); }
-  function loadVideoElement(url){ return new Promise(function(res, rej){ var v = document.createElement("video"); v.muted = true; v.playsInline = true; v.preload = "auto"; v.src = url; var to = setTimeout(function(){ rej(new Error("video-timeout")); }, 30000); v.addEventListener("loadedmetadata", function(){ clearTimeout(to); res(v); }, { once: true }); v.addEventListener("error", function(){ clearTimeout(to); rej(new Error("video-error")); }, { once: true }); }); }
+  function loadVideoElement(url){ return new Promise(function(res, rej){ var v = document.createElement("video"); v.muted = true; v.playsInline = true; v.preload = "auto"; v.src = url; var to = setTimeout(function(){ rej(new Error("video-timeout")); }, 30000);
+    v.addEventListener("loadedmetadata", function(){ clearTimeout(to);
+      // 브라우저 녹화(MediaRecorder)·스트리밍 저장 WebM은 길이가 Infinity로 나온다 → 끝으로 시크해 실제 길이를 알아낸다
+      if (!isFinite(v.duration) || v.duration <= 0){ var fixed = false, to2 = setTimeout(function(){ if (!fixed){ fixed = true; v.currentTime = 0; res(v); } }, 8000);
+        v.addEventListener("durationchange", function onD(){ if (isFinite(v.duration) && v.duration > 0 && !fixed){ fixed = true; clearTimeout(to2); v.removeEventListener("durationchange", onD); v.currentTime = 0; v.addEventListener("seeked", function(){ res(v); }, { once: true }); setTimeout(function(){ res(v); }, 3000); } });
+        v.currentTime = 1e101; return; }
+      res(v); }, { once: true });
+    v.addEventListener("error", function(){ clearTimeout(to); rej(new Error("video-error")); }, { once: true }); }); }
   function openFile(file){
     if (!file) return;
     if (!(/^video\//.test(file.type) || /\.(mp4|m4v|mov|webm|mkv|avi|ogv)$/i.test(file.name))){ showAlert("영상 파일(MP4 · MOV · WebM · MKV)을 올려 주세요."); return; }
