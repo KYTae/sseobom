@@ -931,7 +931,8 @@
 (function(){
   "use strict";
   var $ = function(id){ return document.getElementById(id); };
-  var LIB = { mp4box: "https://cdn.jsdelivr.net/npm/mp4box@0.5.4/dist/mp4box.all.min.js", mp4muxer: "https://cdn.jsdelivr.net/npm/mp4-muxer@5.2.2/build/mp4-muxer.js", webmmuxer: "https://cdn.jsdelivr.net/npm/webm-muxer@5.1.4/build/webm-muxer.js" };
+  // 라이브러리는 같은 폴더(/video-gif/lib/)에서 먼저 읽고, 없거나 실패하면 CDN으로 대체
+  var LIB = { mp4box: ["/video-gif/lib/mp4box.all.min.js", "https://cdn.jsdelivr.net/npm/mp4box@0.5.4/dist/mp4box.all.min.js"], mp4muxer: ["/video-gif/lib/mp4-muxer.js", "https://cdn.jsdelivr.net/npm/mp4-muxer@5.2.2/build/mp4-muxer.js"], webmmuxer: ["/video-gif/lib/webm-muxer.js", "https://cdn.jsdelivr.net/npm/webm-muxer@5.1.4/build/webm-muxer.js"] };
   var IS_MOBILE = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (navigator.userAgentData && navigator.userAgentData.mobile);
   // 메모리 한계: 컨테이너 풀기(빠른 읽기)와 소리 디코딩은 파일 전체를 메모리에 올린다 → 큰 파일·모바일은 시크 방식·무음으로
   var MAX_FILE = 2 * 1024 * 1024 * 1024, DEMUX_MAX = (IS_MOBILE ? 200 : 600) * 1024 * 1024, AUDIO_FILE_MAX = (IS_MOBILE ? 150 : 400) * 1024 * 1024, AUDIO_SRC_MAX_SEC = 1800, AUDIO_MAX_SEC = 900, GIF_MAX_FRAMES = 1500, GIF_MAX_SEC = 60;
@@ -990,7 +991,8 @@
   function yieldMacro(){ return new Promise(function(r){ setTimeout(r, 0); }); }
   function raf(){ return new Promise(function(r){ var done = false; function f(){ if (!done){ done = true; r(); } } requestAnimationFrame(f); setTimeout(f, 50); }); } // 탭이 숨겨지면 rAF가 멈추므로 50ms 뒤에는 그냥 진행(다른 탭으로 옮겨도 변환이 계속됨)
   var scriptP = {};
-  function loadScript(url){ if (!scriptP[url]) scriptP[url] = new Promise(function(res, rej){ var s = document.createElement("script"); s.src = url; s.onload = function(){ res(); }; s.onerror = function(){ delete scriptP[url]; rej(new Error("lib-load")); }; document.head.appendChild(s); }); return scriptP[url]; }
+  function loadOne(url){ return new Promise(function(res, rej){ var s = document.createElement("script"); s.src = url; s.onload = function(){ res(url); }; s.onerror = function(){ s.remove(); rej(new Error("lib-load")); }; document.head.appendChild(s); }); }
+  function loadScript(urls){ if (typeof urls === "string") urls = [urls]; var key = urls[0]; if (!scriptP[key]) scriptP[key] = urls.reduce(function(p, u){ return p.catch(function(){ return loadOne(u); }); }, Promise.reject()).catch(function(e){ delete scriptP[key]; throw e; }); return scriptP[key]; }
 
   // ---------- 기능 지원 여부(영상 편집 도구와 같은 방식) ----------
   var support = { webcodecs: typeof VideoEncoder !== "undefined" && typeof VideoDecoder !== "undefined" && typeof VideoFrame !== "undefined", audioEncoder: typeof AudioEncoder !== "undefined", checked: false, h264Enc: false, h264Codec: null, h264Hw: null, hevcEnc: false, vp9Enc: false, vp8Enc: false, av1Enc: false, aacEnc: false, opusEnc: false };
