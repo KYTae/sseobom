@@ -3095,7 +3095,7 @@
     $("kfPresetsBox").hidden = kind === "audio";
     var duckOk = kind === "audio" || (kind === "video" && clipHasLinkedAudio(item)); $("kfDuckBox").hidden = !duckOk;
     if (duckOk) refreshDuckState();
-    requestAnimationFrame(function(){ paintKfPanel(); });
+    raf().then(function(){ paintKfPanel(); });
     refreshKfButtons();
   }
   function kfFmtVal(v, row){ var x = v * row.mul; return (Math.round(x / row.step) * row.step).toFixed(row.step < 1 ? 1 : 0); }
