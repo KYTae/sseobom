@@ -680,6 +680,7 @@
   .clip.muted-clip{ opacity:.7; }
   .clip canvas{ position:absolute; inset:0; width:100%; height:100%; display:block; }
   .clip .clip-name{ position:absolute; left:6px; top:4px; font-size:11px; font-weight:700; color:#fff; text-shadow:0 1px 2px rgba(0,0,0,.8); pointer-events:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:calc(100% - 12px); }
+  .clip.has-kf .clip-name{ max-width:calc(100% - var(--kf-badge-w, 90px)); }
   .clip .clip-meta{ position:absolute; right:6px; bottom:3px; font-size:10px; color:#fff; text-shadow:0 1px 2px rgba(0,0,0,.8); pointer-events:none; }
   .clip .clip-edge{ position:absolute; top:0; bottom:0; width:10px; cursor:ew-resize; z-index:2; }
   .clip .clip-edge.left{ left:0; } .clip .clip-edge.right{ right:0; }
@@ -960,6 +961,125 @@
   .tc-toggle-wrap{ display:flex; width:100%; }
   .tc-toggle-wrap button{ width:100%; padding:6px 8px; font-size:12px; }
   .tc-field.is-off{ opacity:.45; }
+
+  /* ---------- 키프레임 탭(효과 컨트롤 방식) ---------- */
+  .kf-card{ padding:10px 12px; }
+  .kf-card-head{ margin-bottom:4px; }
+  .kf-grid{ display:grid; grid-template-columns:minmax(148px, 172px) 1fr; gap:0; border:1px solid var(--card-border); border-radius:12px; overflow:hidden; background:var(--bg); margin-top:6px; }
+  .kf-ruler-l{ padding:4px 8px; font-size:10.5px; color:var(--text-dim); border-bottom:1px solid var(--card-border); display:flex; align-items:center; justify-content:space-between; gap:4px; }
+  .kf-ruler-l .kf-pos{ font-weight:700; color:var(--accent); }
+  .kf-ruler{ position:relative; height:24px; border-bottom:1px solid var(--card-border); border-left:1px solid var(--card-border); cursor:ew-resize; user-select:none; }
+  .kf-ruler canvas{ position:absolute; inset:0; width:100%; height:100%; display:block; }
+  .kf-row-l{ display:flex; flex-direction:column; gap:3px; padding:6px 8px; border-bottom:1px solid var(--card-border); min-width:0; }
+  .kf-row-l:last-child, .kf-row-t:last-child{ border-bottom:0; }
+  .kf-row-top{ display:flex; align-items:center; gap:4px; min-width:0; }
+  .kf-stop{ appearance:none; border:1px solid var(--card-border); background:var(--card); color:var(--text-dim); width:24px; height:22px; border-radius:7px; font-size:12px; line-height:1; cursor:pointer; flex:none; padding:0; transition:background .12s ease, color .12s ease, border-color .12s ease; }
+  .kf-stop:hover{ border-color:var(--accent); color:var(--accent); }
+  .kf-stop.on{ background:var(--accent); color:#fff; border-color:var(--accent); }
+  .kf-row-name{ font-size:11.5px; font-weight:700; flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .kf-row-l .kf-ctl{ margin-left:0; }
+  .kf-row-val{ display:flex; align-items:center; gap:4px; }
+  .kf-row-val input[type=number]{ width:100%; min-width:0; font-family:inherit; font-size:12px; padding:4px 8px; border-radius:999px; border:1px solid var(--card-border); background:var(--card); color:var(--text); box-sizing:border-box; }
+  .kf-row-val input[type=number]:focus{ outline:none; border-color:var(--accent); }
+  .kf-row-val input[type=number].anim{ border-color:var(--accent); color:var(--accent); font-weight:700; }
+  .kf-row-val .kf-unit{ font-size:11px; color:var(--text-dim); flex:none; }
+  .kf-expand{ appearance:none; border:0; background:transparent; color:var(--text-dim); font-size:11px; padding:2px 4px; border-radius:6px; cursor:pointer; flex:none; }
+  .kf-expand:hover{ background:var(--accent-dim); color:var(--accent); }
+  .kf-row-t{ position:relative; border-bottom:1px solid var(--card-border); border-left:1px solid var(--card-border); min-height:44px; }
+  .kf-row-t.expanded{ min-height:120px; }
+  .kf-row-t canvas{ position:absolute; inset:0; width:100%; height:100%; display:block; }
+  .kf-row-t.off canvas{ opacity:.45; }
+  .kf-g-dot{ position:absolute; width:11px; height:11px; margin:-5.5px 0 0 -5.5px; z-index:3; cursor:grab; }
+  .kf-g-dot::before{ content:""; position:absolute; inset:1px; background:#fff; border:1.5px solid var(--accent); transform:rotate(45deg); border-radius:1px; box-shadow:0 0 0 1px rgba(0,0,0,.35); transition:transform .12s ease, background .12s ease; }
+  .kf-g-dot:hover::before{ transform:rotate(45deg) scale(1.3); }
+  .kf-g-dot.at::before{ background:var(--accent); }
+  .kf-g-dot.sel::before{ background:var(--warn); border-color:#fff; box-shadow:0 0 0 2px var(--accent); }
+  .kf-g-dot.dragging{ cursor:grabbing; }
+  .kf-g-dot.eased::after{ content:""; position:absolute; left:50%; top:-4px; width:3px; height:3px; margin-left:-1.5px; border-radius:50%; background:var(--accent); }
+  .kf-playline{ position:absolute; top:0; bottom:0; width:0; border-left:2px solid #e5484d; z-index:2; pointer-events:none; }
+  .kf-more{ margin-top:10px; border:1px dashed var(--card-border); border-radius:10px; padding:6px 10px; }
+  .kf-more summary{ cursor:pointer; font-size:12px; font-weight:700; color:var(--text-dim); list-style:none; display:flex; align-items:center; gap:6px; }
+  .kf-more summary::before{ content:"▸"; font-size:11px; transition:transform .15s ease; }
+  .kf-more[open] summary::before{ transform:rotate(90deg); }
+  .kf-more summary::-webkit-details-marker{ display:none; }
+  .tc-label.anim::after{ content:" ◆"; color:var(--accent); font-weight:800; }
+  .kf-link{ display:inline-flex; align-items:center; gap:4px; font-size:11.5px; font-weight:700; color:var(--accent); background:var(--accent-dim); border:0; border-radius:999px; padding:3px 10px; cursor:pointer; font-family:inherit; }
+  .kf-link:hover{ filter:brightness(1.05); }
+  /* ---------- 키프레임 탭: 숨 쉴 여백 ---------- */
+  #kfPanel .kf-card{ padding:16px 16px 18px; }
+  #kfPanel .kf-card-head{ margin-bottom:8px; align-items:baseline; }
+  #kfPanel .item-title{ font-size:14px; }
+  #kfPanel .kf-summary{ gap:6px; margin:4px 0 12px; }
+  #kfPanel .kf-pill{ padding:4px 10px; font-size:11.5px; }
+  #kfPanel .kf-grid{ margin-top:10px; }
+  #kfPanel .kf-ruler-l{ padding:6px 10px; }
+  #kfPanel .kf-row-l{ gap:6px; padding:9px 10px; }
+  #kfPanel .kf-row-t{ min-height:52px; }
+  #kfPanel .kf-row-t.expanded{ min-height:132px; }
+  #kfPanel .kf-row-name{ font-size:12px; }
+  #kfPanel .kf-row-val input[type=number]{ padding:5px 10px; }
+  #kfPanel .kf-expand{ padding:3px 6px; margin-left:2px; }
+  #kfPanel .tc-hint{ font-size:12px; line-height:1.65; margin-top:8px; }
+  #kfPanel #kfHint{ margin:14px 0 4px; padding:10px 12px; background:var(--accent-dim); border-radius:10px; color:var(--text); }
+  #kfPanel .tc-sec{ margin-top:16px; padding-top:14px; }
+  #kfPanel .tc-grid{ gap:10px 12px; }
+  #kfPanel .tc-label{ margin-bottom:4px; }
+  #kfPanel .kf-more{ margin-top:14px; padding:0 14px; border-style:solid; border-radius:12px; background:var(--bg); }
+  #kfPanel .kf-more summary{ padding:12px 0; font-size:12.5px; color:var(--text); }
+  #kfPanel .kf-more summary::before{ color:var(--text-dim); }
+  #kfPanel .kf-more summary{ flex-wrap:wrap; gap:3px 8px; }
+  #kfPanel .kf-more summary b{ font-weight:700; }
+  #kfPanel .kf-more summary small{ flex-basis:100%; padding-left:19px; font-size:11.5px; font-weight:400; color:var(--text-dim); line-height:1.5; }
+  #kfPanel #kfHint{ background:color-mix(in srgb, var(--accent) 7%, var(--card)); }
+  #kfPanel .kf-more-body{ overflow:hidden; }
+  #kfPanel .kf-more.animating .kf-more-body{ transition:height .22s ease, opacity .22s ease; }
+  #kfPanel .kf-more-inner{ padding:2px 0 14px; }
+  #kfPanel .kf-presets{ gap:8px; margin-top:4px; }
+  #kfPanel .kf-presets button{ padding:8px 13px; }
+  #kfPanel .kf-presets + .tc-hint{ margin-top:12px; }
+  #kfPanel .kf-duck{ gap:10px 12px; margin-top:4px; }
+  #kfPanel #cpDuckHint{ margin-top:12px; }
+  #kfPanel .empty-list{ padding:22px 18px; line-height:1.7; }
+  /* ---------- 키프레임(움직임) ---------- */
+  .tc-label.has-kf{ display:flex; align-items:center; justify-content:space-between; gap:6px; overflow:visible; }
+  .kf-ctl{ display:inline-flex; align-items:center; gap:1px; flex:none; margin-left:auto; }
+  .kf-ctl button{ appearance:none; border:0; background:transparent; color:var(--text-dim); font-size:11px; line-height:1; padding:2px 3px; border-radius:6px; cursor:pointer; font-family:inherit; transition:color .12s ease, background .12s ease, transform .12s ease; }
+  .kf-ctl button:hover{ background:var(--accent-dim); color:var(--accent); }
+  .kf-ctl button:disabled{ opacity:.3; cursor:default; background:transparent; }
+  .kf-ctl .kf-btn{ font-size:13px; padding:1px 4px; color:var(--text-dim); }
+  .kf-ctl .kf-btn.anim{ color:var(--accent); }
+  .kf-ctl .kf-btn.on{ color:#fff; background:var(--accent); box-shadow:0 0 0 2px var(--accent-dim); }
+  .kf-ctl .kf-btn.on:hover{ background:var(--accent); color:#fff; }
+  .kf-ctl .kf-btn:active{ transform:scale(.85); }
+  .clip-kf, .aclip .clip-kf, .tclip .clip-kf{ position:absolute; right:4px; top:3px; z-index:4; display:inline-flex; align-items:center; gap:3px; max-width:calc(100% - 8px); padding:1px 7px 1px 5px; border-radius:999px; background:var(--accent); color:#fff; font-size:10.5px; font-weight:800; line-height:16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,.45); pointer-events:auto; transition:transform .12s ease, filter .12s ease; }
+  .clip-kf:hover{ filter:brightness(1.12); transform:translateY(-1px); }
+  .clip-kf .clip-kf-x{ display:inline-block; margin-left:2px; padding:0 2px; border-radius:999px; opacity:.75; font-weight:900; }
+  .clip-kf .clip-kf-x:hover{ opacity:1; background:rgba(0,0,0,.25); }
+  .aclip .clip-kf, .tclip .clip-kf{ top:2px; right:10px; font-size:10px; line-height:15px; }
+  .kf-range{ position:absolute; bottom:6px; height:2px; background:var(--accent); opacity:.9; z-index:3; pointer-events:none; border-radius:1px; box-shadow:0 0 0 1px rgba(0,0,0,.35); }
+  .aclip .kf-range, .tclip .kf-range{ bottom:5px; }
+  .tc-sec.kf-flash{ animation:kfFlash 1.2s ease; border-radius:10px; }
+  @keyframes kfFlash{ 0%{ box-shadow:0 0 0 0 var(--accent-dim); background:var(--accent-dim); } 100%{ box-shadow:0 0 0 12px transparent; background:transparent; } }
+  .kf-dot{ position:absolute; bottom:3px; width:9px; height:9px; margin-left:-4.5px; z-index:4; cursor:ew-resize; pointer-events:auto; }
+  .kf-dot::before{ content:""; position:absolute; inset:1px; background:#fff; border:1.5px solid var(--accent); transform:rotate(45deg); border-radius:1px; box-shadow:0 0 0 1px rgba(0,0,0,.45); transition:transform .12s ease, background .12s ease; }
+  .kf-dot.at::before{ background:var(--accent); transform:rotate(45deg) scale(1.25); }
+  .kf-dot:hover::before{ transform:rotate(45deg) scale(1.35); }
+  .kf-dot.dragging::before{ background:var(--warn); border-color:#fff; }
+  .kf-dot.sel::before{ background:var(--warn); border-color:#fff; box-shadow:0 0 0 2px var(--accent), 0 0 0 3px rgba(0,0,0,.4); }
+  .kf-dot.eased::after{ content:""; position:absolute; left:50%; top:-3px; width:3px; height:3px; margin-left:-1.5px; border-radius:50%; background:var(--accent); }
+  .clip:not(.selected) .kf-dot, .aclip:not(.selected) .kf-dot, .tclip:not(.selected) .kf-dot{ opacity:.75; }
+  .aclip .kf-dot, .tclip .kf-dot{ bottom:2px; }
+  .kf-summary{ display:flex; flex-wrap:wrap; gap:4px; margin:2px 0 6px; }
+  .kf-pill{ display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:600; color:var(--accent); background:var(--accent-dim); border-radius:999px; padding:2px 8px; }
+  .kf-pill b{ font-weight:800; }
+  .kf-pill button{ appearance:none; border:0; background:transparent; color:inherit; font-size:12px; line-height:1; padding:0 0 0 2px; cursor:pointer; opacity:.7; }
+  .kf-pill button:hover{ opacity:1; }
+  .kf-presets{ display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+  .kf-presets button{ padding:6px 10px; font-size:12px; border-radius:999px; }
+  .kf-presets button .kf-ico{ display:inline-block; width:14px; text-align:center; margin-right:2px; opacity:.8; }
+  .tc-sub-title{ font-size:11px; font-weight:700; color:var(--text-dim); margin-top:8px; }
+  .kf-duck{ display:grid; grid-template-columns:1fr 1fr auto; gap:6px 10px; align-items:end; margin-top:6px; }
+  .kf-duck button{ padding:7px 12px; font-size:12px; white-space:nowrap; }
   .tc-hint{ font-size:11.5px; color:var(--text-dim); margin-top:4px; }
   .tc-foot{ display:flex; justify-content:flex-end; margin-top:10px; }
   .tc-foot button{ font-size:12px; padding:6px 12px; }
@@ -1323,6 +1443,7 @@
           <div class="help-item"><span class="help-key">선택만 남기기 / 선택 구간 지우기</span><span class="help-desc"><b>I</b>/<b>O</b> 키로 잡은 보라색 구간을 기준으로, 그 구간만 남기거나(앞으로 당겨져요) 그 구간을 지워요(자리는 여백으로 남고, 자막도 같이 지워져요). 여러 레인·클립에 걸쳐 있어도 한 번에 처리돼요.</span></div>
           <div class="help-item"><span class="help-key">+ 영상 추가 · 타임라인에 드롭</span><span class="help-desc">버튼으로 올리면 맨 뒤에 이어 붙고, 파일을 타임라인 위에 바로 떨어뜨리면 그 시각·그 레인에 놓여요(영상은 영상 레인, MP3·WAV는 배경음악 레인). 해상도가 달라도 내보낼 때 첫 영상 크기에 맞춰 검은 여백으로 맞춰져요.</span></div>
           <div class="help-item"><span class="help-key">클립 속성 (속도 · 화면 · 전환 · 소리)</span><span class="help-desc">클립을 선택하면 오른쪽 속성 패널(클립 탭)에 속성이 나타나요. 속도 0.25~4배, 화면 맞춤/채움·크기·회전·불투명도, 시작 전환(디졸브·검은 화면·밀기·확대)과 끝 페이드, 색 보정, 볼륨·음소거·오디오 분리/지우기까지 여기서 해요.</span></div>
+          <div class="help-item help-item-wide"><span class="help-key">움직임 · 키프레임 (줌 인/아웃 · 팬 · 자막 애니메이션 · 볼륨 더킹)</span><span class="help-desc">오른쪽 패널의 <b>키프레임</b> 탭이 프리미어의 효과 컨트롤이에요. 속성마다 <b>⏱</b>를 켜면 지금 재생 위치의 값이 첫 키프레임으로 기록되고, 재생 위치를 옮겨 값을 바꾸면(값 칸에 입력·클립 탭 슬라이더·미리보기 상자 끌기) 그 시각에 자동으로 기록돼요. 재생 위치를 옮겨 값을 바꾸고 다시 ◆를 누르면(또는 미리보기 상자를 끌거나 슬라이더를 움직이면 자동으로) 두 지점 사이가 부드럽게 이어져요. 오른쪽 선(그래프)에서 ◆를 좌우로 끌면 시각, 그래프를 펼쳐 위아래로 끌면 값이 바뀌고, 빈 곳 더블클릭으로 키프레임을 더해요. 아래 "빠른 움직임 넣기"는 줌 인·줌 아웃·팬·켄 번스·등장·퇴장 키프레임을 대신 찍어 주는 프리셋이고, 자막은 "아래에서 등장·커지며 등장·튀어오르기" 같은 애니메이션을, 오디오는 구간을 잡고 "선택 구간에 적용"으로 말할 때 배경음악이 작아지는 더킹을 넣어요. 타임라인 클립 아래의 ◆는 끌어서 시각을 옮기고, 클릭 후 Delete(또는 Alt+클릭)로 지우고, 우클릭으로 그 구간만 잇는 방식(부드럽게·일정하게·천천히 시작/끝·계단)을 바꿔요. 오디오 행은 Ctrl+클릭으로 그 자리에 볼륨 키프레임이 생겨요. 클립 위 파란 배지(◆ 줌 인)로 무엇이 들어갔는지 보고 ×로 한 번에 지워요.</span></div>
           <div class="help-item"><span class="help-key">미리보기에서 옮기기·키우기·자르기</span><span class="help-desc">클립을 선택하면 미리보기 위에 파란 상자가 떠요. 상자 안을 끌면 위치, 모서리를 끌면 크기(반대쪽 모서리는 고정 · Alt를 누르면 가운데 기준), 위쪽 동그라미로 회전(90°마다 자석), 네 변을 안쪽으로 끌면 그만큼 잘려요(크롭). 더블클릭하면 원래대로. 작은 화면 겹치기(PIP)는 위 레인에 올린 클립을 이렇게 줄이면 돼요.</span></div>
           <div class="help-item"><span class="help-key">색 (프리셋 · 밝기·대비·채도·색온도·비네트)</span><span class="help-desc">클립마다 흑백·세피아·선명·빈티지·차분·시네마 프리셋을 고르고, 슬라이더로 밝기·대비·채도·색온도(파랑↔주황)·비네트(가장자리 어둡게)를 더해요. "모든 클립에 적용"을 누르면 영상 전체 톤이 한 번에 맞춰져요. 미리보기와 저장본에 똑같이 들어가요.</span></div>
           <div class="help-item"><span class="help-key">V1 소리 행 · 오디오 분리</span><span class="help-desc">소리가 있는 영상은 영상 레인 아래에 "V1 소리" 행이 생겨요. 클릭하면 그 클립이 선택되고, 속성에서 음소거·"오디오 분리"(배경음악 레인으로 떼어내 따로 옮기고 자름)·"오디오 지우기"(영상만 남김)를 고를 수 있어요. 영상을 여러 개 겹칠 때 소리가 겹치면 여기서 정리해요.</span></div>
@@ -1417,12 +1538,13 @@
 
     <div class="wb-vsplit" id="wbVSplit" role="separator" aria-orientation="vertical" aria-label="속성 패널 폭 조절 — 끌거나 ←→ 키" tabindex="-1" hidden><span class="wb-vsplit-grip" aria-hidden="true"></span></div>
     <aside class="panel-card inspector-card" id="inspector" aria-label="속성 패널">
-      <div class="mode-track" id="panelTabs" role="group" aria-label="패널 선택" style="--tab-count:4;">
+      <div class="mode-track" id="panelTabs" role="group" aria-label="패널 선택" style="--tab-count:5;">
         <span class="mode-indicator" aria-hidden="true"></span>
         <button type="button" data-tab="clip" aria-pressed="true" aria-controls="clipPanel">클립</button>
         <button type="button" data-tab="audio" aria-pressed="false" aria-controls="audioPanel">소리</button>
         <button type="button" data-tab="text" aria-pressed="false" aria-controls="textPanel">자막</button>
         <button type="button" data-tab="screen" aria-pressed="false" aria-controls="screenPanel">화면</button>
+        <button type="button" data-tab="kf" aria-pressed="false" aria-controls="kfPanel" title="시간에 따라 값이 바뀌는 움직임(키프레임)">키프레임</button>
       </div>
       <div class="inspector-body" id="inspectorBody">
       <div class="tab-panel" id="clipPanel">
@@ -1431,6 +1553,7 @@
         <div class="item-head">
           <span class="item-title" id="cpName">클립</span>
           <span class="tc-time" id="cpDur"></span>
+          <span id="cpKfLinkHost"></span>
         </div>
         <div class="tc-sec">
           <div class="tc-sec-title">재생</div>
@@ -1445,12 +1568,17 @@
             <label class="tc-field tc-range"><span class="tc-label">회전</span><span class="tc-ctrl"><input type="range" id="cpRot" min="-180" max="180" step="1" value="0"><span class="val" id="cpRotVal">0°</span></span></label>
             <label class="tc-field tc-range"><span class="tc-label">불투명</span><span class="tc-ctrl"><input type="range" id="cpOpacity" min="0" max="100" step="1" value="100"><span class="val" id="cpOpacityVal">100%</span></span></label>
           </div>
+          <div class="tc-grid cols-3" id="cpPosGrid">
+            <label class="tc-field"><span class="tc-label">가로 위치</span><span class="tc-ctrl"><input type="number" id="cpPosX" min="-150" max="150" step="1" value="0" aria-label="가로 위치 (화면 폭의 %)"><span class="tc-unit">%</span></span></label>
+            <label class="tc-field"><span class="tc-label">세로 위치</span><span class="tc-ctrl"><input type="number" id="cpPosY" min="-150" max="150" step="1" value="0" aria-label="세로 위치 (화면 높이의 %)"><span class="tc-unit">%</span></span></label>
+            <span class="tc-field"><span class="tc-label">가운데로</span><span class="tc-ctrl"><button type="button" id="cpCenterBtn" title="위치를 화면 가운데(0, 0)로">가운데</button></span></span>
+          </div>
           <div class="tc-btns">
             <button type="button" id="cpFitBtn" title="화면에 맞춤(여백) ↔ 채움(잘림)">화면 맞춤 ✓</button>
             <button type="button" id="cpAutoCropBtn" title="영상 가장자리의 검은 띠(레터박스·필러박스)를 찾아 그만큼 잘라내요">검은 여백 자동 자르기</button>
             <button type="button" id="cpResetTfBtn">위치·크기 초기화</button>
           </div>
-          <div class="tc-hint">파란 상자 = 이 클립이 화면에 그려지는 부분. 상자를 끌어 옮기고 모서리·변·회전 손잡이로 바꿔요.</div>
+          <div class="tc-hint">파란 상자 = 이 클립이 화면에 그려지는 부분. 상자를 끌어 옮기고 모서리·변·회전 손잡이로 바꿔요. 시간에 따라 움직이게 하려면 <b>키프레임</b> 탭에서.</div>
         </div>
         <div class="tc-sec" id="cpFxGroup">
           <div class="tc-sec-title">색</div>
@@ -1554,6 +1682,48 @@
         </div>
         <div class="item-list" id="audioList"></div>
         <div class="empty-list" id="audioEmpty">추가한 오디오가 없어요. MP3·WAV 파일을 올리면 영상 소리 위에 겹쳐서 들려요.</div>
+      </div>
+      <div class="tab-panel" id="kfPanel" hidden>
+        <div class="empty-list" id="kfEmpty">타임라인에서 <b>클립·자막·오디오</b>를 고르면 여기에 그 항목의 움직임(키프레임)이 나와요.<br>프리미어의 효과 컨트롤처럼 — 속성마다 <b>⏱</b>를 켜고, 재생 위치를 옮겨 값을 바꾸면 그 사이가 자동으로 이어져요.<div class="tc-btns tc-panel-btns"><button type="button" id="kfEmptyPick">재생 위치의 클립 선택</button></div></div>
+        <div class="tc-card kf-card" id="kfCard" hidden>
+          <div class="item-head kf-card-head">
+            <span class="item-title" id="kfTitle">항목</span>
+            <span class="tc-time" id="kfRange"></span>
+          </div>
+          <div class="kf-summary" id="cpKfSummary"></div>
+          <div class="kf-grid" id="kfGrid"></div>
+          <div class="tc-hint" id="kfHint">⏱를 켜면 지금 재생 위치에 첫 키프레임이 기록되고, 그 뒤로는 값을 바꿀 때마다 그 시각에 자동으로 기록돼요. 값 칸에 숫자를 쳐도 되고, 오른쪽 선의 ◆를 <b>좌우</b>로 끌면 시각, 그래프를 펼친 뒤 <b>위아래</b>로 끌면 값이 바뀌어요. 선의 빈 곳을 <b>더블클릭</b>하면 그 자리에 키프레임이 생겨요. ◆ 우클릭으로 잇는 방식, 클릭 후 Delete로 삭제.</div>
+          <div class="tc-sec">
+            <div class="tc-grid cols-3">
+              <label class="tc-field span-2"><span class="tc-label">사이를 잇는 방식 (기본)</span><span class="tc-ctrl"><select class="export-select" id="cpKfEase" aria-label="키프레임 사이를 잇는 방식"><option value="smooth">부드럽게 (천천히 시작·끝)</option><option value="linear">일정하게</option><option value="in">천천히 시작</option><option value="out">천천히 끝</option><option value="hold">계단 (바로 바뀜)</option></select></span></label>
+              <span class="tc-field"><span class="tc-label">키프레임</span><span class="tc-ctrl"><button type="button" id="cpKfClearBtn" class="danger-text" title="이 항목의 키프레임을 모두 지워요(값은 지금 재생 위치의 상태로 남아요)">모두 지우기</button></span></span>
+            </div>
+          </div>
+          <details class="kf-more" id="kfPresetsBox">
+            <summary><b>빠른 움직임 넣기 (프리셋)</b><small>키프레임을 대신 찍어 줘요 — 넣은 뒤 위 그래프에서 다듬을 수 있어요</small></summary>
+            <div class="kf-presets" id="cpKfPresets">
+              <button type="button" data-preset="zoomin" title="클립이 흐르는 동안 천천히 확대돼요"><span class="kf-ico">⤢</span>줌 인</button>
+              <button type="button" data-preset="zoomout" title="확대된 상태에서 천천히 원래 크기로"><span class="kf-ico">⤡</span>줌 아웃</button>
+              <button type="button" data-preset="panright" title="살짝 확대한 채 왼쪽에서 오른쪽으로 흘러요"><span class="kf-ico">→</span>왼→오 팬</button>
+              <button type="button" data-preset="panleft" title="살짝 확대한 채 오른쪽에서 왼쪽으로 흘러요"><span class="kf-ico">←</span>오→왼 팬</button>
+              <button type="button" data-preset="kenburns" title="확대하면서 살짝 흐르는 사진 슬라이드 느낌(켄 번스)"><span class="kf-ico">✦</span>켄 번스</button>
+              <button type="button" data-preset="appear" title="처음 0.6초 동안 살짝 작은 상태에서 나타나요"><span class="kf-ico">◐</span>등장</button>
+              <button type="button" data-preset="vanish" title="마지막 0.6초 동안 사라져요"><span class="kf-ico">◑</span>퇴장</button>
+              <button type="button" data-preset="spin" title="한 바퀴 돌아요"><span class="kf-ico">↻</span>한 바퀴</button>
+            </div>
+            <div class="kf-presets" id="kfTextPresets"></div>
+            <div class="tc-hint">넣은 뒤 위 그래프에서 ◆를 옮기거나 값을 고쳐 다듬으세요. 같은 속성의 기존 키프레임은 바뀌어요.</div>
+          </details>
+          <details class="kf-more" id="kfDuckBox">
+            <summary><b>선택 구간 볼륨 낮추기 (더킹)</b><small>잡은 구간만 볼륨을 낮췄다가 다시 올려요</small></summary>
+          <div class="kf-duck">
+            <label class="tc-field"><span class="tc-label">낮출 볼륨</span><span class="tc-ctrl"><input type="number" id="cpDuckLevel" min="0" max="100" step="5" value="25" aria-label="낮출 볼륨 (%)"><span class="tc-unit">%</span></span></label>
+            <label class="tc-field"><span class="tc-label">오르내림</span><span class="tc-ctrl"><input type="number" id="cpDuckRamp" min="0" max="5" step="0.1" value="0.4" aria-label="오르내리는 시간 (초)"><span class="tc-unit">초</span></span></label>
+            <button type="button" id="cpDuckBtn" title="타임라인에서 I/O 키나 Shift+끌기로 잡은 구간의 볼륨을 낮춰요(볼륨 키프레임으로 기록)">선택 구간에 적용</button>
+          </div>
+          <div class="tc-hint" id="cpDuckHint">타임라인에서 구간을 잡은 뒤(I/O 키 또는 Shift+끌기) 누르면, 그 구간만 낮아졌다가 다시 올라오는 볼륨 키프레임이 들어가요.</div>
+          </details>
+        </div>
       </div>
       <div class="tab-panel" id="textPanel" hidden>
         <div class="panel-row">
@@ -2110,16 +2280,100 @@
     return Math.min(MAX_LANES, n);
   }
 
+
+  // ---------- 키프레임(움직임) ----------
+  // 시각마다 값을 기록해 두면 그 사이를 자동으로 잇는다. 영상 클립은 "원본 시각"(source sec) 기준이라 자르기·나누기·속도를 바꿔도 내용에 붙어 다니고,
+  // 자막·오디오는 "시작으로부터의 시각"(local sec) 기준이다. 기록된 값이 없는 속성은 예전처럼 고정값(tf.x, t.size, a.volume …)을 쓴다.
+  var KF_KEYS = { video: { x: "가로 위치", y: "세로 위치", scale: "크기", rot: "회전", opacity: "불투명", volume: "볼륨" }, text: { x: "가로", y: "세로", size: "크기", opacity: "불투명" }, audio: { volume: "볼륨" } };
+  var KF_EASES = [["smooth", "부드럽게 (천천히 시작·끝)"], ["linear", "일정하게"], ["in", "천천히 시작"], ["out", "천천히 끝"], ["hold", "계단 (바로 바뀜)"]];
+  var KF_TOL = 0.02; // 같은 키프레임으로 보는 시간 차(초)
+  function easeP(p, e){ switch (e){ case "linear": return p; case "in": return p * p * p; case "out": return 1 - Math.pow(1 - p, 3); case "hold": return p >= 1 ? 1 : 0; default: return p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2; } }
+  function kfTrack(item, key){ return item && item.kf && item.kf[key] && item.kf[key].length ? item.kf[key] : null; }
+  function kfEval(track, t, base, ease){
+    if (!track || !track.length) return base;
+    if (t <= track[0].t) return track[0].v;
+    var last = track[track.length - 1]; if (t >= last.t) return last.v;
+    for (var i = 1; i < track.length; i++){ var b = track[i]; if (t < b.t){ var a = track[i - 1], span = b.t - a.t, p = span > 1e-9 ? (t - a.t) / span : 1; return a.v + (b.v - a.v) * easeP(p, a.e || ease || "smooth"); } }
+    return last.v;
+  }
+  function kfSet(item, key, t, v){
+    if (!item.kf) item.kf = {}; if (!item.kf[key]) item.kf[key] = [];
+    var tr = item.kf[key]; for (var i = 0; i < tr.length; i++){ if (Math.abs(tr[i].t - t) <= KF_TOL){ tr[i].v = v; return tr[i]; } }
+    var k = { t: Math.round(t * 10000) / 10000, v: v }; tr.push(k); tr.sort(function(a, b){ return a.t - b.t; }); return k;
+  }
+  function kfAt(item, key, t){ var tr = kfTrack(item, key); if (!tr) return null; for (var i = 0; i < tr.length; i++) if (Math.abs(tr[i].t - t) <= KF_TOL) return tr[i]; return null; }
+  function kfPrune(item){ if (!item.kf) return; Object.keys(item.kf).forEach(function(k){ if (!item.kf[k] || !item.kf[k].length) delete item.kf[k]; }); if (!Object.keys(item.kf).length) delete item.kf; }
+  function kfRemove(item, key, t){ var tr = kfTrack(item, key); if (!tr) return false; var n = tr.filter(function(k){ return Math.abs(k.t - t) > KF_TOL; }); if (n.length === tr.length) return false; item.kf[key] = n; kfPrune(item); return true; }
+  function kfRemoveAll(item, t){ var n = 0; if (!item.kf) return 0; Object.keys(item.kf).forEach(function(k){ if (kfRemove(item, k, t)) n++; }); return n; }
+  function kfClear(item, key){ if (!item.kf) return; if (key) delete item.kf[key]; else item.kf = {}; kfPrune(item); }
+  function kfCount(item, key){ var n = 0; if (!item.kf) return 0; Object.keys(item.kf).forEach(function(k){ if (!key || k === key) n += item.kf[k].length; }); return n; }
+  function kfAllTimes(item, key){ var ts = []; if (!item.kf) return ts; Object.keys(item.kf).forEach(function(k){ if (key && k !== key) return; item.kf[k].forEach(function(f){ if (!ts.some(function(x){ return Math.abs(x - f.t) <= KF_TOL; })) ts.push(f.t); }); }); ts.sort(function(a, b){ return a - b; }); return ts; }
+  function cloneKf(kf){ if (!kf) return undefined; var o = {}; Object.keys(kf).forEach(function(k){ o[k] = kf[k].map(function(f){ var c = { t: f.t, v: f.v }; if (f.e) c.e = f.e; return c; }); }); return o; }
+  // 그 시각의 모든 키프레임에 구간 보간을 지정(없애려면 null)
+  function kfSetEaseAt(item, kt, e){ if (!item.kf) return; Object.keys(item.kf).forEach(function(k){ item.kf[k].forEach(function(f){ if (Math.abs(f.t - kt) <= KF_TOL){ if (e) f.e = e; else delete f.e; } }); }); }
+  function kfEaseAt(item, kt){ var out = null; if (!item.kf) return null; Object.keys(item.kf).forEach(function(k){ item.kf[k].forEach(function(f){ if (Math.abs(f.t - kt) <= KF_TOL && f.e) out = f.e; }); }); return out; }
+  function kfEaseLabel(e){ for (var i = 0; i < KF_EASES.length; i++) if (KF_EASES[i][0] === e) return KF_EASES[i][1]; return e; }
+  function shiftKf(item, delta){ if (!item.kf || !delta) return; Object.keys(item.kf).forEach(function(k){ item.kf[k].forEach(function(f){ f.t = Math.round((f.t + delta) * 10000) / 10000; }); }); }
+  function kfMoveTime(item, fromT, toT){ // 그 시각의 모든 키프레임을 옮긴다(다른 키프레임과 겹치면 false)
+    if (!item.kf) return false;
+    var keys = Object.keys(item.kf), blocked = keys.some(function(k){ return item.kf[k].some(function(f){ return Math.abs(f.t - fromT) > KF_TOL && Math.abs(f.t - toT) <= KF_TOL; }); });
+    if (blocked) return false;
+    keys.forEach(function(k){ item.kf[k].forEach(function(f){ if (Math.abs(f.t - fromT) <= KF_TOL) f.t = Math.round(toT * 10000) / 10000; }); item.kf[k].sort(function(a, b){ return a.t - b.t; }); });
+    return true;
+  }
+  function kfEaseOf(item){ return item.kfEase || "smooth"; }
+  function kfTimeOf(item, kind, tl){ return kind === "video" ? srcTimeOf(item, tl) : tl - item.startSec; }   // 타임라인 → 키프레임 시각
+  function kfTlOf(item, kind, kt){ return kind === "video" ? item.startSec + (kt - item.inSec) / item.speed : item.startSec + kt; } // 키프레임 시각 → 타임라인
+  function kfInRange(item, kind, tl){ return tl >= item.startSec - 1e-6 && tl <= itemEnd(item, kind) + 1e-6; }
+  function cloneAudio(a){ var o = Object.assign({}, a); if (a.kf) o.kf = cloneKf(a.kf); return o; }
+  function cloneText(t){ var o = Object.assign({}, t); if (t.kf) o.kf = cloneKf(t.kf); return o; }
+  function cloneItem(kind, it){ return kind === "video" ? cloneClip(it) : kind === "audio" ? cloneAudio(it) : cloneText(it); }
+  // 영상 클립: 원본 시각 st에서의 변형 값(키프레임 반영)
+  function tfAt(c, st){
+    var tf = tfOf(c); if (!c.kf) return tf; var e = kfEaseOf(c);
+    return { x: kfEval(kfTrack(c, "x"), st, tf.x, e), y: kfEval(kfTrack(c, "y"), st, tf.y, e), scale: kfEval(kfTrack(c, "scale"), st, tf.scale, e), rot: kfEval(kfTrack(c, "rot"), st, tf.rot, e), opacity: kfEval(kfTrack(c, "opacity"), st, tf.opacity, e), fit: tf.fit, cropL: tf.cropL, cropT: tf.cropT, cropR: tf.cropR, cropB: tf.cropB };
+  }
+  function curSt(c){ return srcTimeOf(c, playhead); }
+  function setTfProp(c, key, v, st){ if (kfTrack(c, key)) kfSet(c, key, st, v); else tfOf(c)[key] = v; }
+  function volumeAt(c, st){ var tr = kfTrack(c, "volume"); return tr ? clamp(kfEval(tr, st, c.volume, kfEaseOf(c)), 0, 2) : c.volume; }
+  function setClipVolume(c, v, st){ if (kfTrack(c, "volume")) kfSet(c, "volume", st, v); else c.volume = v; }
+  // 자막: 시작으로부터 tk초에서의 값
+  function textPropAt(t, key, tk){ var tr = kfTrack(t, key); var base = key === "opacity" ? 1 : t[key]; if (!tr) return base; return kfEval(tr, tk, base == null ? tr[0].v : base, kfEaseOf(t)); }
+  function ensureFreeText(t){ if (t.x == null || t.y == null){ var c = textCenterOf(t); t.x = c[0]; t.y = c[1]; } }
+  function setTextProp(t, key, v, tk){ if (key === "x" || key === "y") ensureFreeText(t); if (kfTrack(t, key)) kfSet(t, key, tk, v); else if (key === "opacity"){ kfSet(t, key, tk, v); } else t[key] = v; }
+  // 오디오 클립: 시작으로부터 tk초에서의 볼륨(키프레임) · 페이드까지 곱한 실제 게인
+  function audioVolumeAt(a, tk){ var tr = kfTrack(a, "volume"); return tr ? clamp(kfEval(tr, tk, a.volume, kfEaseOf(a)), 0, 2) : a.volume; }
+  function audioGainAt(a, tk, dur){ var v = audioVolumeAt(a, tk), fi = a.fadeIn || 0, fo = a.fadeOut || 0; if (fi > 0) v *= clamp(tk / fi, 0, 1); if (fo > 0) v *= clamp((dur - tk) / fo, 0, 1); return v; }
+  function audioGainCurve(a, fromTk, toTk, dur, mul){ var n = Math.max(2, Math.ceil((toTk - fromTk) * 50) + 1), out = new Float32Array(n); for (var i = 0; i < n; i++) out[i] = Math.max(0, audioGainAt(a, fromTk + (toTk - fromTk) * i / (n - 1), dur) * (mul == null ? 1 : mul)); return out; }
+  function setAudioVolume(a, v, tk){ if (kfTrack(a, "volume")) kfSet(a, "volume", tk, v); else a.volume = v; }
+  // 항목 종류별 "지금 값" — ◆를 눌러 기록할 값
+  function kfCurrentValue(item, kind, key, kt){
+    if (kind === "video") return key === "volume" ? volumeAt(item, kt) : tfAt(item, kt)[key];
+    if (kind === "text"){ if (key === "x" || key === "y") ensureFreeText(item); return textPropAt(item, key, kt); }
+    return audioVolumeAt(item, kt);
+  }
+  // 타임라인 배지 문구: 프리셋으로 넣었고 속성이 그대로면 그 이름, 아니면 움직인 속성 이름들
+  function kfBadgeText(item, kind){
+    if (!item.kf) return "";
+    var keys = Object.keys(item.kf).filter(function(k){ return item.kf[k].length; }).sort();
+    if (!keys.length) return "";
+    if (item.kfPreset && item.kfPreset.keys === keys.join(",")) return item.kfPreset.name;
+    return keys.map(function(k){ return kfLabelOf(kind, k); }).join("·");
+  }
+  function kfRememberPreset(item, name){ var keys = item.kf ? Object.keys(item.kf).filter(function(k){ return item.kf[k].length; }).sort().join(",") : ""; item.kfPreset = keys ? { name: name, keys: keys } : undefined; }
+  function kfItemOf(kind, id){ return kind === "video" ? clipById(id) : kind === "audio" ? audioById(id) : textById(id); }
+  function kfLabelOf(kind, key){ return (KF_KEYS[kind] || {})[key] || key; }
+
   // ---------- 실행 취소 ----------
   var historyStack = [], redoStack = [];
   var HISTORY_MAX = 60;
-  function cloneClip(c){ var o = Object.assign({}, c); if (c.tf) o.tf = Object.assign({}, c.tf); if (c.fx) o.fx = Object.assign({}, c.fx); if (c.transIn) o.transIn = Object.assign({}, c.transIn); if (c.transOut) o.transOut = Object.assign({}, c.transOut); return o; }
+  function cloneClip(c){ var o = Object.assign({}, c); if (c.kf) o.kf = cloneKf(c.kf); if (c.tf) o.tf = Object.assign({}, c.tf); if (c.fx) o.fx = Object.assign({}, c.fx); if (c.transIn) o.transIn = Object.assign({}, c.transIn); if (c.transOut) o.transOut = Object.assign({}, c.transOut); return o; }
   function snapshot(){
     return {
       project: Object.assign({}, project),
       clips: clips.map(cloneClip),
-      audioClips: audioClips.map(function(a){ return Object.assign({}, a); }),
-      texts: texts.map(function(t){ return Object.assign({}, t); }),
+      audioClips: audioClips.map(cloneAudio),
+      texts: texts.map(cloneText),
       master: Object.assign({}, master),
       selectedClipId: selectedClipId, selectedAudioId: selectedAudioId, selectedTextId: selectedTextId,
       playhead: playhead
@@ -2128,8 +2382,8 @@
   function restore(s){
     if (s.project) project = Object.assign({}, s.project);
     clips = s.clips.map(cloneClip);
-    audioClips = s.audioClips.map(function(a){ return Object.assign({}, a); });
-    texts = s.texts.map(function(t){ return Object.assign({}, t); });
+    audioClips = s.audioClips.map(cloneAudio);
+    texts = s.texts.map(cloneText);
     master = Object.assign({}, s.master);
     selectedClipId = s.selectedClipId; selectedAudioId = s.selectedAudioId; selectedTextId = s.selectedTextId;
     playhead = clamp(s.playhead, 0, totalDuration());
@@ -2665,6 +2919,7 @@
       d.classList.toggle("muted-clip", !!c.mute);
       d.setAttribute("aria-label", (sourceOf(c.srcId) || {}).name + " 클립, V" + (c.lane + 1) + ", " + formatTime(c.startSec) + "부터 " + formatTime(clipDur(c)) + (c.id === selectedClipId ? ", 선택됨" : ""));
       paintClip(c, d);
+      paintKfDots(c, "video", d);
       seen[c.id] = true;
     }
     for (var id in clipEls){ if (!seen[id]){ clipEls[id].remove(); delete clipEls[id]; } }
@@ -2701,6 +2956,7 @@
       ad.querySelector("span").textContent = "♪ " + a.name + (a.loop ? " (반복)" : "") + " · " + Math.round(a.volume * 100) + "%";
       ad.setAttribute("aria-label", "오디오 " + a.name + ", " + formatTime(a.startSec) + "부터");
       paintAudioClip(a, ad, aw);
+      paintKfDots(a, "audio", ad);
       aseen[a.id] = true;
     }
     for (var aid in aclipEls){ if (!aseen[aid]){ aclipEls[aid].remove(); delete aclipEls[aid]; } }
@@ -2713,9 +2969,10 @@
       if (thost && td.parentNode !== thost) thost.appendChild(td);
       var tsp = spanPx(t.startSec, t.endSec);
       td.style.left = tsp.left + "px"; td.style.width = tsp.width + "px";
-      td.querySelector("span").textContent = "T " + String(t.text).split("\n")[0];
+      td.querySelector("span").textContent = (t.kf ? "◆ " : "") + "T " + String(t.text).split("\n")[0];
       td.classList.toggle("selected", t.id === selectedTextId);
       td.setAttribute("aria-label", "자막 " + t.text + ", " + formatTime(t.startSec) + "~" + formatTime(t.endSec));
+      paintKfDots(t, "text", td);
       tseen[t.id] = true;
     }
     for (var tid in tclipEls){ if (!tseen[tid]){ tclipEls[tid].remove(); delete tclipEls[tid]; } }
@@ -2725,6 +2982,291 @@
     $("zoomValue").textContent = Math.round(zoom * 100) + " %";
     if (document.activeElement !== $("zoomInput")) $("zoomInput").value = Math.round(zoom * 100);
     $("zoomSlider").value = Math.log10(zoom).toFixed(2);
+  }
+  // 클립 아래쪽 ◆ — 끌어서 시각 옮기기, Alt+클릭 지우기
+  function paintKfDots(item, kind, host){
+    Array.prototype.forEach.call(host.querySelectorAll(".kf-dot, .clip-kf, .kf-range"), function(n){ n.remove(); });
+    host.classList.toggle("has-kf", !!item.kf);
+    if (!item.kf) return;
+    var pps = pxPerSec(), ts = kfAllTimes(item), start = item.startSec, end = itemEnd(item, kind), cur = kfTimeOf(item, kind, playhead), inR = kfInRange(item, kind, playhead);
+    // 배지: 어떤 움직임이 들어갔는지 + × 로 바로 지우기
+    var badge = el("span", "clip-kf"); badge.setAttribute("data-kind", kind); badge.setAttribute("data-id", item.id);
+    badge.appendChild(document.createTextNode("◆ " + kfBadgeText(item, kind)));
+    var bx = el("span", "clip-kf-x", "×"); bx.title = "이 " + (kind === "video" ? "클립" : kind === "text" ? "자막" : "오디오") + "의 움직임(키프레임) 모두 지우기"; badge.appendChild(bx);
+    badge.title = "움직임: " + kfBadgeText(item, kind) + " (키프레임 " + kfCount(item) + "개) — 클릭하면 움직임 설정으로, ×는 모두 지우기";
+    host.appendChild(badge);
+    if (kind === "video"){ var bw = Math.min(160, 30 + kfBadgeText(item, kind).length * 11); host.style.setProperty("--kf-badge-w", bw + "px"); }
+    // 범위 선: 첫 ◆ ~ 마지막 ◆
+    if (ts.length >= 2){ var wpx0 = Math.max(10, Math.round((end - start) * pps)), a0 = clamp(Math.round((kfTlOf(item, kind, ts[0]) - start) * pps), 5, wpx0 - 5), a1 = clamp(Math.round((kfTlOf(item, kind, ts[ts.length - 1]) - start) * pps), 5, wpx0 - 5); if (a1 > a0){ var ln = el("i", "kf-range"); ln.style.left = a0 + "px"; ln.style.width = (a1 - a0) + "px"; host.appendChild(ln); } }
+    ts.forEach(function(kt){
+      var tl = kfTlOf(item, kind, kt); if (tl < start - 1e-6 || tl > end + 1e-6) return;
+      var d = el("i", "kf-dot" + (inR && Math.abs(kt - cur) <= KF_TOL ? " at" : "") + (kfEaseAt(item, kt) ? " eased" : "") + (kfSel && kfSel.item === item && Math.abs(kfSel.kt - kt) <= KF_TOL ? " sel" : "")); d.setAttribute("data-kt", kt); d.setAttribute("data-kind", kind); d.setAttribute("data-id", item.id);
+      var wpx = Math.max(10, Math.round((end - start) * pps)); d.style.left = clamp(Math.round((tl - start) * pps), 5, wpx - 5) + "px"; // 가장자리 ◆도 잘리지 않게
+      var keys = Object.keys(item.kf).filter(function(k){ return item.kf[k].some(function(f){ return Math.abs(f.t - kt) <= KF_TOL; }); }).map(function(k){ return kfLabelOf(kind, k); });
+      var ea = kfEaseAt(item, kt); d.title = "키프레임 " + formatTime(tl) + " · " + keys.join(", ") + (ea ? " · 다음까지 " + kfEaseLabel(ea) : "") + " — 끌어서 옮기기 · 클릭 후 Delete 또는 Alt+클릭 지우기 · 우클릭으로 잇는 방식";
+      host.appendChild(d);
+    });
+  }
+  function confirmClearKf(item, kind){
+    var n = kfCount(item);
+    showConfirm("이 " + (kind === "video" ? "클립" : kind === "text" ? "자막" : "오디오") + "의 키프레임 " + n + "개를 모두 지울까요?\n값은 지금 재생 위치의 상태로 남고, Ctrl+Z로 되돌릴 수 있어요.", "움직임 모두 지우기", "모두 지우기", true).then(function(ok){
+      if (!ok) return;
+      beginEdit(); kfClearKeepNow(item, kind); item.kfPreset = undefined; commitEdit("움직임 모두 지우기"); kfAfterEdit(kind); setStatus("움직임(키프레임)을 모두 지웠어요. 값은 지금 재생 위치의 상태로 남아요. 되돌리려면 Ctrl+Z.");
+    });
+  }
+
+  // ============================================================================================
+  // 키프레임 탭 — 프리미어 효과 컨트롤처럼: 속성마다 ⏱(움직임 켜기) · 값 입력 · ◂◆▸ · 오른쪽에 그 항목 길이만큼의 선(그래프)과 ◆
+  // ============================================================================================
+  var KF_ROWS = {
+    video: [{ key: "x", label: "가로 위치", unit: "%", mul: 100, step: 1, min: -150, max: 150 }, { key: "y", label: "세로 위치", unit: "%", mul: 100, step: 1, min: -150, max: 150 }, { key: "scale", label: "크기", unit: "%", mul: 100, step: 1, min: 5, max: 800 }, { key: "rot", label: "회전", unit: "°", mul: 1, step: 1, min: -3600, max: 3600 }, { key: "opacity", label: "불투명", unit: "%", mul: 100, step: 1, min: 0, max: 100 }, { key: "volume", label: "볼륨", unit: "%", mul: 100, step: 5, min: 0, max: 200, audio: true }],
+    text: [{ key: "x", label: "가로", unit: "%", mul: 100, step: 1, min: -50, max: 150 }, { key: "y", label: "세로", unit: "%", mul: 100, step: 1, min: -50, max: 150 }, { key: "size", label: "크기", unit: "%", mul: 1, step: 0.5, min: 1, max: 30 }, { key: "opacity", label: "불투명", unit: "%", mul: 100, step: 5, min: 0, max: 100 }],
+    audio: [{ key: "volume", label: "볼륨", unit: "%", mul: 100, step: 5, min: 0, max: 200 }]
+  };
+  var kfExpanded = {};   // key → 그래프 펼침
+  function kfTarget(){ var c = clipById(selectedClipId); if (c) return { kind: "video", item: c }; var a = audioById(selectedAudioId); if (a) return { kind: "audio", item: a }; var t = textById(selectedTextId); if (t) return { kind: "text", item: t }; return null; }
+  function autoSelectClipQuiet(){ var under = videoClipsAt(playhead); if (!under.length) return false; selectedClipId = under[under.length - 1].id; selectedAudioId = null; selectedTextId = null; renderTimeline(); renderClipProps(); return true; }
+  function kfRowValue(item, kind, key, kt){ return kfCurrentValue(item, kind, key, kt); }
+  function kfSetRowValue(item, kind, key, v, kt){
+    if (kind === "video"){ if (key === "volume") setClipVolume(item, v, kt); else setTfProp(item, key, v, kt); }
+    else if (kind === "text") setTextProp(item, key, v, kt);
+    else setAudioVolume(item, v, kt);
+  }
+  function kfItemDur(item, kind){ return kind === "video" ? item.outSec - item.inSec : itemEnd(item, kind) - item.startSec; } // 키프레임 시각 범위(비디오: 원본 초)
+  function kfItemT0(item, kind){ return kind === "video" ? item.inSec : 0; }
+  function kfRowDomain(item, kind, row){ // 그래프 세로 범위
+    var tr = kfTrack(item, row.key), vals = tr ? tr.map(function(f){ return f.v; }) : [];
+    vals.push(kfRowValue(item, kind, row.key, kfTimeOf(item, kind, playhead)));
+    var lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals);
+    if (row.key === "opacity"){ lo = 0; hi = 1; } else if (row.key === "volume"){ lo = 0; hi = Math.max(1.2, hi); } else if (row.key === "scale"){ lo = Math.min(lo, 0.5); hi = Math.max(hi, 1.5); } else if (row.key === "size"){ lo = Math.min(lo, 2); hi = Math.max(hi, 10); } else { var pad = Math.max(0.1, (hi - lo) * 0.3); lo -= pad; hi += pad; }
+    if (hi - lo < 1e-6){ hi = lo + 1; }
+    return [lo, hi];
+  }
+  function renderKfLink(host, item, kind){
+    if (!host) return; Array.prototype.forEach.call(host.querySelectorAll(".kf-link"), function(n){ n.remove(); });
+    var b = el("button", "kf-link", item.kf ? "◆ " + kfBadgeText(item, kind) + " · 키프레임 탭" : "◆ 움직임 넣기"); b.type = "button"; b.title = item.kf ? "이 항목의 움직임(키프레임 " + kfCount(item) + "개)을 키프레임 탭에서 편집해요" : "시간에 따라 값이 바뀌는 움직임을 키프레임 탭에서 만들어요";
+    b.addEventListener("click", function(e){ e.stopPropagation(); if (kind === "video") selectedClipId = item.id; else if (kind === "audio") selectedAudioId = item.id; else selectedTextId = item.id; openMotionSettings(kind); });
+    host.appendChild(b);
+  }
+  var kfPanelState = { item: null, kind: null };
+  function renderKfPanel(){
+    var tg = kfTarget(), card = $("kfCard"), empty = $("kfEmpty");
+    kfPanelState = tg ? { item: tg.item, kind: tg.kind } : { item: null, kind: null };
+    card.hidden = !tg; empty.hidden = !!tg;
+    if (!tg) return;
+    var item = tg.item, kind = tg.kind, name = kind === "video" ? ((sourceOf(item.srcId) || {}).name || "클립") : kind === "text" ? ((item.text || "(빈 자막)").split("\n")[0]) : item.name;
+    $("kfTitle").textContent = (kind === "video" ? "클립 · " : kind === "text" ? "자막 · " : "오디오 · ") + name;
+    $("kfRange").textContent = formatTime(item.startSec) + " → " + formatTime(itemEnd(item, kind)) + " · 키프레임 " + kfCount(item) + "개";
+    renderKfSummary($("cpKfSummary"), item, kind);
+    $("cpKfEase").value = kfEaseOf(item); if (typeof syncNiceSelect === "function") syncNiceSelect($("cpKfEase"));
+    $("cpKfClearBtn").disabled = !item.kf;
+    // 행
+    var grid = $("kfGrid"); grid.innerHTML = "";
+    var rl = el("div", "kf-ruler-l"); rl.appendChild(el("span", "", "속성")); var pos = el("span", "kf-pos"); pos.id = "kfPosText"; rl.appendChild(pos); grid.appendChild(rl);
+    var ruler = el("div", "kf-ruler"); ruler.id = "kfRuler"; var rc = document.createElement("canvas"); ruler.appendChild(rc); var pl = el("div", "kf-playline"); pl.className += " kf-ruler-play"; ruler.appendChild(pl); grid.appendChild(ruler);
+    var rows = KF_ROWS[kind].filter(function(r){ return !(r.audio && !clipHasLinkedAudio(item)); });
+    rows.forEach(function(row){
+      var tr = kfTrack(item, row.key), kt = kfTimeOf(item, kind, playhead), v = kfRowValue(item, kind, row.key, kt);
+      var L = el("div", "kf-row-l"); L.setAttribute("data-key", row.key);
+      var top = el("div", "kf-row-top");
+      var stop = el("button", "kf-stop" + (tr ? " on" : ""), "⏱"); stop.type = "button"; stop.title = tr ? "움직임 끄기 (이 속성의 키프레임을 모두 지워요)" : "움직임 켜기 — 지금 재생 위치에 첫 키프레임을 기록해요"; stop.setAttribute("aria-pressed", tr ? "true" : "false"); stop.setAttribute("data-key", row.key);
+      stop.addEventListener("click", function(){ kfToggleAnim(item, kind, row); });
+      top.appendChild(stop);
+      var nm = el("span", "kf-row-name", row.label); top.appendChild(nm);
+      top.appendChild(kfCtl(kind, item.id, row.key));
+      L.appendChild(top);
+      var val = el("div", "kf-row-val"); var inp = document.createElement("input"); inp.type = "number"; inp.step = row.step; inp.min = row.min; inp.max = row.max; inp.value = kfFmtVal(v, row); inp.className = tr ? "anim" : ""; inp.setAttribute("aria-label", row.label + " 값(재생 위치)"); inp.setAttribute("data-key", row.key);
+      inp.title = tr ? "지금 재생 위치의 값 — 바꾸면 이 시각에 키프레임이 기록돼요" : "고정값 — ⏱를 켜면 시간에 따라 바꿀 수 있어요";
+      inp.addEventListener("change", function(){ var nv = parseFloat(inp.value); if (!isFinite(nv)) return; nv = clamp(nv, row.min, row.max) / row.mul; if (kfTrack(item, row.key) && !kfInRange(item, kind, playhead)){ setStatus("재생 위치가 이 항목 안에 있어야 기록할 수 있어요."); inp.value = kfFmtVal(v, row); return; } beginEdit(); kfSetRowValue(item, kind, row.key, nv, kfTimeOf(item, kind, playhead)); commitEdit(row.label + (kfTrack(item, row.key) ? " 키프레임 값" : "")); kfAfterEdit(kind); });
+      inp.addEventListener("keydown", function(e){ e.stopPropagation(); if (e.key === "Enter") inp.blur(); });
+      val.appendChild(inp); val.appendChild(el("span", "kf-unit", row.unit));
+      var ex = el("button", "kf-expand", kfExpanded[row.key] ? "그래프 ▴" : "그래프 ▾"); ex.type = "button"; ex.title = "값 그래프 펼치기/접기 — 펼치면 ◆를 위아래로 끌어 값을 바꿀 수 있어요"; ex.addEventListener("click", function(){ kfExpanded[row.key] = !kfExpanded[row.key]; renderKfPanel(); });
+      val.appendChild(ex); L.appendChild(val); grid.appendChild(L);
+      var T = el("div", "kf-row-t" + (kfExpanded[row.key] ? " expanded" : "") + (tr ? "" : " off")); T.setAttribute("data-key", row.key);
+      var cv = document.createElement("canvas"); T.appendChild(cv); T.appendChild(el("div", "kf-playline"));
+      T.addEventListener("kf-dblclick", function(e){ var r = T.getBoundingClientRect(), dur = kfItemDur(item, kind), kt2 = kfItemT0(item, kind) + kfFracX(e.detail.clientX, r) * dur; stopPlayback(); beginEdit(); kfSet(item, row.key, kt2, kfRowValue(item, kind, row.key, kt2)); if (kind === "text" && (row.key === "x" || row.key === "y")) ensureFreeText(item); commitEdit(row.label + " 키프레임 추가"); setPlayhead(kfTlOf(item, kind, kt2)); kfAfterEdit(kind); });
+      grid.appendChild(T);
+    });
+    kfPanelState.rows = rows;
+    // 프리셋·더킹 표시
+    $("cpKfPresets").hidden = kind !== "video";
+    var tp = $("kfTextPresets"); tp.innerHTML = ""; tp.hidden = kind !== "text";
+    if (kind === "text"){ [["risein", "↑ 아래에서 등장"], ["growin", "⤢ 커지며 등장"], ["slidein", "→ 왼쪽에서 등장"], ["bounce", "⤒ 튀어오르기"], ["shrinkout", "⤡ 작아지며 퇴장"], ["fadeout", "◑ 사라지며 퇴장"]].forEach(function(p){ var b = el("button", "", p[1]); b.type = "button"; b.addEventListener("click", function(){ if (isBlocked()) return; stopPlayback(); beginEdit(); applyTextPreset(item, p[0]); commitEdit("자막 움직임: " + p[1].slice(2)); kfAfterEdit("text"); setStatus("\"" + p[1].slice(2) + "\" 움직임을 넣었어요. 재생해서 확인하고 그래프에서 다듬으세요."); }); tp.appendChild(b); }); }
+    $("kfPresetsBox").hidden = kind === "audio";
+    var duckOk = kind === "audio" || (kind === "video" && clipHasLinkedAudio(item)); $("kfDuckBox").hidden = !duckOk;
+    if (duckOk) refreshDuckState();
+    requestAnimationFrame(function(){ paintKfPanel(); });
+    refreshKfButtons();
+  }
+  function kfFmtVal(v, row){ var x = v * row.mul; return (Math.round(x / row.step) * row.step).toFixed(row.step < 1 ? 1 : 0); }
+  function kfToggleAnim(item, kind, row){
+    if (isBlocked()) return;
+    if (kfTrack(item, row.key)){
+      showConfirm("\"" + row.label + "\"의 키프레임 " + kfCount(item, row.key) + "개를 지우고 움직임을 끌까요?\n값은 지금 재생 위치의 상태로 남아요.", "움직임 끄기", "끄기", true).then(function(ok){ if (!ok) return; beginEdit(); var keep = kfRowValue(item, kind, row.key, kfTimeOf(item, kind, playhead)); kfClear(item, row.key); if (kind === "video"){ if (row.key === "volume") item.volume = keep; else tfOf(item)[row.key] = keep; } else if (kind === "text"){ if (row.key !== "opacity") item[row.key] = keep; } else item.volume = keep; item.kfPreset = undefined; commitEdit(row.label + " 움직임 끄기"); kfAfterEdit(kind); });
+      return;
+    }
+    if (!kfInRange(item, kind, playhead)){ setStatus("재생 위치가 이 항목 안에 있어야 해요. 빨간 재생선을 그 위로 옮긴 뒤 ⏱를 켜 주세요."); return; }
+    stopPlayback(); beginEdit();
+    var kt = kfTimeOf(item, kind, playhead); if (kind === "text" && (row.key === "x" || row.key === "y")) ensureFreeText(item);
+    kfSet(item, row.key, kt, kfRowValue(item, kind, row.key, kt));
+    commitEdit(row.label + " 움직임 켜기"); kfAfterEdit(kind);
+    setStatus(row.label + " 움직임을 켰어요 — 지금 위치에 첫 키프레임을 기록했어요. 재생 위치를 옮겨 값을 바꾸면 다음 키프레임이 자동으로 생겨요.");
+  }
+  // 그리기: 눈금자 · 각 행의 값 선과 ◆ · 재생선
+  function paintKfPanel(){
+    var st = kfPanelState, item = st.item, kind = st.kind; if (!item || $("kfPanel").hidden) return;
+    var grid = $("kfGrid"), ruler = $("kfRuler"); if (!ruler) return;
+    var dur = kfItemDur(item, kind), t0 = kfItemT0(item, kind), dpr = Math.min(2, window.devicePixelRatio || 1);
+    var rr = ruler.getBoundingClientRect(), W = Math.max(10, Math.round(rr.width)), RH = Math.round(rr.height);
+    var rc = ruler.querySelector("canvas"); rc.width = W * dpr; rc.height = RH * dpr; var g = rc.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, RH);
+    var tlDur = itemEnd(item, kind) - item.startSec, stepSec = niceStep(tlDur / Math.max(2, W / 70));
+    g.font = "10px system-ui, sans-serif"; g.fillStyle = "rgba(128,128,128,.9)"; g.strokeStyle = "rgba(128,128,128,.4)"; g.textBaseline = "top";
+    for (var sec = 0; sec <= tlDur + 1e-6; sec += stepSec){ var x = Math.round(KF_PADX + sec / tlDur * (W - 2 * KF_PADX)) + 0.5; g.beginPath(); g.moveTo(x, RH - 6); g.lineTo(x, RH); g.stroke(); if (x < W - 24) g.fillText(formatTimeShort(item.startSec + sec), x + 2, 3); }
+    var inR = kfInRange(item, kind, playhead), px = inR ? KF_PADX + clamp((playhead - item.startSec) / tlDur, 0, 1) * (W - 2 * KF_PADX) : -10;
+    var pos = $("kfPosText"); if (pos) pos.textContent = inR ? "재생 위치 " + formatTime(playhead) : "재생 위치가 밖에 있어요";
+    Array.prototype.forEach.call(grid.querySelectorAll(".kf-playline"), function(p){ p.style.left = px + "px"; p.hidden = !inR; });
+    var cur = kfTimeOf(item, kind, playhead);
+    (st.rows || []).forEach(function(row){
+      var T = grid.querySelector('.kf-row-t[data-key="' + row.key + '"]'); if (!T) return;
+      Array.prototype.forEach.call(T.querySelectorAll(".kf-g-dot"), function(n){ n.remove(); });
+      var r = T.getBoundingClientRect(), w = Math.max(10, Math.round(r.width)), h = Math.max(10, Math.round(r.height));
+      var cv = T.querySelector("canvas"); cv.width = w * dpr; cv.height = h * dpr; var c = cv.getContext("2d"); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, w, h);
+      var tr = kfTrack(item, row.key), dom = kfRowDomain(item, kind, row), lo = dom[0], hi = dom[1], padY = kfExpanded[row.key] ? 12 : 10;
+      function yOf(v){ return h - padY - (v - lo) / (hi - lo) * (h - padY * 2); }
+      function xOf(kt){ return KF_PADX + (kt - t0) / dur * (w - 2 * KF_PADX); }
+      // 세로 눈금(펼쳤을 때)
+      if (kfExpanded[row.key]){ c.strokeStyle = "rgba(128,128,128,.25)"; c.fillStyle = "rgba(128,128,128,.8)"; c.font = "10px system-ui, sans-serif"; c.textBaseline = "middle"; [lo, (lo + hi) / 2, hi].forEach(function(v){ var y = Math.round(yOf(v)) + 0.5; c.beginPath(); c.moveTo(0, y); c.lineTo(w, y); c.stroke(); c.fillText(kfFmtVal(v, row) + row.unit, 4, y - (v === hi ? -7 : v === lo ? 7 : 0)); }); }
+      // 값 선
+      c.lineWidth = 2; c.strokeStyle = tr ? "#2a78d6" : "rgba(128,128,128,.6)"; c.beginPath();
+      var n = Math.max(2, Math.round(w / 3));
+      for (var i = 0; i <= n; i++){ var kt = t0 + dur * i / n, v = kfRowValue(item, kind, row.key, kt), x = xOf(kt), y = yOf(v); if (i === 0) c.moveTo(x, y); else c.lineTo(x, y); }
+      c.stroke();
+      if (tr){ c.fillStyle = "rgba(42,120,214,.12)"; c.lineTo(w, h); c.lineTo(0, h); c.closePath(); c.fill(); }
+      // 재생 위치 값 표시
+      if (inR){ var vNow = kfRowValue(item, kind, row.key, cur), yN = yOf(vNow), xN = xOf(cur); c.fillStyle = "#e5484d"; c.beginPath(); c.arc(xN, yN, 3, 0, Math.PI * 2); c.fill(); c.fillStyle = "rgba(0,0,0,.65)"; c.font = "bold 10px system-ui, sans-serif"; c.textBaseline = "bottom"; var label = kfFmtVal(vNow, row) + row.unit, tw = c.measureText(label).width; var lx = clamp(xN + 6, 0, w - tw - 6), ly = clamp(yN - 4, 12, h); c.fillRect(lx - 3, ly - 12, tw + 6, 13); c.fillStyle = "#fff"; c.fillText(label, lx, ly); }
+      // ◆
+      if (tr) tr.forEach(function(f){ var d = el("i", "kf-g-dot" + (Math.abs(f.t - cur) <= KF_TOL && inR ? " at" : "") + (f.e ? " eased" : "") + (kfSel && kfSel.item === item && Math.abs(kfSel.kt - f.t) <= KF_TOL ? " sel" : "")); d.style.left = xOf(f.t) + "px"; d.style.top = yOf(f.v) + "px"; d.setAttribute("data-kt", f.t); d.setAttribute("data-key", row.key); d.title = formatTime(kfTlOf(item, kind, f.t)) + " · " + kfFmtVal(f.v, row) + row.unit + (f.e ? " · 다음까지 " + kfEaseLabel(f.e) : "") + " — 좌우 끌기: 시각" + (kfExpanded[row.key] ? " · 위아래: 값" : " (그래프를 펼치면 위아래로 값)") + " · 우클릭: 잇는 방식"; T.appendChild(d); });
+    });
+  }
+  function niceStep(raw){ var p = Math.pow(10, Math.floor(Math.log10(Math.max(1e-6, raw)))), m = raw / p; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p; }
+  function refreshDuckState(){ if ($("kfDuckBox").hidden) return; var selHas = !!selection && selection.end - selection.start >= 0.05; $("cpDuckBtn").disabled = !selHas; $("cpDuckHint").textContent = selHas ? "잡은 구간 " + formatTime(selection.start) + " ~ " + formatTime(selection.end) + "의 볼륨을 낮춰요. 앞뒤로 '오르내림' 시간만큼 부드럽게 내려갔다 올라와요." : "타임라인에서 구간을 잡은 뒤(I/O 키 또는 Shift+끌기) 누르면, 그 구간만 낮아졌다가 다시 올라오는 볼륨 키프레임이 들어가요."; }
+  (function(){
+    function wrapBody(d){
+      var ex = d.querySelector(":scope > .kf-more-body"); if (ex) return ex;
+      var body = document.createElement("div"); body.className = "kf-more-body"; var inner = document.createElement("div"); inner.className = "kf-more-inner"; body.appendChild(inner);
+      Array.prototype.slice.call(d.childNodes).forEach(function(n){ if (n.tagName !== "SUMMARY") inner.appendChild(n); });
+      d.appendChild(body); return body;
+    }
+    Array.prototype.forEach.call(document.querySelectorAll("#kfPanel details.kf-more"), function(d){
+      var body = wrapBody(d), sum = d.querySelector("summary"), running = null;
+      function finish(){ if (running){ running(); running = null; } }
+      sum.addEventListener("click", function(e){
+        e.preventDefault(); finish();
+        var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        if (!d.open){
+          d.open = true; if (reduce) return;
+          var h = body.scrollHeight; d.classList.add("animating"); body.style.height = "0px"; body.style.opacity = "0"; void body.offsetHeight;
+          requestAnimationFrame(function(){ body.style.height = h + "px"; body.style.opacity = "1"; });
+          running = function(){ body.style.height = ""; body.style.opacity = ""; d.classList.remove("animating"); };
+          setTimeout(finish, 260);
+        } else {
+          if (reduce){ d.open = false; return; }
+          body.style.height = body.scrollHeight + "px"; body.style.opacity = "1"; d.classList.add("animating"); void body.offsetHeight;
+          requestAnimationFrame(function(){ body.style.height = "0px"; body.style.opacity = "0"; });
+          running = function(){ d.open = false; body.style.height = ""; body.style.opacity = ""; d.classList.remove("animating"); };
+          setTimeout(finish, 240);
+        }
+      });
+    });
+  })();
+  var KF_PADX = 8;
+  function kfFracX(clientX, r){ return clamp((clientX - r.left - KF_PADX) / Math.max(10, r.width - 2 * KF_PADX), 0, 1); }
+  function kfPanelTick(){ if ($("kfPanel").hidden || !kfPanelState.item) return; var st = kfPanelState; (st.rows || []).forEach(function(row){ var inp = $("kfGrid").querySelector('.kf-row-l[data-key="' + row.key + '"] input'); if (inp && document.activeElement !== inp){ inp.value = kfFmtVal(kfRowValue(st.item, st.kind, row.key, kfTimeOf(st.item, st.kind, playhead)), row); inp.className = kfTrack(st.item, row.key) ? "anim" : ""; } var stop = $("kfGrid").querySelector('.kf-stop[data-key="' + row.key + '"]'); if (stop) stop.classList.toggle("on", !!kfTrack(st.item, row.key)); var T = $("kfGrid").querySelector('.kf-row-t[data-key="' + row.key + '"]'); if (T) T.classList.toggle("off", !kfTrack(st.item, row.key)); }); renderKfSummary($("cpKfSummary"), st.item, st.kind); $("kfRange").textContent = formatTime(st.item.startSec) + " → " + formatTime(itemEnd(st.item, st.kind)) + " · 키프레임 " + kfCount(st.item) + "개"; $("cpKfClearBtn").disabled = !st.item.kf; refreshDuckState(); paintKfPanel(); }
+  // 눈금자 스크럽 · ◆ 끌기(시각/값) · 우클릭
+  (function(){
+    var scrub = null, gdrag = null, lastDown = null;
+    $("kfGrid").addEventListener("pointerdown", function(e){
+      if (isBlocked() || e.button !== 0) return;
+      var st = kfPanelState; if (!st.item) return;
+      var dot = e.target.closest(".kf-g-dot");
+      if (dot){
+        e.preventDefault(); e.stopPropagation(); stopPlayback();
+        var key = dot.getAttribute("data-key"), kt = parseFloat(dot.getAttribute("data-kt"));
+        if (e.altKey){ beginEdit(); kfRemove(st.item, key, kt); commitEdit("키프레임 삭제"); kfAfterEdit(st.kind); return; }
+        var T = dot.parentNode, row = (st.rows || []).filter(function(r){ return r.key === key; })[0];
+        kfSelect(st.item, st.kind, kt); setPlayhead(kfTlOf(st.item, st.kind, kt));
+        gdrag = { key: key, kt: kt, row: row, startX: e.clientX, startY: e.clientY, orig: cloneKf(st.item.kf), T: T, moved: false, lastOk: kt, origV: null, el: dot };
+        var trk = kfTrack(st.item, key); trk.forEach(function(f){ if (Math.abs(f.t - kt) <= KF_TOL) gdrag.origV = f.v; });
+        $("kfGrid").setPointerCapture(e.pointerId); return;
+      }
+      if (e.target.closest(".kf-ruler") || e.target.closest(".kf-row-t")){
+        e.preventDefault(); stopPlayback();
+        var host = e.target.closest(".kf-ruler") || e.target.closest(".kf-row-t"), r = host.getBoundingClientRect();
+        // 더블클릭(pointerdown에 preventDefault를 하면 dblclick이 안 오므로 직접 판정) → 그 자리에 키프레임
+        var nowT = Date.now(), ld = lastDown; lastDown = { t: nowT, x: e.clientX, y: e.clientY, host: host };
+        if (ld && nowT - ld.t < 400 && Math.abs(ld.x - e.clientX) < 6 && Math.abs(ld.y - e.clientY) < 6 && ld.host === host && host.classList.contains("kf-row-t")){ lastDown = null; host.dispatchEvent(new CustomEvent("kf-dblclick", { detail: { clientX: e.clientX } })); return; }
+        scrub = { r: r }; setPlayhead(quantizeFrame(st.item.startSec + kfFracX(e.clientX, r) * (itemEnd(st.item, st.kind) - st.item.startSec)));
+        $("kfGrid").setPointerCapture(e.pointerId);
+      }
+    });
+    $("kfGrid").addEventListener("pointermove", function(e){
+      var st = kfPanelState; if (!st.item) return;
+      if (scrub){ var r = scrub.r; setPlayhead(quantizeFrame(st.item.startSec + kfFracX(e.clientX, r) * (itemEnd(st.item, st.kind) - st.item.startSec))); return; }
+      if (!gdrag) return;
+      var dx = e.clientX - gdrag.startX, dy = e.clientY - gdrag.startY;
+      if (!gdrag.moved && Math.abs(dx) < 3 && Math.abs(dy) < 3) return;
+      if (!gdrag.moved){ gdrag.moved = true; beginEdit(); gdrag.el.classList.add("dragging"); }
+      var r = gdrag.T.getBoundingClientRect(), dur = kfItemDur(st.item, st.kind), t0 = kfItemT0(st.item, st.kind);
+      var newKt = clamp(gdrag.kt + dx / Math.max(10, r.width - 2 * KF_PADX) * dur, t0, t0 + dur); if (!e.altKey) newKt = kfTimeOf(st.item, st.kind, quantizeFrame(kfTlOf(st.item, st.kind, newKt)));
+      st.item.kf = cloneKf(gdrag.orig);
+      var trk = st.item.kf[gdrag.key], moving = trk.filter(function(f){ return Math.abs(f.t - gdrag.kt) <= KF_TOL; })[0];
+      var blocked = trk.some(function(f){ return f !== moving && Math.abs(f.t - newKt) <= KF_TOL; });
+      if (blocked) newKt = gdrag.lastOk; else gdrag.lastOk = newKt;
+      moving.t = Math.round(newKt * 10000) / 10000;
+      if (kfExpanded[gdrag.key] && gdrag.origV != null){ var dom = kfRowDomain(st.item, st.kind, gdrag.row), padY = 12, span = Math.max(1, r.height - padY * 2); var nv = gdrag.origV - dy / span * (dom[1] - dom[0]); nv = clamp(nv, gdrag.row.min / gdrag.row.mul, gdrag.row.max / gdrag.row.mul); moving.v = Math.round(nv * gdrag.row.mul / gdrag.row.step) * gdrag.row.step / gdrag.row.mul; }
+      trk.sort(function(a, b){ return a.t - b.t; });
+      kfSel = { item: st.item, kind: st.kind, kt: moving.t };
+      setPlayhead(kfTlOf(st.item, st.kind, moving.t)); renderTimeline(); drawPreviewFrame(); kfPanelTick();
+    });
+    function up(e){
+      if (scrub){ scrub = null; return; }
+      if (!gdrag) return; var gd = gdrag; gdrag = null;
+      if (gd.moved){ commitEdit("키프레임 " + (kfExpanded[gd.key] ? "이동·값" : "이동")); kfAfterEdit(kfPanelState.kind); } else kfPanelTick();
+    }
+    $("kfGrid").addEventListener("pointerup", up); $("kfGrid").addEventListener("pointercancel", up);
+    $("kfGrid").addEventListener("contextmenu", function(e){
+      var st = kfPanelState; if (!st.item) return; var dot = e.target.closest(".kf-g-dot"); if (!dot) return;
+      e.preventDefault(); var key = dot.getAttribute("data-key"), kt = parseFloat(dot.getAttribute("data-kt")); openKfDotMenu(st.item, st.kind, kt, e.clientX, e.clientY, key);
+    });
+    window.addEventListener("resize", function(){ if (!$("kfPanel").hidden) paintKfPanel(); });
+    if (typeof ResizeObserver !== "undefined") new ResizeObserver(function(){ if (!$("kfPanel").hidden) paintKfPanel(); }).observe($("kfGrid"));
+  })();
+  $("kfEmptyPick").addEventListener("click", function(){ if (autoSelectClipQuiet()) renderKfPanel(); else setStatus("재생 위치에 클립이 없어요. 타임라인에서 클립을 눌러 주세요."); });
+  // ◆ 우클릭 메뉴(타임라인·키프레임 탭 공용)
+  function openKfDotMenu(item, kind, kt, x, y, onlyKey){
+    kfSelect(item, kind, kt);
+    var curE = kfEaseAt(item, kt), ts = kfAllTimes(item, onlyKey), isLast = ts.length && Math.abs(ts[ts.length - 1] - kt) <= KF_TOL;
+    var items = [{ label: "여기로 재생 위치", run: function(){ setPlayhead(kfTlOf(item, kind, kt)); } }, "-"];
+    if (!isLast){
+      items.push({ label: "다음 키프레임까지 잇는 방식", disabled: true, run: function(){} });
+      [["", "항목 기본 (" + kfEaseLabel(kfEaseOf(item)) + ")"]].concat(KF_EASES).forEach(function(opt){ var val = opt[0]; items.push({ label: ((curE || "") === val ? "● " : "○ ") + opt[1], run: function(){ beginEdit(); kfSetEaseAt(item, kt, val || null); commitEdit("키프레임 잇는 방식"); kfAfterEdit(kind); } }); });
+      items.push("-");
+    }
+    items.push({ label: onlyKey ? "이 키프레임 삭제" : "이 시각의 키프레임 삭제", key: "Del", danger: true, run: function(){ beginEdit(); if (onlyKey) kfRemove(item, onlyKey, kt); else kfRemoveAll(item, kt); kfSel = null; commitEdit("키프레임 삭제"); kfAfterEdit(kind); } });
+    openCtx(x, y, items);
+  }
+  // 패널의 '움직임' 구역으로 스크롤 + 잠깐 강조
+  function openMotionSettings(kind){
+    activateTab("kf");
+    setTimeout(function(){ var sec = $("kfCard"); if (!sec || sec.hidden) return; sec.scrollIntoView({ block: "start", behavior: "smooth" }); sec.classList.remove("kf-flash"); void sec.offsetWidth; sec.classList.add("kf-flash"); }, 60);
+  }
+  // 선택된 키프레임(◆ 클릭) — Delete로 지우고, 다른 곳을 누르면 풀린다
+  var kfSel = null;
+  function kfSelect(item, kind, kt){ kfSel = item ? { item: item, kind: kind, kt: kt } : null; paintKfSel(); if (!$("kfPanel").hidden) paintKfPanel(); }
+  function paintKfSel(){ Array.prototype.forEach.call(timelineContent.querySelectorAll(".kf-dot"), function(d){ var on = !!kfSel && d.getAttribute("data-kind") === kfSel.kind && parseInt(d.getAttribute("data-id"), 10) === kfSel.item.id && Math.abs(parseFloat(d.getAttribute("data-kt")) - kfSel.kt) <= KF_TOL; d.classList.toggle("sel", on); }); }
+  function kfDeleteSelected(){ if (!kfSel) return false; var k = kfSel; if (!k.item.kf) { kfSel = null; return false; } beginEdit(); var n = kfRemoveAll(k.item, k.kt); if (!n){ pendingBefore = null; kfSel = null; return false; } kfSel = null; commitEdit("키프레임 삭제"); kfAfterEdit(k.kind); setStatus("선택한 키프레임을 지웠어요."); return true; }
+  function updateKfDotsAt(){
+    Array.prototype.forEach.call(timelineContent.querySelectorAll(".kf-dot"), function(d){ var kind = d.getAttribute("data-kind"), item = kfItemOf(kind, parseInt(d.getAttribute("data-id"), 10)); if (!item) return; var kt = parseFloat(d.getAttribute("data-kt")); d.classList.toggle("at", kfInRange(item, kind, playhead) && Math.abs(kfTimeOf(item, kind, playhead) - kt) <= KF_TOL); });
   }
   function paintVaClip(c, ve, w){
     var src = sourceOf(c.srcId), cv = ve.querySelector("canvas");
@@ -2772,9 +3314,11 @@
     $("clearSelectionBtn").disabled = !has;
     $("selStartInput").value = has ? formatTime(selection.start) : "";
     $("selEndInput").value = has ? formatTime(selection.end) : "";
+    if (typeof refreshDuckState === "function" && !$("kfPanel").hidden && kfPanelState.item) refreshDuckState();
   }
   function updatePlayhead(){
     tlPlayhead.style.left = Math.round(playhead * pxPerSec()) + "px";
+    updateKfDotsAt(); refreshKfButtons(); kfPanelTick();
     $("timeText").textContent = formatTime(playhead) + " / " + formatTime(totalDuration());
     var under = videoClipsAt(playhead).filter(function(c){ return playhead - c.startSec > 0.02 && clipEnd(c) - playhead > 0.02; });
     var sa = audioById(selectedAudioId), aUnder = !!(sa && !sa.loop && playhead > sa.startSec + 0.02 && playhead < sa.startSec + audioSegDur(sa) - 0.02);
@@ -2795,12 +3339,12 @@
     $("deleteClipBtn").disabled = selectedClipId == null && selectedAudioId == null && selectedTextId == null;
     $("deleteClipBtn").textContent = selectedAudioId != null ? "오디오 삭제" : selectedTextId != null ? "자막 삭제" : "클립 삭제";
     if (!c) return;
-    var src = sourceOf(c.srcId), isImg = !!(src && src.kind === "image"), tf = tfOf(c);
+    var src = sourceOf(c.srcId), isImg = !!(src && src.kind === "image"), tf = tfAt(c, curSt(c)), volNow = volumeAt(c, curSt(c));
     $("cpName").textContent = (src ? src.name : "클립") + " · V" + (c.lane + 1) + " · " + formatTime(c.startSec) + "부터" + (isImg ? "" : " · 원본 " + formatTime(c.inSec) + "~" + formatTime(c.outSec));
     var si = SPEED_STEPS.indexOf(c.speed); if (si < 0) si = 2;
     $("cpSpeed").value = si; $("cpSpeedVal").textContent = c.speed + "×";
     $("cpSpeedLabel").hidden = isImg;
-    $("cpVolume").value = Math.round(c.volume * 100); $("cpVolumeVal").textContent = Math.round(c.volume * 100) + "%";
+    $("cpVolume").value = Math.round(volNow * 100); $("cpVolumeVal").textContent = Math.round(volNow * 100) + "%";
     $("cpMuteBtn").setAttribute("aria-pressed", c.mute ? "true" : "false");
     var hasAudio = clipHasLinkedAudio(c);
     $("cpAudioGroup").hidden = !hasAudio;
@@ -2810,6 +3354,12 @@
     $("cpScale").value = Math.round(tf.scale * 100); $("cpScaleVal").textContent = Math.round(tf.scale * 100) + "%";
     $("cpRot").value = Math.round(tf.rot); $("cpRotVal").textContent = Math.round(tf.rot) + "°";
     $("cpOpacity").value = Math.round(tf.opacity * 100); $("cpOpacityVal").textContent = Math.round(tf.opacity * 100) + "%";
+    if (document.activeElement !== $("cpPosX")) $("cpPosX").value = Math.round(tf.x * 100);
+    if (document.activeElement !== $("cpPosY")) $("cpPosY").value = Math.round(tf.y * 100);
+    // 움직임(키프레임)이 있는 속성은 라벨에 ◆ 표시 — 편집은 키프레임 탭에서
+    var animMap = { scale: "cpScale", rot: "cpRot", opacity: "cpOpacity", x: "cpPosX", y: "cpPosY", volume: "cpVolume" };
+    Object.keys(animMap).forEach(function(k){ var inp = $(animMap[k]), lab = inp && inp.closest(".tc-field") ? inp.closest(".tc-field").querySelector(".tc-label") : null; if (lab){ var on = !!kfTrack(c, k); lab.classList.toggle("anim", on); lab.title = on ? "키프레임으로 움직이는 값 — 바꾸면 지금 재생 위치에 기록돼요 (키프레임 탭)" : ""; } });
+    renderKfLink($("cpKfLinkHost"), c, "video");
     // 색
     var fx = fxOf(c);
     Array.prototype.forEach.call($("cpFxPreset").querySelectorAll("button"), function(b){ b.classList.toggle("active", b.getAttribute("data-preset") === fx.preset); });
@@ -2836,6 +3386,7 @@
     renderClipProps();
     renderAudioList();
     renderTextList();
+    renderKfPanel();
     renderMaster();
     updateExportEnabled();
     updateEstimate();
@@ -2943,8 +3494,8 @@
   function splitAllAt(t){
     beginEdit(); var n = 0;
     clips.slice().forEach(function(c){ if (splitClipAt(c, t)) n++; });
-    audioClips.slice().forEach(function(sa){ if (!sa.loop && t > sa.startSec + 0.02 && t < sa.startSec + audioSegDur(sa) - 0.02){ var cut = (sa.inSec || 0) + (t - sa.startSec); audioClips.push(Object.assign({}, sa, { id: nextId++, inSec: cut, startSec: t })); sa.outSec = cut; n++; } });
-    texts.slice().forEach(function(tx){ if (t > tx.startSec + 0.05 && t < tx.endSec - 0.05){ texts.push(Object.assign({}, tx, { id: nextId++, startSec: t })); tx.endSec = t; n++; } });
+    audioClips.slice().forEach(function(sa){ if (!sa.loop && t > sa.startSec + 0.02 && t < sa.startSec + audioSegDur(sa) - 0.02){ var cut = (sa.inSec || 0) + (t - sa.startSec); audioClips.push(splitAudioRight(sa, cut, t)); sa.outSec = cut; n++; } });
+    texts.slice().forEach(function(tx){ if (t > tx.startSec + 0.05 && t < tx.endSec - 0.05){ texts.push(splitTextRight(tx, t)); tx.endSec = t; n++; } });
     if (!n){ pendingBefore = null; return; }
     commitEdit("모든 레인 자르기 (" + n + "개)"); renderAll(); updateNowStatus();
   }
@@ -3003,7 +3554,7 @@
   }
   // 복제 — 같은 레인 바로 뒤(자리가 없으면 위 레인)에
   function duplicateItem(kind, it){
-    var copy = kind === "video" ? cloneClip(it) : Object.assign({}, it);
+    var copy = cloneItem(kind, it);
     copy.id = nextId++;
     var len = itemEnd(it, kind) - it.startSec, ns = itemEnd(it, kind);
     if (kind === "text"){ copy.startSec = ns; copy.endSec = ns + len; } else copy.startSec = ns;
@@ -3038,6 +3589,14 @@
   lanesHost.addEventListener("contextmenu", function(e){
     if (isBlocked()) return;
     e.preventDefault();
+    var dotEl = e.target.closest(".kf-dot");
+    if (dotEl){
+      var dKind = dotEl.getAttribute("data-kind"), dItem = kfItemOf(dKind, parseInt(dotEl.getAttribute("data-id"), 10)), dKt = parseFloat(dotEl.getAttribute("data-kt"));
+      if (!dItem) return;
+      if (dKind === "video") selectClip(dItem.id); else if (dKind === "audio") selectAudio(dItem.id); else selectText(dItem.id);
+      openKfDotMenu(dItem, dKind, dKt, e.clientX, e.clientY, null);
+      return;
+    }
     var clipEl = e.target.closest(".clip, .aclip, .tclip"), t = eventSec(e);
     if (!clipEl){
       openCtx(e.clientX, e.clientY, [
@@ -3064,8 +3623,10 @@
       var src = sourceOf(item.srcId);
       items.push({ label: item.audioDetached ? "소리 이미 분리·제거됨" : "소리 분리", disabled: item.audioDetached || !src || !src.audioBuffer, run: function(){ detachAudio(item); } });
       items.push({ label: "위치·크기 초기화", run: function(){ $("cpResetTfBtn").click(); } });
-      items.push("-");
     }
+    items.push({ label: item.kf ? "움직임 설정 (" + kfBadgeText(item, kind) + ")" : "움직임 넣기 (키프레임)", run: function(){ openMotionSettings(kind); } });
+    if (item.kf) items.push({ label: "움직임 모두 지우기", danger: true, run: function(){ confirmClearKf(item, kind); } });
+    items.push("-");
     items.push({ label: "리플 삭제(빈틈 없이)", key: "Shift+Del", danger: true, run: rippleDeleteSelected });
     items.push({ label: "삭제", key: "Del", danger: true, run: deleteSelected });
     openCtx(e.clientX, e.clientY, items);
@@ -3115,8 +3676,8 @@
     var id = parseInt(clipEl.getAttribute(kind === "video" ? "data-clip-id" : kind === "audio" ? "data-audio-id" : "data-text-id"), 10);
     beginEdit(); var ok = false;
     if (kind === "video"){ var c = clipById(id); ok = !!c && splitClipAt(c, t); if (ok) selectedClipId = id; }
-    else if (kind === "audio"){ var sa = audioById(id); if (sa && !sa.loop && t > sa.startSec + 0.02 && t < sa.startSec + audioSegDur(sa) - 0.02){ var cut = (sa.inSec || 0) + (t - sa.startSec); audioClips.push(Object.assign({}, sa, { id: nextId++, inSec: cut, startSec: t })); sa.outSec = cut; ok = true; selectedAudioId = id; } }
-    else { var tx = textById(id); if (tx && t > tx.startSec + 0.05 && t < tx.endSec - 0.05){ texts.push(Object.assign({}, tx, { id: nextId++, startSec: t })); tx.endSec = t; ok = true; selectedTextId = id; } }
+    else if (kind === "audio"){ var sa = audioById(id); if (sa && !sa.loop && t > sa.startSec + 0.02 && t < sa.startSec + audioSegDur(sa) - 0.02){ var cut = (sa.inSec || 0) + (t - sa.startSec); audioClips.push(splitAudioRight(sa, cut, t)); sa.outSec = cut; ok = true; selectedAudioId = id; } }
+    else { var tx = textById(id); if (tx && t > tx.startSec + 0.05 && t < tx.endSec - 0.05){ texts.push(splitTextRight(tx, t)); tx.endSec = t; ok = true; selectedTextId = id; } }
     if (!ok){ pendingBefore = null; setStatus("여기서는 자를 수 없어요 — 클립 안쪽을 눌러 주세요."); return; }
     commitEdit("자르기"); renderAll(); updateNowStatus();
   }
@@ -3136,12 +3697,39 @@
     if (tool === "zoom"){ e.preventDefault(); setZoom(zoom * (e.altKey ? 1 / 1.5 : 1.5), eventSec(e)); return; }
     if (tool === "text"){ e.preventDefault(); if (e.target.closest(".clip, .aclip, .tclip, .vaclip")) { /* 클립 위를 눌러도 그 시각에 자막 */ } stopPlayback(); setPlayhead(eventSec(e)); addText(); return; }
     if (tool === "razor"){ var rEl = e.target.closest(".clip, .aclip, .tclip"); e.preventDefault(); var rt = snapSec(eventSec(e), null, null); $("tlCutLine").hidden = true; if (e.shiftKey){ stopPlayback(); splitAllAt(rt); return; } if (!rEl){ stopPlayback(); setPlayhead(rt); return; } stopPlayback(); razorAt(rEl, rt); return; }
+    var badgeEl = e.target.closest(".clip-kf");
+    if (badgeEl){
+      e.preventDefault(); e.stopPropagation(); stopPlayback();
+      var bKind = badgeEl.getAttribute("data-kind"), bItem = kfItemOf(bKind, parseInt(badgeEl.getAttribute("data-id"), 10)); if (!bItem) return;
+      if (bKind === "video") selectClip(bItem.id); else if (bKind === "audio") selectAudio(bItem.id); else selectText(bItem.id);
+      if (e.target.closest(".clip-kf-x")){ confirmClearKf(bItem, bKind); return; }
+      openMotionSettings(bKind);
+      return;
+    }
+    var dotEl = e.target.closest(".kf-dot");
+    if (dotEl){
+      e.preventDefault(); e.stopPropagation(); stopPlayback();
+      var dKind = dotEl.getAttribute("data-kind"), dItem = kfItemOf(dKind, parseInt(dotEl.getAttribute("data-id"), 10)), dKt = parseFloat(dotEl.getAttribute("data-kt"));
+      if (!dItem) return;
+      if (dKind === "video") selectClip(dItem.id); else if (dKind === "audio") selectAudio(dItem.id); else selectText(dItem.id);
+      if (e.altKey){ beginEdit(); var rn = kfRemoveAll(dItem, dKt); if (rn){ commitEdit("키프레임 삭제"); setStatus("키프레임을 지웠어요."); } else pendingBefore = null; kfAfterEdit(dKind); return; }
+      setPlayhead(kfTlOf(dItem, dKind, dKt));
+      kfSelect(dItem, dKind, dKt);
+      kfDrag = { item: dItem, kind: dKind, kt: dKt, startX: e.clientX, orig: cloneKf(dItem.kf), moved: false, el: dotEl, lastOk: dKt };
+      ppsLock = pxPerSec();
+      lanesHost.setPointerCapture(e.pointerId);
+      return;
+    }
     var vaEl = e.target.closest(".vaclip");
-    if (vaEl){ stopPlayback(); selectClip(parseInt(vaEl.getAttribute("data-clip-id"), 10)); e.preventDefault(); return; }
+    if (vaEl){
+      stopPlayback(); var vaC = clipById(parseInt(vaEl.getAttribute("data-clip-id"), 10)); selectClip(vaC ? vaC.id : null); e.preventDefault();
+      if (vaC && (e.ctrlKey || e.metaKey)){ var vt = quantizeFrame(eventSec(e)); if (kfInRange(vaC, "video", vt)){ beginEdit(); var vst = srcTimeOf(vaC, vt); kfSet(vaC, "volume", vst, volumeAt(vaC, vst)); commitEdit("볼륨 키프레임 추가"); setPlayhead(vt); kfAfterEdit("video"); kfSelect(vaC, "video", vst); setStatus("볼륨 키프레임을 추가했어요. 클립 패널의 볼륨 슬라이더로 이 시각의 값을 바꾸세요."); } }
+      return;
+    }
     var clipEl = e.target.closest(".clip, .aclip, .tclip");
     if (!clipEl){
       // 빈 곳: 클릭이면 재생 위치 이동 + 선택 해제, 끌면 재생선이 따라온다(스크럽)
-      stopPlayback(); setPlayhead(quantizeFrame(eventSec(e))); selectClip(null);
+      stopPlayback(); setPlayhead(quantizeFrame(eventSec(e))); selectClip(null); kfSelect(null);
       laneScrub = { id: e.pointerId };
       try { lanesHost.setPointerCapture(e.pointerId); } catch(err){}
       e.preventDefault();
@@ -3153,18 +3741,25 @@
     var item = kind === "video" ? clipById(id) : kind === "audio" ? audioById(id) : textById(id);
     if (!item) return;
     var edge = e.target.getAttribute("data-edge");
+    if (kind === "audio" && (e.ctrlKey || e.metaKey) && !edge){
+      // Ctrl/Cmd+클릭 = 그 시각에 볼륨 키프레임(프리미어의 러버 밴드 Ctrl+클릭)
+      e.preventDefault(); selectAudio(id); var at = quantizeFrame(eventSec(e));
+      if (kfInRange(item, "audio", at)){ beginEdit(); var atk = at - item.startSec; kfSet(item, "volume", atk, audioVolumeAt(item, atk)); commitEdit("볼륨 키프레임 추가"); setPlayhead(at); kfAfterEdit("audio"); kfSelect(item, "audio", atk); setStatus("볼륨 키프레임을 추가했어요. 소리 탭의 볼륨 슬라이더로 이 시각의 값을 바꾸세요."); }
+      return;
+    }
     var dup = false;
     if (e.altKey && !edge){
       // Alt+끌기 = 복제해서 끈다(프리미어). 원본은 제자리, 복제본이 커서를 따라간다.
       beginEdit();
-      var copy = kind === "video" ? cloneClip(item) : Object.assign({}, item); copy.id = nextId++;
+      var copy = cloneItem(kind, item); copy.id = nextId++;
       itemsOfKind(kind).push(copy);
       item = copy; id = copy.id; dup = true;
       renderTimeline();
       clipEl = timelineContent.querySelector((kind === "video" ? '.clip[data-clip-id="' : kind === "audio" ? '.aclip[data-audio-id="' : '.tclip[data-text-id="') + id + '"]') || clipEl;
     }
     if (kind === "video") selectClip(id); else if (kind === "audio") selectAudio(id); else selectText(id);
-    drag = { kind: kind, id: id, item: item, el: clipEl, edge: edge, startX: e.clientX, startY: e.clientY, moved: false, orig: Object.assign({}, item), targetLane: item.lane, wantStart: null, dup: dup, ph0: playhead };
+    kfSelect(null);
+    drag = { kind: kind, id: id, item: item, el: clipEl, edge: edge, startX: e.clientX, startY: e.clientY, moved: false, orig: Object.assign({}, item), origKf: cloneKf(item.kf), targetLane: item.lane, wantStart: null, dup: dup, ph0: playhead };
     if (dup) drag.moved = true, drag.el.classList.add("dragging");
     // 옮기는 동안 미리보기가 클립을 따라가도록, 재생 위치가 클립 안에 있었으면 그 상대 위치를 기억한다(밖이면 클립 시작)
     var s0 = item.startSec, e0 = kind === "video" ? clipEnd(item) : kind === "audio" ? item.startSec + audioClipDur(item) : item.endSec;
@@ -3173,9 +3768,22 @@
     lanesHost.setPointerCapture(e.pointerId);
     e.preventDefault();
   });
-  var laneScrub = null;
+  var laneScrub = null, kfDrag = null;
   lanesHost.addEventListener("pointermove", function(e){
     if (laneScrub && e.pointerId === laneScrub.id){ setPlayhead(quantizeFrame(eventSec(e))); return; }
+    if (kfDrag){
+      var kd = kfDrag, dxk = e.clientX - kd.startX;
+      if (!kd.moved && Math.abs(dxk) < 3) return;
+      if (!kd.moved){ kd.moved = true; beginEdit(); kd.el.classList.add("dragging"); }
+      var s0 = kd.item.startSec, e0 = itemEnd(kd.item, kd.kind), tl = clamp(kfTlOf(kd.item, kd.kind, kd.kt) + dxk / (ppsLock || pxPerSec()), s0, e0);
+      if (!e.altKey) tl = quantizeFrame(tl);
+      var newKt = kfTimeOf(kd.item, kd.kind, tl);
+      kd.item.kf = cloneKf(kd.orig);
+      if (kfMoveTime(kd.item, kd.kt, newKt)) kd.lastOk = newKt; else kfMoveTime(kd.item, kd.kt, kd.lastOk);
+      renderTimeline(); setPlayhead(kfTlOf(kd.item, kd.kind, kd.lastOk)); drawPreviewFrame();
+      showDragTip(e, "키프레임 " + formatTime(kfTlOf(kd.item, kd.kind, kd.lastOk)), signedSec(kfTlOf(kd.item, kd.kind, kd.lastOk) - kfTlOf(kd.item, kd.kind, kd.kt)));
+      return;
+    }
     if (!drag) return;
     var dx = e.clientX - drag.startX, dy = e.clientY - drag.startY;
     if (!drag.moved && Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
@@ -3199,12 +3807,12 @@
         }
         clampToLaneNeighbors(it, "video");
       } else if (drag.kind === "text"){
-        if (drag.edge === "left") it.startSec = clamp(o.startSec + dSec, 0, o.endSec - 0.1);
+        if (drag.edge === "left"){ it.startSec = clamp(o.startSec + dSec, 0, o.endSec - 0.1); if (drag.origKf){ it.kf = cloneKf(drag.origKf); shiftKf(it, -(it.startSec - o.startSec)); } }
         else it.endSec = Math.max(o.startSec + 0.1, o.endSec + dSec);
         clampToLaneNeighbors(it, "text");
       } else if (drag.kind === "audio"){
         var oIn = o.inSec || 0, oOut = o.outSec != null ? o.outSec : it.buffer.duration;
-        if (drag.edge === "left"){ var nIn = clamp(oIn + dSec, 0, oOut - 0.05); it.inSec = nIn; it.startSec = Math.max(0, o.startSec + (nIn - oIn)); }
+        if (drag.edge === "left"){ var nIn = clamp(oIn + dSec, 0, oOut - 0.05); it.inSec = nIn; it.startSec = Math.max(0, o.startSec + (nIn - oIn)); if (drag.origKf){ it.kf = cloneKf(drag.origKf); shiftKf(it, -(it.startSec - o.startSec)); } }
         else it.outSec = clamp(oOut + dSec, oIn + 0.05, it.buffer.duration);
         clampToLaneNeighbors(it, "audio");
       }
@@ -3259,10 +3867,10 @@
         if (os >= s){ it.outSec = Math.max(it.inSec + 0.05, it.inSec + (os - it.startSec) * it.speed); }
         else { var shift = oe - it.startSec; it.startSec = oe; it.inSec = Math.min(it.outSec - 0.05, it.inSec + shift * it.speed); }
       } else if (kind === "text"){
-        if (os >= s) it.endSec = Math.max(it.startSec + 0.1, os); else it.startSec = Math.min(it.endSec - 0.1, oe);
+        if (os >= s) it.endSec = Math.max(it.startSec + 0.1, os); else { var ns0 = Math.min(it.endSec - 0.1, oe); shiftKf(it, -(ns0 - it.startSec)); it.startSec = ns0; }
       } else if (kind === "audio"){
         if (os >= s) it.outSec = Math.max((it.inSec || 0) + 0.05, (it.inSec || 0) + (os - it.startSec));
-        else { var sh2 = oe - it.startSec; it.startSec = oe; it.inSec = Math.min((it.outSec != null ? it.outSec : it.buffer.duration) - 0.05, (it.inSec || 0) + sh2); }
+        else { var sh2 = oe - it.startSec; it.startSec = oe; it.inSec = Math.min((it.outSec != null ? it.outSec : it.buffer.duration) - 0.05, (it.inSec || 0) + sh2); shiftKf(it, -sh2); }
       }
     }
   }
@@ -3304,8 +3912,9 @@
     renderAll(); updateNowStatus();
     if (lane !== d.targetLane) setStatus("겹치지 않게 " + (d.kind === "video" ? "V" : d.kind === "audio" ? "A" : "T") + (lane + 1) + " 레인으로 올렸어요.");
   }
-  lanesHost.addEventListener("pointerup", endDrag);
-  lanesHost.addEventListener("pointercancel", endDrag);
+  function endKfDrag(){ if (!kfDrag) return; var kd = kfDrag; kfDrag = null; hideDragTip(); if (kd.moved){ commitEdit("키프레임 이동"); kfAfterEdit(kd.kind); } else refreshKfButtons(); }
+  lanesHost.addEventListener("pointerup", function(e){ if (kfDrag){ endKfDrag(); return; } endDrag(e); });
+  lanesHost.addEventListener("pointercancel", function(e){ if (kfDrag){ endKfDrag(); return; } endDrag(e); });
   lanesHost.addEventListener("keydown", function(e){
     var clipEl = e.target.closest && e.target.closest(".clip, .aclip, .tclip"); if (!clipEl) return;
     if (e.key !== "Enter" && e.key !== " ") return;
@@ -3356,10 +3965,10 @@
     if (id != null){ selectedAudioId = null; selectedTextId = null; }
     renderTimeline(); renderClipProps(); renderAudioList(); renderTextList();
     updateNowStatus(); drawPreviewFrame();
-    if (id != null){ activateTab("clip"); revealInTimeline('.clip[data-clip-id="' + id + '"]'); }
+    if (id != null){ activateTab(currentTab === "kf" ? "kf" : "clip"); revealInTimeline('.clip[data-clip-id="' + id + '"]'); } else if (currentTab === "kf") renderKfPanel();
   }
-  function selectAudio(id){ selectedAudioId = id; if (id != null){ selectedClipId = null; selectedTextId = null; } renderTimeline(); renderClipProps(); renderAudioList(); renderTextList(); activateTab("audio"); if (id != null) revealInTimeline(".aclip.selected"); }
-  function selectText(id){ selectedTextId = id; if (id != null){ selectedClipId = null; selectedAudioId = null; } renderTimeline(); renderClipProps(); renderAudioList(); renderTextList(); activateTab("text"); if (id != null) revealInTimeline(".tclip.selected"); }
+  function selectAudio(id){ selectedAudioId = id; if (id != null){ selectedClipId = null; selectedTextId = null; } renderTimeline(); renderClipProps(); renderAudioList(); renderTextList(); activateTab(currentTab === "kf" ? "kf" : "audio"); if (id != null) revealInTimeline(".aclip.selected"); }
+  function selectText(id){ selectedTextId = id; if (id != null){ selectedClipId = null; selectedAudioId = null; } renderTimeline(); renderClipProps(); renderAudioList(); renderTextList(); activateTab(currentTab === "kf" ? "kf" : "text"); if (id != null) revealInTimeline(".tclip.selected"); }
   function updateNowStatus(){
     var parts = [];
     parts.push("클립 " + clips.length + "개 · 총 " + formatTime(totalDuration()));
@@ -3391,11 +4000,14 @@
     var local = t - c.startSec;
     if (local < 0.02 || local > clipDur(c) - 0.02) return false;
     var cut = c.inSec + local * c.speed;
-    var right = Object.assign({}, c, { id: nextId++, inSec: cut, startSec: t });
+    var right = cloneClip(c); right.id = nextId++; right.inSec = cut; right.startSec = t;
     c.outSec = cut;
     clips.push(right);
     return true;
   }
+  // 오디오·자막 오른쪽 조각: 키프레임(시작 기준 시각)을 새 시작에 맞춰 옮긴다
+  function splitAudioRight(sa, cut, t){ var r = cloneAudio(sa); r.id = nextId++; r.inSec = cut; r.startSec = t; shiftKf(r, -(t - sa.startSec)); return r; }
+  function splitTextRight(tx, t){ var r = cloneText(tx); r.id = nextId++; r.startSec = t; shiftKf(r, -(t - tx.startSec)); return r; }
   function splitAtPlayhead(){
     if (isBlocked() || !clips.length) return;
     stopPlayback();
@@ -3407,7 +4019,7 @@
     var sa = audioById(selectedAudioId);
     if (sa && !sa.loop && playhead > sa.startSec + 0.02 && playhead < sa.startSec + audioSegDur(sa) - 0.02){
       var cut = (sa.inSec || 0) + (playhead - sa.startSec);
-      var right = Object.assign({}, sa, { id: nextId++, inSec: cut, startSec: playhead });
+      var right = splitAudioRight(sa, cut, playhead);
       sa.outSec = cut; audioClips.push(right); n++;
     }
     if (!n){ pendingBefore = null; return; }
@@ -3421,16 +4033,16 @@
       var s = c.startSec, e = clipEnd(c);
       if (e <= a + 1e-6 || s >= b - 1e-6){ out.push(c); return; }
       var frontKept = s < a - 1e-6;
-      if (frontKept) out.push(Object.assign({}, c, { outSec: c.inSec + (a - s) * c.speed }));
-      if (e > b + 1e-6){ var r = Object.assign({}, c, { inSec: c.inSec + (b - s) * c.speed, startSec: b }); if (frontKept) r.id = nextId++; out.push(r); }
+      if (frontKept){ var fc = cloneClip(c); fc.outSec = c.inSec + (a - s) * c.speed; out.push(fc); }
+      if (e > b + 1e-6){ var r = cloneClip(c); r.inSec = c.inSec + (b - s) * c.speed; r.startSec = b; if (frontKept) r.id = nextId++; out.push(r); }
     });
     clips = out;
     var tout = [];
     texts.forEach(function(t){
       if (t.endSec <= a + 1e-6 || t.startSec >= b - 1e-6){ tout.push(t); return; }
       var fk = t.startSec < a - 1e-6;
-      if (fk) tout.push(Object.assign({}, t, { endSec: a }));
-      if (t.endSec > b + 1e-6){ var r2 = Object.assign({}, t, { startSec: b }); if (fk) r2.id = nextId++; tout.push(r2); }
+      if (fk){ var ft = cloneText(t); ft.endSec = a; tout.push(ft); }
+      if (t.endSec > b + 1e-6){ var r2 = cloneText(t); r2.startSec = b; shiftKf(r2, -(b - t.startSec)); if (fk) r2.id = nextId++; tout.push(r2); }
     });
     texts = tout;
   }
@@ -3522,9 +4134,9 @@
   $("cpVolume").addEventListener("input", function(){
     var c = clipById(selectedClipId); if (!c) return;
     beginEdit();
-    c.volume = parseInt(this.value, 10) / 100;
+    setClipVolume(c, parseInt(this.value, 10) / 100, curSt(c));
     $("cpVolumeVal").textContent = this.value + "%";
-    renderTimeline();
+    renderTimeline(); if (kfTrack(c, "volume")) kfPanelTick();
     if (playing) applyPreviewVolume();
   });
   $("cpVolume").addEventListener("change", function(){ commitEdit("클립 볼륨"); });
@@ -3534,7 +4146,7 @@
     renderTimeline(); renderClipProps(); if (playing) applyPreviewVolume();
   });
   function tfSlider(id, valId, key, fmt, label, scale){
-    $(id).addEventListener("input", function(){ var c = clipById(selectedClipId); if (!c) return; beginEdit(); tfOf(c)[key] = parseFloat(this.value) / scale; $(valId).textContent = fmt(this.value); drawPreviewFrame(); });
+    $(id).addEventListener("input", function(){ var c = clipById(selectedClipId); if (!c) return; beginEdit(); setTfProp(c, key, parseFloat(this.value) / scale, curSt(c)); $(valId).textContent = fmt(this.value); if (kfTrack(c, key)){ renderTimeline(); kfPanelTick(); } drawPreviewFrame(); });
     $(id).addEventListener("change", function(){ commitEdit(label); });
     $(id).addEventListener("keydown", function(e){ e.stopPropagation(); });
   }
@@ -3542,7 +4154,116 @@
   tfSlider("cpRot", "cpRotVal", "rot", function(v){ return v + "°"; }, "클립 회전", 1);
   tfSlider("cpOpacity", "cpOpacityVal", "opacity", function(v){ return v + "%"; }, "클립 불투명도", 100);
   $("cpFitBtn").addEventListener("click", function(){ var c = clipById(selectedClipId); if (!c) return; beginEdit(); var tf = tfOf(c); tf.fit = tf.fit === "cover" ? "contain" : "cover"; commitEdit(tf.fit === "cover" ? "화면 채움" : "화면 맞춤"); drawPreviewFrame(); renderClipProps(); });
-  $("cpResetTfBtn").addEventListener("click", function(){ var c = clipById(selectedClipId); if (!c) return; beginEdit(); c.tf = defaultTf(); commitEdit("변형 초기화"); drawPreviewFrame(); renderClipProps(); });
+  $("cpResetTfBtn").addEventListener("click", function(){ var c = clipById(selectedClipId); if (!c) return; beginEdit(); c.tf = defaultTf(); ["x", "y", "scale", "rot", "opacity"].forEach(function(k){ kfClear(c, k); }); commitEdit("변형 초기화"); renderTimeline(); drawPreviewFrame(); renderClipProps(); });
+  function posInput(id, key){
+    $(id).addEventListener("change", function(){ var c = clipById(selectedClipId); if (!c) return; var v = parseFloat(this.value); if (!isFinite(v)) return; beginEdit(); setTfProp(c, key, clamp(v, -150, 150) / 100, curSt(c)); commitEdit(key === "x" ? "클립 가로 위치" : "클립 세로 위치"); renderTimeline(); drawPreviewFrame(); renderClipProps(); });
+    $(id).addEventListener("keydown", function(e){ e.stopPropagation(); if (e.key === "Enter") this.blur(); });
+  }
+  posInput("cpPosX", "x"); posInput("cpPosY", "y");
+  $("cpCenterBtn").addEventListener("click", function(){ var c = clipById(selectedClipId); if (!c) return; beginEdit(); var st = curSt(c); setTfProp(c, "x", 0, st); setTfProp(c, "y", 0, st); commitEdit("클립 가운데로"); renderTimeline(); drawPreviewFrame(); renderClipProps(); });
+
+  // ---------- 키프레임 패널 공용: ◆ 버튼 · 요약 · 잇는 방식 · 빠른 움직임 · 더킹 ----------
+  function kfTargetOf(ctl){ var kind = ctl.getAttribute("data-kind") || "video"; var id = ctl.getAttribute("data-id"); return { kind: kind, item: kind === "video" ? clipById(selectedClipId) : kfItemOf(kind, parseInt(id, 10)) }; }
+  function refreshKfButtons(){
+    Array.prototype.forEach.call(document.querySelectorAll(".kf-ctl"), function(ctl){
+      var key = ctl.getAttribute("data-kf"), tg = kfTargetOf(ctl), item = tg.item, btn = ctl.querySelector(".kf-btn"), prev = ctl.querySelector(".kf-prev"), next = ctl.querySelector(".kf-next");
+      if (!item){ btn.className = "kf-btn"; prev.disabled = next.disabled = true; return; }
+      var inRange = kfInRange(item, tg.kind, playhead), kt = kfTimeOf(item, tg.kind, playhead), tr = kfTrack(item, key);
+      btn.className = "kf-btn" + (tr ? " anim" : "") + (tr && inRange && kfAt(item, key, kt) ? " on" : "");
+      btn.title = tr && inRange && kfAt(item, key, kt) ? "이 시각의 키프레임 지우기" : (tr ? "지금 재생 위치에 키프레임 추가" : "지금 재생 위치에 키프레임 기록 (움직임 시작)");
+      var ts = kfAllTimes(item, key);
+      prev.disabled = !ts.some(function(t){ return t < kt - KF_TOL; }); next.disabled = !ts.some(function(t){ return t > kt + KF_TOL; });
+    });
+  }
+  function kfAfterEdit(kind){ renderTimeline(); drawPreviewFrame(); if (kind === "video") renderClipProps(); else if (kind === "text") renderTextList(); else renderAudioList(); renderKfPanel(); refreshKfButtons(); }
+  document.addEventListener("click", function(e){
+    var b = e.target.closest(".kf-ctl button"); if (!b || isBlocked()) return;
+    e.preventDefault(); e.stopPropagation();
+    var ctl = b.parentNode, key = ctl.getAttribute("data-kf"), tg = kfTargetOf(ctl), item = tg.item, kind = tg.kind; if (!item) return;
+    var kt = kfTimeOf(item, kind, playhead), ts = kfAllTimes(item, key);
+    if (b.classList.contains("kf-prev") || b.classList.contains("kf-next")){
+      var pick = null;
+      if (b.classList.contains("kf-prev")){ ts.forEach(function(t){ if (t < kt - KF_TOL) pick = t; }); } else { for (var i = 0; i < ts.length; i++){ if (ts[i] > kt + KF_TOL){ pick = ts[i]; break; } } }
+      if (pick == null) return;
+      stopPlayback(); setPlayhead(kfTlOf(item, kind, pick)); ensurePlayheadVisible(); refreshKfButtons(); return;
+    }
+    if (!kfInRange(item, kind, playhead)){ setStatus("재생 위치가 이 " + (kind === "video" ? "클립" : kind === "text" ? "자막" : "오디오") + " 안에 있어야 기록할 수 있어요. 빨간 재생선을 그 위로 옮겨 주세요."); return; }
+    stopPlayback(); beginEdit();
+    if (kfAt(item, key, kt)){ kfRemove(item, key, kt); commitEdit(kfLabelOf(kind, key) + " 키프레임 삭제"); setStatus(kfLabelOf(kind, key) + " 키프레임을 지웠어요." + (kfTrack(item, key) ? "" : " 남은 키프레임이 없어 지금 값이 그대로 유지돼요.")); }
+    else {
+      var v = kfCurrentValue(item, kind, key, kt);
+      if (kind === "text" && (key === "x" || key === "y")){ ensureFreeText(item); }
+      var first = !kfTrack(item, key);
+      if (first && key !== "opacity"){ /* 첫 키프레임 = 지금 고정값을 그 시각에 기록 */ }
+      kfSet(item, key, kt, v);
+      if (kind === "video" && key === "volume" && first) { /* 고정 볼륨은 그대로 두고 키프레임이 우선 */ }
+      commitEdit(kfLabelOf(kind, key) + " 키프레임 기록");
+      setStatus(first ? kfLabelOf(kind, key) + " 키프레임을 기록했어요. 재생 위치를 옮겨 값을 바꾸면 다음 키프레임이 자동으로 생겨요." : kfLabelOf(kind, key) + " 키프레임을 추가했어요 (" + kfCount(item, key) + "개).");
+    }
+    kfAfterEdit(kind);
+  });
+  function renderKfSummary(host, item, kind){
+    host.innerHTML = "";
+    var keys = item.kf ? Object.keys(item.kf).filter(function(k){ return item.kf[k].length; }) : [];
+    if (!keys.length){ host.appendChild(el("span", "tc-hint", "아직 키프레임이 없어요 — 값 옆의 ◆를 누르거나 아래 '빠른 움직임'을 골라 보세요.")); return; }
+    if (item.kfPreset && item.kfPreset.keys === keys.slice().sort().join(",")){ var pn = el("span", "kf-pill"); pn.style.background = "var(--accent)"; pn.style.color = "#fff"; pn.textContent = "◆ " + item.kfPreset.name; host.appendChild(pn); }
+    keys.forEach(function(k){
+      var pill = el("span", "kf-pill"); pill.appendChild(document.createTextNode(kfLabelOf(kind, k) + " ")); pill.appendChild(el("b", "", String(item.kf[k].length)));
+      var x = el("button", "", "×"); x.type = "button"; x.title = kfLabelOf(kind, k) + " 키프레임만 모두 지우기";
+      x.addEventListener("click", function(ev){ ev.stopPropagation(); if (isBlocked()) return; beginEdit(); var keep = kfCurrentValue(item, kind, k, kfTimeOf(item, kind, playhead)); kfClear(item, k); if (kind === "video"){ if (k === "volume") item.volume = keep; else tfOf(item)[k] = keep; } else if (kind === "text"){ if (k !== "opacity") item[k] = keep; } else item.volume = keep; commitEdit(kfLabelOf(kind, k) + " 키프레임 모두 지우기"); kfAfterEdit(kind); });
+      pill.appendChild(x); host.appendChild(pill);
+    });
+  }
+  // 항목의 키프레임을 모두 지우되, 값은 지금 재생 위치의 상태로 남긴다
+  function kfClearKeepNow(item, kind){
+    var kt = kfTimeOf(item, kind, playhead);
+    if (kind === "video"){ var tf = tfAt(item, kt), vol = volumeAt(item, kt); item.tf = Object.assign(tfOf(item), { x: tf.x, y: tf.y, scale: tf.scale, rot: tf.rot, opacity: tf.opacity }); item.volume = vol; }
+    else if (kind === "text"){ if (item.x != null){ item.x = textPropAt(item, "x", kt); item.y = textPropAt(item, "y", kt); } item.size = textPropAt(item, "size", kt); }
+    else item.volume = audioVolumeAt(item, kt);
+    kfClear(item);
+  }
+  $("cpKfClearBtn").addEventListener("click", function(){ var tg = kfTarget(); if (!tg || !tg.item.kf || isBlocked()) return; confirmClearKf(tg.item, tg.kind); });
+  $("cpKfEase").addEventListener("change", function(){ var tg = kfTarget(); if (!tg) return; beginEdit(); tg.item.kfEase = this.value; commitEdit("키프레임 잇는 방식"); drawPreviewFrame(); kfPanelTick(); });
+  // 빠른 움직임(영상 클립 전체)
+  var CLIP_PRESET_LABELS = { zoomin: "줌 인", zoomout: "줌 아웃", panright: "왼→오 팬", panleft: "오→왼 팬", kenburns: "켄 번스", appear: "등장", vanish: "퇴장", spin: "한 바퀴" };
+  function applyClipPreset(c, name){
+    var t0 = c.inSec, t1 = c.outSec, base = tfOf(c), s = base.scale, dur = Math.max(0.05, t1 - t0), short = Math.min(dur * 0.5, 0.6 * c.speed);
+    var hadKeys = c.kf ? Object.keys(c.kf).length : 0;
+    function clr(keys){ keys.forEach(function(k){ kfClear(c, k); }); }
+    switch (name){
+      case "zoomin": clr(["scale"]); kfSet(c, "scale", t0, s); kfSet(c, "scale", t1, s * 1.25); break;
+      case "zoomout": clr(["scale"]); kfSet(c, "scale", t0, s * 1.25); kfSet(c, "scale", t1, s); break;
+      case "panright": clr(["x", "scale"]); base.scale = Math.max(s, 1.15); kfSet(c, "x", t0, -0.06); kfSet(c, "x", t1, 0.06); break;
+      case "panleft": clr(["x", "scale"]); base.scale = Math.max(s, 1.15); kfSet(c, "x", t0, 0.06); kfSet(c, "x", t1, -0.06); break;
+      case "kenburns": clr(["x", "y", "scale"]); kfSet(c, "scale", t0, s * 1.05); kfSet(c, "scale", t1, s * 1.3); kfSet(c, "x", t0, -0.04); kfSet(c, "x", t1, 0.04); kfSet(c, "y", t0, -0.03); kfSet(c, "y", t1, 0.02); break;
+      case "appear": clr(["opacity"]); kfSet(c, "opacity", t0, 0); kfSet(c, "opacity", t0 + short, base.opacity); if (!kfTrack(c, "scale")){ kfSet(c, "scale", t0, s * 0.9); kfSet(c, "scale", t0 + short, s); } break;
+      case "vanish": { var o1 = tfAt(c, t1 - short).opacity; kfTrack(c, "opacity") && (o1 = tfAt(c, t1 - short).opacity); kfSet(c, "opacity", t1 - short, o1); kfSet(c, "opacity", t1, 0); break; }
+      case "spin": clr(["rot"]); kfSet(c, "rot", t0, base.rot); kfSet(c, "rot", t1, base.rot + 360); break;
+    }
+    // 배지 이름: 처음 넣은 프리셋 이름, 다른 프리셋을 덧붙이면 "줌 인 + 등장"
+    var label = CLIP_PRESET_LABELS[name] || name;
+    if (hadKeys && c.kfPreset && c.kfPreset.name && c.kfPreset.name !== label) label = c.kfPreset.name + " + " + label;
+    kfRememberPreset(c, label);
+  }
+  $("cpKfPresets").addEventListener("click", function(e){ var b = e.target.closest("button[data-preset]"); if (!b) return; var tg = kfTarget(); var c = tg && tg.kind === "video" ? tg.item : null; if (!c || isBlocked()) return; stopPlayback(); beginEdit(); applyClipPreset(c, b.getAttribute("data-preset")); commitEdit("빠른 움직임: " + CLIP_PRESET_LABELS[b.getAttribute("data-preset")]); kfAfterEdit("video"); setStatus("\"" + CLIP_PRESET_LABELS[b.getAttribute("data-preset")] + "\" 움직임을 넣었어요. 재생해서 확인하고, 타임라인의 ◆를 끌어 시각을 조절하세요."); });
+  // 더킹: 잡은 구간의 볼륨을 낮췄다 올린다
+  function applyDuck(item, kind, level, ramp){
+    if (!selection || selection.end - selection.start < 0.05) return false;
+    var s0 = item.startSec, e0 = itemEnd(item, kind);
+    var a = clamp(selection.start, s0, e0), b = clamp(selection.end, s0, e0); if (b - a < 0.05) return false;
+    var ta = kfTimeOf(item, kind, a), tb = kfTimeOf(item, kind, b), rk = kind === "video" ? ramp * item.speed : ramp;
+    var getV = function(kt){ return kind === "video" ? volumeAt(item, kt) : audioVolumeAt(item, kt); };
+    var vA = getV(ta - rk), vB = getV(tb + rk);
+    var tr = kfTrack(item, "volume") ? item.kf.volume.filter(function(f){ return f.t < ta - rk - KF_TOL || f.t > tb + rk + KF_TOL; }) : [];
+    if (!item.kf) item.kf = {}; item.kf.volume = tr;
+    if (a - s0 > 1e-3 || rk <= 0) kfSet(item, "volume", ta - (a - s0 > 1e-3 ? rk : 0), vA); else kfSet(item, "volume", ta, level);
+    kfSet(item, "volume", ta, level); kfSet(item, "volume", tb, level);
+    if (e0 - b > 1e-3) kfSet(item, "volume", tb + rk, vB);
+    kfRememberPreset(item, "더킹");
+    return true;
+  }
+  $("cpDuckBtn").addEventListener("click", function(){ var tg = kfTarget(); if (!tg || tg.kind === "text" || isBlocked()) return; var level = clamp(parseFloat($("cpDuckLevel").value) || 0, 0, 100) / 100, ramp = clamp(parseFloat($("cpDuckRamp").value) || 0, 0, 5); stopPlayback(); beginEdit(); if (!applyDuck(tg.item, tg.kind, level, ramp)){ pendingBefore = null; setStatus("먼저 타임라인에서 이 " + (tg.kind === "video" ? "클립" : "오디오") + " 안의 구간을 잡아 주세요(I/O 키 또는 Shift+끌기)."); return; } commitEdit("선택 구간 볼륨 낮추기"); kfAfterEdit(tg.kind); setStatus("잡은 구간의 볼륨을 " + Math.round(level * 100) + "%로 낮췄어요. 말하는 구간마다 반복하면 돼요."); });
+  ["cpDuckLevel", "cpDuckRamp"].forEach(function(id){ $(id).addEventListener("keydown", function(e){ e.stopPropagation(); }); });
   function fxSlider(id, valId, key, label){
     $(id).addEventListener("input", function(){ var c = clipById(selectedClipId); if (!c) return; beginEdit(); fxOf(c)[key] = parseInt(this.value, 10) || 0; $(valId).textContent = this.value; $("cpFxResetBtn").disabled = false; drawPreviewFrame(); });
     $(id).addEventListener("change", function(){ commitEdit(label); });
@@ -3664,12 +4385,13 @@
     for (var i = 0; i < texts.length; i++){
       var tx = normalizeText(texts[i]);
       if (t < tx.startSec || t >= tx.endSec) continue;
-      var alpha = 1;
+      var alpha = 1, tk = t - tx.startSec;
       if (tx.fadeIn > 0) alpha = Math.min(alpha, (t - tx.startSec) / tx.fadeIn);
       if (tx.fadeOut > 0) alpha = Math.min(alpha, (tx.endSec - t) / tx.fadeOut);
+      if (tx.kf) alpha *= clamp(textPropAt(tx, "opacity", tk), 0, 1);
       alpha = clamp(alpha, 0, 1);
       if (alpha <= 0) continue;
-      var size = Math.max(8, Math.round(h * tx.size / 100));
+      var size = Math.max(4, Math.round(h * Math.max(0.1, textPropAt(tx, "size", tk)) / 100));
       ctx.save();
       ctx.globalAlpha = alpha;
       ctx.font = tx.weight + " " + size + "px " + textFontFamily(tx.font);
@@ -3681,7 +4403,7 @@
       var boxW = maxW + pad * 2, boxH = lines.length * lh + pad * 1.2;
       // 자유 위치(x·y = 상자 중심의 화면 비율)가 있으면 그걸로, 없으면 예전 9칸 프리셋으로
       var x, y;
-      if (tx.x != null && tx.y != null){ x = tx.x * w - boxW / 2; y = tx.y * h - boxH / 2; }
+      if (tx.x != null && tx.y != null){ x = textPropAt(tx, "x", tk) * w - boxW / 2; y = textPropAt(tx, "y", tk) * h - boxH / 2; }
       else { x = margin + (w - margin * 2 - boxW) * pos[0]; y = margin + (h - margin * 2 - boxH) * pos[1]; }
       if (ctx === pctx){
         textBoxes.push({ id: tx.id, x: x, y: y, w: boxW, h: boxH });
@@ -3795,7 +4517,7 @@
   }
   function fxVignette(fx){ var v = fx ? fx.vignette : 0; if (fx && fx.preset === "vintage") v = Math.max(v, 35); if (fx && fx.preset === "cinema") v = Math.max(v, 25); return clamp(v / 100, 0, 1); }
   function drawLayer(ctx, W, H, drawable, sw, sh, rotMeta, clip, layer){
-    var tf = tfOf(clip), fx = clip.fx;
+    var tf = tfAt(clip, layer.srcTime), fx = clip.fx;
     var sx = sw * tf.cropL, sy = sh * tf.cropT, cw = sw * (1 - tf.cropL - tf.cropR), ch = sh * (1 - tf.cropT - tf.cropB);
     if (cw <= 1 || ch <= 1) return;
     var rotated = rotMeta === 90 || rotMeta === 270;
@@ -3857,8 +4579,8 @@
     }
   }
   // 층의 화면 사각형(변형 핸들용) — 회전은 별도 반환
-  function layerRect(clip, W, H, sw, sh, rotMeta){
-    var tf = tfOf(clip);
+  function layerRect(clip, W, H, sw, sh, rotMeta, tfIn){
+    var tf = tfIn || tfAt(clip, curSt(clip));
     var rotated = rotMeta === 90 || rotMeta === 270;
     var rw0 = rotated ? sh : sw, rh0 = rotated ? sw : sh;
     var s = (tf.fit === "cover" ? Math.max(W / rw0, H / rh0) : Math.min(W / rw0, H / rh0)) * tf.scale;
@@ -3902,7 +4624,22 @@
     previewStage.classList.remove("is-empty");
     ensurePreviewSize();
     composeFrame(pctx, previewCanvas.width, previewCanvas.height, playhead, function(c){ return previewDrawable(c); });
+    if (!playing) drawMotionPath(pctx, previewCanvas.width, previewCanvas.height);
     updateTransformBox();
+  }
+  // 프리미어의 모션 패스처럼: 선택한 클립(또는 자막)의 위치 키프레임 경로를 미리보기 위에 점선과 ◆로 그린다
+  function drawMotionPath(ctx, W, H){
+    var c = clipById(selectedClipId), t = c ? null : textById(selectedTextId), item = c || t, kind = c ? "video" : "text"; if (!item) return;
+    var trx = kfTrack(item, "x"), tr_y = kfTrack(item, "y"); if (!trx && !tr_y) return;
+    var ts = kfAllTimes(item).filter(function(kt){ return (trx && trx.some(function(f){ return Math.abs(f.t - kt) <= KF_TOL; })) || (tr_y && tr_y.some(function(f){ return Math.abs(f.t - kt) <= KF_TOL; })); });
+    if (ts.length < 2) return;
+    function at(kt){ if (c){ var tf = tfAt(c, kt); return [W / 2 + tf.x * W, H / 2 + tf.y * H]; } return [textPropAt(t, "x", kt) * W, textPropAt(t, "y", kt) * H]; }
+    var t0 = ts[0], t1 = ts[ts.length - 1], n = 60;
+    ctx.save(); ctx.lineWidth = Math.max(1, W / 640); ctx.setLineDash([6, 4]); ctx.strokeStyle = "rgba(255,255,255,.9)"; ctx.shadowColor = "rgba(0,0,0,.6)"; ctx.shadowBlur = 3;
+    ctx.beginPath(); for (var i = 0; i <= n; i++){ var p = at(t0 + (t1 - t0) * i / n); if (i === 0) ctx.moveTo(p[0], p[1]); else ctx.lineTo(p[0], p[1]); } ctx.stroke();
+    ctx.setLineDash([]); var r = Math.max(4, W / 200), cur = kfTimeOf(item, kind, playhead);
+    ts.forEach(function(kt){ var p = at(kt), on = Math.abs(kt - cur) <= KF_TOL; ctx.beginPath(); ctx.moveTo(p[0], p[1] - r); ctx.lineTo(p[0] + r, p[1]); ctx.lineTo(p[0], p[1] + r); ctx.lineTo(p[0] - r, p[1]); ctx.closePath(); ctx.fillStyle = on ? "#2a78d6" : "#fff"; ctx.fill(); ctx.strokeStyle = "#2a78d6"; ctx.lineWidth = 1.5; ctx.stroke(); });
+    ctx.restore();
   }
   var syncToken = 0;
   function syncPreviewToPlayhead(){
@@ -3921,7 +4658,7 @@
     var c = clipById(selectedClipId); if (!c) return null;
     if (playhead < c.startSec - 1e-6 || playhead >= clipEnd(c) - 1e-6) return null;
     var d = previewDrawable(c); if (!d) return null;
-    return { clip: c, rect: layerRect(c, previewCanvas.width, previewCanvas.height, d.sw, d.sh, d.rot || 0) };
+    return { clip: c, rect: layerRect(c, previewCanvas.width, previewCanvas.height, d.sw, d.sh, d.rot || 0), tf: tfAt(c, curSt(c)) };
   }
   function canvasScale(){ // object-fit:contain이라 실제 그려진 영역을 계산
     var r = previewCanvas.getBoundingClientRect(), W = previewCanvas.width, H = previewCanvas.height;
@@ -3942,8 +4679,8 @@
     var cs = canvasScale(), st = previewStage.getBoundingClientRect(), R = info.rect, k = cs.k;
     transformBox.hidden = false;
     placeBox(transformBox, cs, st, R, k);
-    var tf = tfOf(info.clip), cropped = !!(tf.cropL || tf.cropT || tf.cropR || tf.cropB);
-    $("tfReadout").textContent = Math.round(tf.scale * 100) + "% · " + Math.round(tf.rot) + "°" + (cropped ? " · 크롭" : "") + " · 이 상자가 화면에 그려져요";
+    var tf = info.tf, cropped = !!(tf.cropL || tf.cropT || tf.cropR || tf.cropB);
+    $("tfReadout").textContent = Math.round(tf.scale * 100) + "% · " + Math.round(tf.rot) + "°" + (cropped ? " · 크롭" : "") + (info.clip.kf ? " · ◆ 움직임" : "") + " · 이 상자가 화면에 그려져요";
     // 출력 화면 테두리(캔버스 = 저장되는 화면)
     fo.hidden = false;
     fo.style.left = (cs.r.left - st.left) + "px"; fo.style.top = (cs.r.top - st.top) + "px";
@@ -3952,7 +4689,7 @@
     // 크롭으로 잘린 원본 전체를 점선으로
     if (cropped){
       var d = previewDrawable(info.clip);
-      var full = layerRect(Object.assign({}, info.clip, { tf: Object.assign({}, tf, { cropL: 0, cropT: 0, cropR: 0, cropB: 0 }) }), previewCanvas.width, previewCanvas.height, d.sw, d.sh, d.rot || 0);
+      var full = layerRect(info.clip, previewCanvas.width, previewCanvas.height, d.sw, d.sh, d.rot || 0, Object.assign({}, tf, { cropL: 0, cropT: 0, cropR: 0, cropB: 0 }));
       // 크롭 사각형의 중심은 변형 위치에 그려지므로, 전체 사각형은 크롭 오프셋만큼 반대로 밀린다
       var ox = ((tf.cropR - tf.cropL) / 2) * d.sw * R.scale, oy = ((tf.cropB - tf.cropT) / 2) * d.sh * R.scale;
       var ang = R.rot * Math.PI / 180;   // 원본 좌표계 오프셋을 (메타+사용자) 회전만큼 돌린다
@@ -3996,7 +4733,7 @@
     var handle = e.target.getAttribute("data-h") || "move";
     var cs = canvasScale();
     var px = (e.clientX - cs.r.left) / cs.k, py = (e.clientY - cs.r.top) / cs.k;
-    tfDrag = { clip: info.clip, handle: handle, startX: px, startY: py, orig: Object.assign({}, tfOf(info.clip)), rect: info.rect, moved: false };
+    tfDrag = { clip: info.clip, handle: handle, startX: px, startY: py, orig: Object.assign({}, info.tf), rect: info.rect, moved: false, st: curSt(info.clip) };
     transformBox.setPointerCapture(e.pointerId);
     e.preventDefault(); e.stopPropagation();
   });
@@ -4007,7 +4744,7 @@
     var dx = px - tfDrag.startX, dy = py - tfDrag.startY;
     if (!tfDrag.moved && Math.abs(dx) < 2 && Math.abs(dy) < 2) return;
     if (!tfDrag.moved){ tfDrag.moved = true; beginEdit(); }
-    var W = previewCanvas.width, H = previewCanvas.height, tf = tfOf(tfDrag.clip), o = tfDrag.orig, R = tfDrag.rect, h = tfDrag.handle;
+    var W = previewCanvas.width, H = previewCanvas.height, tf = Object.assign({}, tfDrag.orig), o = tfDrag.orig, R = tfDrag.rect, h = tfDrag.handle;
     if (h === "move"){
       tf.x = o.x + dx / W; tf.y = o.y + dy / H;
       // 출력 화면(점선 테두리)의 가장자리·중심선에 스냅 — 8px 안으로 들어오면 붙고 분홍 안내선이 뜬다. Alt를 누르면 스냅 없이.
@@ -4084,13 +4821,20 @@
       var radT = R.rot * Math.PI / 180, sx = ddx * Math.cos(radT) - ddy * Math.sin(radT), sy = ddx * Math.sin(radT) + ddy * Math.cos(radT);
       tf.x = Math.round((o.x + sx / W) * 10000) / 10000; tf.y = Math.round((o.y + sy / H) * 10000) / 10000;
     }
+    applyTfWork(tfDrag.clip, tf, tfDrag.st);
     drawPreviewFrame(); renderClipProps();
   });
+  // 작업 복사본의 값을 클립에 반영 — 키프레임이 있는 속성은 그 시각에 기록, 나머지는 고정값
+  function applyTfWork(c, work, st){
+    var base = tfOf(c);
+    ["x", "y", "scale", "rot", "opacity"].forEach(function(k){ if (work[k] !== undefined && work[k] !== base[k]) setTfProp(c, k, work[k], st); else if (work[k] !== undefined && !kfTrack(c, k)) base[k] = work[k]; });
+    ["cropL", "cropT", "cropR", "cropB"].forEach(function(k){ if (work[k] !== undefined) base[k] = work[k]; });
+  }
   function endTfDrag(){ if (!tfDrag) return; var d = tfDrag; tfDrag = null; $("tfGuideV").hidden = true; $("tfGuideH").hidden = true; if (d.moved) commitEdit(d.handle === "move" ? "클립 위치" : d.handle === "rot" ? "클립 회전" : /^[nesw]$/.test(d.handle) ? "클립 크롭" : "클립 크기"); }
   transformBox.addEventListener("pointerup", endTfDrag);
   transformBox.addEventListener("pointercancel", endTfDrag);
-  transformBox.addEventListener("dblclick", function(){ var c = clipById(selectedClipId); if (!c) return; beginEdit(); c.tf = defaultTf(); commitEdit("변형 초기화"); drawPreviewFrame(); renderClipProps(); });
-  transformBox.addEventListener("wheel", function(e){ var c = clipById(selectedClipId); if (!c) return; e.preventDefault(); beginEdit(); var tf = tfOf(c); tf.scale = clamp(tf.scale * (e.deltaY < 0 ? 1.05 : 1 / 1.05), 0.05, 8); drawPreviewFrame(); renderClipProps(); clearTimeout(transformBox._wt); transformBox._wt = setTimeout(function(){ commitEdit("클립 크기"); }, 400); }, { passive: false });
+  transformBox.addEventListener("dblclick", function(){ var c = clipById(selectedClipId); if (!c) return; beginEdit(); c.tf = defaultTf(); ["x", "y", "scale", "rot", "opacity"].forEach(function(k){ kfClear(c, k); }); commitEdit("변형 초기화"); renderTimeline(); drawPreviewFrame(); renderClipProps(); });
+  // (휠로 크기 바꾸기는 뺐다 — 미리보기 위에서 스크롤하다 크기가 바뀌는 실수가 잦아서. 크기는 모서리 손잡이·슬라이더·키프레임 탭에서.)
   window.addEventListener("resize", function(){ updateTransformBox(); });
   // 분할선 드래그·속성 패널 폭·작업대 전환처럼 창 크기 이벤트 없이 미리보기만 커지거나 작아질 때도
   // 변형 상자(파란 점선)·출력 테두리가 즉시 따라오도록 미리보기 크기 변화를 직접 지켜본다.
@@ -4099,7 +4843,7 @@
     tfRo.observe(previewStage); tfRo.observe(previewCanvas);
   }
 
-  function previewVolumeFor(c){ return (c.mute || c.audioDetached || master.mute) ? 0 : clamp(c.volume * master.volume, 0, 1); }
+  function previewVolumeFor(c){ return (c.mute || c.audioDetached || master.mute) ? 0 : clamp(volumeAt(c, curSt(c)) * master.volume, 0, 1); }
   function applyPreviewVolume(){
     Object.keys(playingClips).forEach(function(id){
       var c = clipById(parseInt(id, 10)); var src = playingClips[id]; if (!c || !src || !src.video) return;
@@ -4121,14 +4865,11 @@
       var srcNode = ctx.createBufferSource(); srcNode.buffer = a.buffer; srcNode.loop = !!a.loop;
       var g = ctx.createGain();
       var startAt = Math.max(0, a.startSec - tl), offset = Math.max(0, tl - a.startSec);
-      var vol = master.mute ? 0 : a.volume;
-      g.gain.setValueAtTime(0, now);
-      // 페이드(타임라인 기준)
-      var fi = a.fadeIn || 0, fo = a.fadeOut || 0;
       var t0 = now + startAt;
-      if (fi > 0){ var fiEnd = a.startSec + fi; if (tl < fiEnd){ g.gain.setValueAtTime(vol * clamp((tl - a.startSec) / fi, 0, 1), t0); g.gain.linearRampToValueAtTime(vol, now + (fiEnd - tl)); } else g.gain.setValueAtTime(vol, t0); }
-      else g.gain.setValueAtTime(vol, t0);
-      if (fo > 0){ var foStart = end - fo; if (foStart > tl){ g.gain.setValueAtTime(vol, now + (foStart - tl)); } g.gain.linearRampToValueAtTime(0, now + (end - tl)); }
+      g.gain.setValueAtTime(0, now);
+      // 볼륨 키프레임 × 페이드를 한 곡선으로(타임라인 기준, 50Hz 표본)
+      var span = dur - offset;
+      if (span > 0.03) g.gain.setValueCurveAtTime(audioGainCurve(a, offset, dur, dur, master.mute ? 0 : 1), t0, span); else g.gain.setValueAtTime(master.mute ? 0 : audioGainAt(a, offset, dur), t0);
       srcNode.connect(g); g.connect(ctx.destination);
       var segIn = a.inSec || 0, segLen = audioSegDur(a);
       if (a.loop){ srcNode.loopStart = segIn; srcNode.loopEnd = segIn + segLen; }
@@ -4147,8 +4888,10 @@
     var p = src.video.play(); if (p && p.catch) p.catch(function(){});
   }
   function stopClipPlayback(id){ var src = playingClips[id]; if (src && src.video) src.video.pause(); delete playingClips[id]; }
+  var volKfLive = false;
   function startPlayback(){
     if (!clips.length || isBlocked()) return;
+    volKfLive = clips.some(function(c){ return !!kfTrack(c, "volume"); });
     if (playhead >= totalDuration() - 0.01) playhead = 0;
     playing = true;
     $("playBtn").querySelector("span").textContent = "일시정지";
@@ -4176,6 +4919,7 @@
       });
       Object.keys(playingClips).forEach(function(id){ if (!activeIds[id]) stopClipPlayback(id); });
       playhead = clamp(t, 0, totalDuration());
+      if (volKfLive) applyPreviewVolume();
       updatePlayhead(); ensurePlayheadVisible();
       drawPreviewFrame();
       rafId = requestAnimationFrame(tick);
@@ -4232,7 +4976,9 @@
     if (!textDrag) return;
     var cs = canvasScale(), px = (e.clientX - cs.r.left) / cs.k, py = (e.clientY - cs.r.top) / cs.k;
     if (!textDrag.moved){ textDrag.moved = true; beginEdit(); }
-    textDrag.t.x = clamp((px + textDrag.dx) / previewCanvas.width, -0.5, 1.5); textDrag.t.y = clamp((py + textDrag.dy) / previewCanvas.height, -0.5, 1.5);
+    var tkD = playhead - textDrag.t.startSec;
+    setTextProp(textDrag.t, "x", clamp((px + textDrag.dx) / previewCanvas.width, -0.5, 1.5), tkD); setTextProp(textDrag.t, "y", clamp((py + textDrag.dy) / previewCanvas.height, -0.5, 1.5), tkD);
+    if (textDrag.t.kf) renderTimeline();
     drawPreviewFrame();
   });
   function endTextDrag(){ if (!textDrag) return; var d = textDrag; textDrag = null; if (d.moved){ commitEdit("자막 위치"); renderTextList(); } }
@@ -4297,8 +5043,27 @@
       gT.appendChild(tcField("페이드 아웃", numberInput(a.fadeOut, 0, 30, 0.5, function(v){ beginEdit(); a.fadeOut = clamp(v, 0, 30); commitEdit("오디오 페이드 아웃"); }), "초"));
       secT.appendChild(gT); card.appendChild(secT);
       var secV = tcSection("소리"), gV = el("div", "tc-grid cols-1");
-      gV.appendChild(tcField("볼륨", rangeInput(Math.round(a.volume * 100), 0, 200, 5, function(v, final){ if (!final){ beginEdit(); a.volume = v / 100; renderTimeline(); } else commitEdit("오디오 볼륨"); }, "%"), null, "tc-range"));
+      var tkA = playhead - a.startSec;
+      gV.appendChild(tcField("볼륨", rangeInput(Math.round(audioVolumeAt(a, tkA) * 100), 0, 200, 5, function(v, final){ if (!final){ beginEdit(); setAudioVolume(a, v / 100, playhead - a.startSec); renderTimeline(); kfPanelTick(); } else commitEdit("오디오 볼륨"); }, "%"), null, "tc-range"));
       secV.appendChild(gV); card.appendChild(secV);
+      renderKfLink(head, a, "audio");
+      if (false){
+      var secK = tcSection("볼륨 움직임 (키프레임)"), sumK = el("div", "kf-summary"); renderKfSummary(sumK, a, "audio"); secK.appendChild(sumK);
+      var gK = el("div", "tc-grid cols-3");
+      var easeSelA = makeSelect(KF_EASES, kfEaseOf(a), "키프레임 사이를 잇는 방식", function(v){ beginEdit(); a.kfEase = v; commitEdit("키프레임 잇는 방식"); });
+      gK.appendChild(tcField("사이를 잇는 방식", easeSelA, null, "span-2"));
+      var clrWrapA = el("span", "tc-toggle-wrap"); var clrA = el("button", "danger-text", "모두 지우기"); clrA.type = "button"; clrA.disabled = !a.kf; clrA.addEventListener("click", function(){ if (!a.kf) return; confirmClearKf(a, "audio"); }); clrWrapA.appendChild(clrA);
+      gK.appendChild(tcField("키프레임", clrWrapA)); secK.appendChild(gK);
+      secK.appendChild(el("div", "tc-sub-title", "선택 구간 볼륨 낮추기 (더킹)"));
+      var duck = el("div", "kf-duck"), lvl = numberInput(25, 0, 100, 5, function(){}), rmp = numberInput(0.4, 0, 5, 0.1, function(){});
+      duck.appendChild(tcField("낮출 볼륨", lvl, "%")); duck.appendChild(tcField("오르내림", rmp, "초"));
+      var selHasA = !!selection && selection.end - selection.start >= 0.05;
+      var duckBtn = el("button", "", "선택 구간에 적용"); duckBtn.type = "button"; duckBtn.disabled = !selHasA; duckBtn.title = "타임라인에서 I/O 키나 Shift+끌기로 잡은 구간의 볼륨을 낮춰요";
+      duckBtn.addEventListener("click", function(){ if (isBlocked()) return; var level = clamp(parseFloat(lvl.value) || 0, 0, 100) / 100, ramp = clamp(parseFloat(rmp.value) || 0, 0, 5); stopPlayback(); beginEdit(); if (!applyDuck(a, "audio", level, ramp)){ pendingBefore = null; setStatus("먼저 타임라인에서 이 오디오 안의 구간을 잡아 주세요(I/O 키 또는 Shift+끌기)."); return; } commitEdit("선택 구간 볼륨 낮추기"); kfAfterEdit("audio"); setStatus("잡은 구간의 배경음악을 " + Math.round(level * 100) + "%로 낮췄어요. 말하는 구간마다 반복하면 돼요."); });
+      duck.appendChild(duckBtn); secK.appendChild(duck);
+      if (typeof enhanceSelect === "function") setTimeout(function(){ enhanceSelect(easeSelA); }, 0);
+      card.appendChild(secK);
+      }
       card.addEventListener("click", function(e){ if (e.target.closest("button, input")) return; selectAudio(a.id); });
       list.appendChild(card);
     });
@@ -4351,7 +5116,7 @@
   var POS_LABELS = [["free", "직접 놓은 자리"], ["tl", "왼쪽 위"], ["tc", "가운데 위"], ["tr", "오른쪽 위"], ["ml", "왼쪽 중간"], ["mc", "정중앙"], ["mr", "오른쪽 중간"], ["bl", "왼쪽 아래"], ["bc", "가운데 아래"], ["br", "오른쪽 아래"]];
   // 자막 상자 중심(화면 비율). 자유 위치면 그 값, 프리셋이면 마지막으로 그린 상자에서 계산
   function textCenterOf(t){
-    if (t.x != null && t.y != null) return [t.x, t.y];
+    if (t.x != null && t.y != null){ var tk = playhead - t.startSec; return [textPropAt(t, "x", tk), textPropAt(t, "y", tk)]; }
     for (var i = 0; i < textBoxes.length; i++){ var b = textBoxes[i]; if (b.id === t.id) return [(b.x + b.w / 2) / previewCanvas.width, (b.y + b.h / 2) / previewCanvas.height]; }
     var p = POSITIONS[t.pos] || POSITIONS.bc; return [0.1 + 0.8 * p[0], 0.1 + 0.8 * p[1]];
   }
@@ -4368,9 +5133,15 @@
     return b;
   }
   // 자막 카드 — 구역(시간 · 위치 · 글꼴 · 꾸밈)으로 나누고, 각 항목은 "이름 위 / 컨트롤 아래"로 세워서 격자에 맞춘다
-  function tcField(label, ctrl, unit, cls){
+  function kfCtl(kind, id, key){
+    var c = el("span", "kf-ctl"); c.setAttribute("data-kf", key); c.setAttribute("data-kind", kind); c.setAttribute("data-id", id);
+    var p = el("button", "kf-prev", "‹"); p.type = "button"; p.title = "이전 키프레임으로"; var b = el("button", "kf-btn", "◆"); b.type = "button"; b.title = "지금 재생 위치에 키프레임 기록 (다시 누르면 삭제)"; var n = el("button", "kf-next", "›"); n.type = "button"; n.title = "다음 키프레임으로";
+    c.appendChild(p); c.appendChild(b); c.appendChild(n); return c;
+  }
+  function tcField(label, ctrl, unit, cls, kf){
     var f = el("label", "tc-field" + (cls ? " " + cls : ""));
-    f.appendChild(el("span", "tc-label", label));
+    var lab = el("span", "tc-label" + (kf ? " has-kf" : ""), label); if (kf) lab.appendChild(kfCtl(kf[0], kf[1], kf[2]));
+    f.appendChild(lab);
     var c = el("span", "tc-ctrl"); c.appendChild(ctrl); if (unit) c.appendChild(el("span", "tc-unit", unit));
     f.appendChild(c); return f;
   }
@@ -4428,11 +5199,11 @@
       var secP = tcSection("위치"), gP = el("div", "tc-grid cols-3");
       var sel = makeSelect(POS_LABELS, t.x != null ? "free" : t.pos, "자막 위치", function(v){ if (v === "free") return; beginEdit(); t.pos = v; delete t.x; delete t.y; commitEdit("자막 위치"); renderTextList(); drawPreviewFrame(); });
       gP.appendChild(tcField("자리", sel, null, "span-1"));
-      var xyNow = textCenterOf(t);
-      gP.appendChild(tcField("가로", numberInput(Math.round(xyNow[0] * 100), -50, 150, 1, function(v){ beginEdit(); var c = textCenterOf(t); t.x = clamp(v, -50, 150) / 100; t.y = c[1]; commitEdit("자막 위치"); drawPreviewFrame(); }), "%"));
-      gP.appendChild(tcField("세로", numberInput(Math.round(xyNow[1] * 100), -50, 150, 1, function(v){ beginEdit(); var c = textCenterOf(t); t.x = c[0]; t.y = clamp(v, -50, 150) / 100; commitEdit("자막 위치"); drawPreviewFrame(); }), "%"));
+      var xyNow = textCenterOf(t), tkNow = playhead - t.startSec;
+      gP.appendChild(tcField("가로", numberInput(Math.round(xyNow[0] * 100), -50, 150, 1, function(v){ beginEdit(); ensureFreeText(t); setTextProp(t, "x", clamp(v, -50, 150) / 100, playhead - t.startSec); commitEdit("자막 위치"); kfAfterEdit("text"); }), "%"));
+      gP.appendChild(tcField("세로", numberInput(Math.round(xyNow[1] * 100), -50, 150, 1, function(v){ beginEdit(); ensureFreeText(t); setTextProp(t, "y", clamp(v, -50, 150) / 100, playhead - t.startSec); commitEdit("자막 위치"); kfAfterEdit("text"); }), "%"));
       secP.appendChild(gP);
-      secP.appendChild(el("div", "tc-hint", "미리보기에서 자막을 직접 끌어 놓을 수도 있어요."));
+      secP.appendChild(el("div", "tc-hint", "미리보기에서 자막을 직접 끌어 놓을 수도 있어요. 시간에 따라 움직이게 하려면 키프레임 탭에서."));
       card.appendChild(secP);
       // 글꼴
       var secF = tcSection("글꼴"), gF = el("div", "tc-grid cols-3");
@@ -4445,8 +5216,23 @@
       gF.appendChild(tcField("굵기", weightWrap));
       secF.appendChild(gF);
       var sizeRow = el("div", "tc-grid cols-1");
-      sizeRow.appendChild(tcField("크기", rangeInput(t.size, 2, 20, 0.5, function(v, final){ if (!final){ beginEdit(); t.size = v; drawPreviewFrame(); } else commitEdit("자막 크기"); }, "%"), null, "tc-range"));
+      sizeRow.appendChild(tcField("크기", rangeInput(Math.round(textPropAt(t, "size", tkNow) * 2) / 2, 2, 20, 0.5, function(v, final){ if (!final){ beginEdit(); setTextProp(t, "size", v, playhead - t.startSec); if (kfTrack(t, "size")) renderTimeline(); drawPreviewFrame(); refreshKfButtons(); } else commitEdit("자막 크기"); }, "%"), null, "tc-range"));
       secF.appendChild(sizeRow); card.appendChild(secF);
+      if (false){
+      var secK = tcSection("움직임 (키프레임)"), sumK = el("div", "kf-summary"); renderKfSummary(sumK, t, "text"); secK.appendChild(sumK);
+      var gK = el("div", "tc-grid cols-3");
+      var easeSel = makeSelect(KF_EASES, kfEaseOf(t), "키프레임 사이를 잇는 방식", function(v){ beginEdit(); t.kfEase = v; commitEdit("키프레임 잇는 방식"); drawPreviewFrame(); });
+      gK.appendChild(tcField("사이를 잇는 방식", easeSel, null, "span-2"));
+      var clrWrap = el("span", "tc-toggle-wrap"); var clrBtn = el("button", "danger-text", "모두 지우기"); clrBtn.type = "button"; clrBtn.disabled = !t.kf; clrBtn.addEventListener("click", function(){ if (!t.kf) return; confirmClearKf(t, "text"); }); clrWrap.appendChild(clrBtn);
+      gK.appendChild(tcField("키프레임", clrWrap));
+      secK.appendChild(gK);
+      secK.appendChild(el("div", "tc-sub-title", "빠른 움직임 넣기"));
+      var pk = el("div", "kf-presets");
+      [["risein", "↑ 아래에서 등장"], ["growin", "⤢ 커지며 등장"], ["slidein", "→ 왼쪽에서 등장"], ["bounce", "⤒ 튀어오르기"], ["shrinkout", "⤡ 작아지며 퇴장"], ["fadeout", "◑ 사라지며 퇴장"]].forEach(function(p){ var b = el("button", "", p[1]); b.type = "button"; b.addEventListener("click", function(){ if (isBlocked()) return; stopPlayback(); beginEdit(); applyTextPreset(t, p[0]); commitEdit("자막 움직임: " + p[1].slice(2)); kfAfterEdit("text"); setStatus("\"" + p[1].slice(2) + "\" 움직임을 넣었어요. 재생해서 확인해 보세요."); }); pk.appendChild(b); });
+      secK.appendChild(pk);
+      card.appendChild(secK);
+      }
+      renderKfLink(head, t, "text");
       // 꾸밈
       var secD = tcSection("색 · 꾸밈"), gD = el("div", "tc-grid cols-3");
       var ci = document.createElement("input"); ci.type = "color"; ci.value = t.color; ci.setAttribute("aria-label", "글자 색");
@@ -4474,10 +5260,27 @@
     });
     ensureTextFonts(drawPreviewFrame);
   }
+  // 자막 빠른 움직임(자막 시작·끝 기준)
+  function applyTextPreset(t, name){
+    ensureFreeText(t);
+    var dur = Math.max(0.1, t.endSec - t.startSec), short = Math.min(0.5, dur / 2), x0 = t.x, y0 = t.y, sz = t.size;
+    function clr(keys){ keys.forEach(function(k){ kfClear(t, k); }); }
+    switch (name){
+      case "risein": clr(["y", "opacity"]); kfSet(t, "y", 0, y0 + 0.12); kfSet(t, "y", short, y0); kfSet(t, "opacity", 0, 0); kfSet(t, "opacity", short, 1); break;
+      case "growin": clr(["size", "opacity"]); kfSet(t, "size", 0, sz * 0.3); kfSet(t, "size", short, sz); kfSet(t, "opacity", 0, 0); kfSet(t, "opacity", short * 0.6, 1); break;
+      case "slidein": clr(["x", "opacity"]); kfSet(t, "x", 0, x0 - 0.25); kfSet(t, "x", short, x0); kfSet(t, "opacity", 0, 0); kfSet(t, "opacity", short * 0.6, 1); break;
+      case "bounce": clr(["y", "opacity"]); kfSet(t, "y", 0, y0 + 0.15); kfSet(t, "y", short * 0.7, y0 - 0.03); kfSet(t, "y", short, y0); kfSet(t, "opacity", 0, 0); kfSet(t, "opacity", short * 0.5, 1); break;
+      case "shrinkout": clr(["size"]); kfSet(t, "size", dur - short, textPropAt(t, "size", dur - short)); kfSet(t, "size", dur, sz * 0.3); kfSet(t, "opacity", dur - short, textPropAt(t, "opacity", dur - short)); kfSet(t, "opacity", dur, 0); break;
+      case "fadeout": kfSet(t, "opacity", dur - short, textPropAt(t, "opacity", dur - short)); kfSet(t, "opacity", dur, 0); break;
+    }
+    var names = { risein: "아래에서 등장", growin: "커지며 등장", slidein: "왼쪽에서 등장", bounce: "튀어오르기", shrinkout: "작아지며 퇴장", fadeout: "사라지며 퇴장" }, label = names[name] || name;
+    if (t.kfPreset && t.kfPreset.name && t.kfPreset.name !== label && /등장/.test(t.kfPreset.name) && /퇴장/.test(label)) label = t.kfPreset.name + " + " + label;
+    kfRememberPreset(t, label);
+  }
   function duplicateText(t){
     if (isBlocked()) return;
     beginEdit();
-    var n = Object.assign({}, t, { id: nextId++ });
+    var n = cloneText(t); n.id = nextId++;
     var len = t.endSec - t.startSec;
     n.startSec = Math.min(t.endSec, Math.max(0, totalDuration() - 0.1)); n.endSec = Math.min(totalDuration(), n.startSec + len);
     if (n.endSec - n.startSec < 0.1){ n.startSec = t.startSec; n.endSec = t.endSec; }
@@ -4535,7 +5338,9 @@
 
   // 탭
   var panelTabs = $("panelTabs");
+  var currentTab = "clip";
   function activateTab(name){
+    currentTab = name;
     var btns = panelTabs.querySelectorAll("button");
     Array.prototype.forEach.call(btns, function(b, i){
       var on = b.getAttribute("data-tab") === name;
@@ -4546,6 +5351,8 @@
     $("audioPanel").hidden = name !== "audio";
     $("textPanel").hidden = name !== "text";
     $("screenPanel").hidden = name !== "screen";
+    $("kfPanel").hidden = name !== "kf";
+    if (name === "kf"){ if (!kfTarget() && clips.length && autoSelectClipQuiet()) {} renderKfPanel(); }
     if (name === "screen" || name === "clip") layoutSegIndicators();
     if (name === "clip" && clipById(selectedClipId) == null && clips.length && autoSelectClip()) return;
     if (name === "clip") $("clipEmpty").hidden = clipById(selectedClipId) != null;
@@ -4715,9 +5522,11 @@
     masterGain.connect(ctx.destination);
     for (var i = 0; i < clips.length; i++){
       var c = clips[i], src = sourceOf(c.srcId);
-      if (src && src.audioBuffer && !c.mute && !c.audioDetached && c.volume > 0){
+      if (src && src.audioBuffer && !c.mute && !c.audioDetached && (c.volume > 0 || kfTrack(c, "volume"))){
         var node = ctx.createBufferSource(); node.buffer = src.audioBuffer; node.playbackRate.value = c.speed;
-        var g = ctx.createGain(); g.gain.value = c.volume;
+        var g = ctx.createGain(), trV = kfTrack(c, "volume");
+        if (trV){ var cd = clipDur(c), nq = Math.max(2, Math.ceil(cd * 50) + 1), curveV = new Float32Array(nq); for (var q = 0; q < nq; q++) curveV[q] = clamp(kfEval(trV, srcTimeOf(c, c.startSec + cd * q / (nq - 1)), c.volume, kfEaseOf(c)), 0, 2); g.gain.setValueCurveAtTime(curveV, c.startSec, cd); }
+        else g.gain.value = c.volume;
         node.connect(g); g.connect(masterGain);
         node.start(c.startSec, c.inSec, c.outSec - c.inSec);
       }
@@ -4738,10 +5547,7 @@
       var segIn = a.inSec || 0, segLen = audioSegDur(a);
       if (a.loop){ an.loopStart = segIn; an.loopEnd = segIn + segLen; }
       var ag = ctx.createGain();
-      var vol = a.volume;
-      ag.gain.setValueAtTime(a.fadeIn > 0 ? 0 : vol, a.startSec);
-      if (a.fadeIn > 0) ag.gain.linearRampToValueAtTime(vol, a.startSec + Math.min(ad, a.fadeIn));
-      if (a.fadeOut > 0){ ag.gain.setValueAtTime(vol, Math.max(a.startSec, a.startSec + ad - a.fadeOut)); ag.gain.linearRampToValueAtTime(0, a.startSec + ad); }
+      if (ad > 0.03) ag.gain.setValueCurveAtTime(audioGainCurve(a, 0, ad, ad), a.startSec, ad); else ag.gain.setValueAtTime(audioGainAt(a, 0, ad), a.startSec);
       an.connect(ag); ag.connect(bgmBus);
       an.start(a.startSec, segIn, ad);
     }
@@ -5074,8 +5880,8 @@
       case "\\": e.preventDefault(); setZoom(1); timelineScroll.scrollLeft = 0; break;
       case "k": case "K": e.preventDefault(); stopPlayback(); break;
       case "l": case "L": e.preventDefault(); if (!playing) togglePlay(); break;
-      case "Delete": case "Backspace": e.preventDefault(); if (e.shiftKey) rippleDeleteSelected(); else if (selection && selection.end - selection.start >= 0.001) deleteSelectionRange(); else deleteSelected(); break;
-      case "Escape": e.preventDefault(); selection = null; updateSelectionOverlay(); selectClip(null); break;
+      case "Delete": case "Backspace": e.preventDefault(); if (kfSel && kfDeleteSelected()) break; if (e.shiftKey) rippleDeleteSelected(); else if (selection && selection.end - selection.start >= 0.001) deleteSelectionRange(); else deleteSelected(); break;
+      case "Escape": e.preventDefault(); if (kfSel){ kfSelect(null); break; } selection = null; updateSelectionOverlay(); selectClip(null); break;
     }
   });
 
@@ -5181,6 +5987,7 @@
   window.addEventListener("pagehide", function(){ sources.forEach(function(s){ try { URL.revokeObjectURL(s.url); } catch(e){} }); });
 
   // 디버그 훅(테스트용)
+  window.__veKf = { renderKfPanel: renderKfPanel, kfTarget: kfTarget, isBlocked: isBlocked, kfPanelState: function(){ return kfPanelState; }, activateTab: activateTab, kfExpanded: kfExpanded, kfSetEaseAt: kfSetEaseAt, kfEaseAt: kfEaseAt, kfSelect: function(item, kind, kt){ kfSelect(item, kind, kt); }, getKfSel: function(){ return kfSel; }, kfEval: kfEval, easeP: easeP, tfAt: tfAt, volumeAt: volumeAt, textPropAt: textPropAt, audioVolumeAt: audioVolumeAt, audioGainAt: audioGainAt, kfSet: kfSet, kfRemove: kfRemove, kfAllTimes: kfAllTimes, applyClipPreset: applyClipPreset, applyTextPreset: applyTextPreset, applyDuck: applyDuck, clips: function(){ return clips; }, texts: function(){ return texts; }, audioClips: function(){ return audioClips; }, setPlayhead: function(t){ stopPlayback(); setPlayhead(t); }, setSelection: function(a, b){ selection = { start: a, end: b }; updateSelectionOverlay(); renderClipProps(); renderAudioList(); }, selectClip: function(id){ selectClip(id); }, selectText: function(id){ selectText(id); }, selectAudio: function(id){ selectAudio(id); }, refresh: function(){ renderAll(); }, beginEdit: beginEdit, commitEdit: commitEdit, undo: performUndo, redo: performRedo, renderAudioMix: renderAudioMix, composeFrame: composeFrame, previewDrawable: previewDrawable, buildProject: buildProject, getSelection: function(){ return selection; } };
   window.__videoEditorDebug = {
     getState: function(){ return { clips: clips.map(function(c){ return Object.assign({}, c); }), audioClips: audioClips.map(function(a){ return { id: a.id, name: a.name, lane: a.lane, startSec: a.startSec, inSec: a.inSec, outSec: a.outSec, volume: a.volume, loop: a.loop, dur: a.buffer.duration }; }), texts: texts.map(function(t){ return Object.assign({}, t); }), master: Object.assign({}, master), selection: selection, playhead: playhead, total: totalDuration(), sources: sources.map(function(s){ return { id: s.id, kind: s.kind, name: s.name, duration: s.duration, width: s.width, height: s.height, fps: s.fps, webcodecs: !!s.demux, hasAudio: !!s.audioBuffer, thumbs: s.thumbs.length, fineThumbs: s.fineThumbs ? Object.keys(s.fineThumbs).length : 0 }; }), project: Object.assign({}, project), history: historyStack.map(function(h){ return h.label; }), redo: redoStack.length, support: support, exporting: exporting, zoom: zoom, pps: pxPerSec(), fps: projectFps(), zoomMax: zoomMax(), selectedClipId: selectedClipId }; },
     setPlayhead: function(t){ stopPlayback(); setPlayhead(t); },
@@ -5210,7 +6017,7 @@
   // 편집 상태(클립·오디오·자막·화면·소리 설정)를 JSON으로 저장한다. 영상·이미지·오디오 파일 자체는 넣지 않고
   // 이름·크기만 적어 두었다가, 열 때 사용자가 같은 파일을 다시 고르면 이름(+크기)으로 맞춰 잇는다(프리미어의 미디어 연결과 같은 방식).
   // ============================================================================================
-  var PROJECT_APP = "sseobom-video-editor", PROJECT_VERSION = 1, PROJECT_EXT = ".sseobom";
+  var PROJECT_APP = "sseobom-video-editor", PROJECT_VERSION = 2, PROJECT_EXT = ".sseobom";
   function projectName(){ var n = ($("fileNameInput").value || "").trim(); return n || "편집한 영상"; }
   function buildProject(){
     var usedSrc = {}; clips.forEach(function(c){ usedSrc[c.srcId] = true; }); audioClips.forEach(function(a){ if (a.fromSrcId != null) usedSrc[a.fromSrcId] = true; });
@@ -5223,8 +6030,8 @@
       state: {
         project: Object.assign({}, project), master: Object.assign({}, master), playhead: playhead, zoom: zoom,
         clips: clips.map(cloneClip),
-        audioClips: audioClips.map(function(a){ var o = Object.assign({}, a); delete o.buffer; delete o.peaks; return o; }),
-        texts: texts.map(function(t){ return Object.assign({}, t); })
+        audioClips: audioClips.map(function(a){ var o = cloneAudio(a); delete o.buffer; delete o.peaks; return o; }),
+        texts: texts.map(cloneText)
       }
     };
   }
